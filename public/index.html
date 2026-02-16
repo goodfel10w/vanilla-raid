@@ -331,7 +331,12 @@ function avForSlot(d,s){return entries.filter(e=>e.availability?.[d+"_"+s])}
 // ══════════════════════════════
 //  FORM
 // ══════════════════════════════
+function syncInputs(){
+  const n=document.getElementById("f-name");if(n)form.name=n.value;
+  const t=document.getElementById("f-notes");if(t)form.notes=t.value;
+}
 function renderForm(){
+  syncInputs();
   const el=document.getElementById("v-form");
   const canSave=form.name.trim()&&form.cls&&form.roles.length>0;
 
