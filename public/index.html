@@ -389,6 +389,7 @@ function renderForm(){
         <span class="lbl">Anmerkungen (optional)</span>
         <input type="text" id="f-notes" value="${h(form.notes)}" placeholder="z.B. Erste Woche im Monat nicht verfügbar" oninput="form.notes=this.value">
       </div>
+      ${!canSave?`<div style="font-size:12px;color:#e57373;margin-bottom:8px">Bitte ausfüllen: ${[!form.name.trim()&&"Charaktername",!form.cls&&"Klasse",!form.roles.length&&"Rolle"].filter(Boolean).join(", ")}</div>`:""}
       <div class="brow">
         <button class="btn-p" id="f-submit" ${canSave?"":"disabled"} onclick="submitForm()">${editId?"Aktualisieren":"Eintragen"}</button>
         ${editId?`<button class="btn-s" onclick="cancelEdit()">Abbrechen</button>`:""}
