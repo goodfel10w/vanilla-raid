@@ -89,7 +89,7 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
   background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg);
 }
 .btn-p:disabled{background:rgba(255,255,255,.05);color:#4a4458;cursor:not-allowed}
-.btn-s{padding:12px 24px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:0;color:var(--tx2);cursor:pointer;font:14px 'Nunito Sans',sans-serif}
+.btn-s{padding:12px 24px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:none;color:var(--tx2);cursor:pointer;font:14px 'Nunito Sans',sans-serif}
 
 /* Roster */
 .entry{
@@ -107,7 +107,7 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .stag{font-size:11px;padding:3px 8px;border-radius:4px;background:rgba(76,175,80,.1);color:var(--grn);white-space:nowrap}
 .e-notes{font-size:11px;color:#7a6f8a;font-style:italic;width:100%;margin-top:2px}
 .e-actions{display:flex;gap:4px}
-.e-actions button{background:0;border:none;cursor:pointer;font:12px 'Nunito Sans',sans-serif;padding:4px 8px}
+.e-actions button{background:none;border:none;cursor:pointer;font:12px 'Nunito Sans',sans-serif;padding:4px 8px}
 .btn-edit{color:var(--tx3)}
 .btn-edit:hover{color:var(--gold)}
 .btn-del{color:#5a3a3a}
@@ -256,15 +256,22 @@ let form={name:"",cls:"",roles:[],avail:{},notes:""};
 // ── API ──
 const API="/api/entries";
 async function load(){
-  try{const r=await fetch(API);entries=await r.json()}catch(e){console.error(e);entries=[]}
+  try{
+    const r=await fetch(API);
+    if(!r.ok)throw new Error("Laden fehlgeschlagen");
+    const data=await r.json();
+    entries=Array.isArray(data)?data:[];
+  }catch(e){console.error(e);entries=[]}
   updateAll();
 }
 async function save(data){
   const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+  if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Speichern fehlgeschlagen")}
   return r.json();
 }
 async function del(id){
-  await fetch(API+"?id="+encodeURIComponent(id),{method:"DELETE"});
+  const r=await fetch(API+"?id="+encodeURIComponent(id),{method:"DELETE"});
+  if(!r.ok)throw new Error("Löschen fehlgeschlagen");
 }
 
 // ── Toast ──
@@ -308,7 +315,7 @@ function updateAll(){
 
 // ── Helpers ──
 function cc(n){return CLS.find(c=>c.n===n)?.c||"#ccc"}
-function h(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function h(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
 
 function heatData(){
   const hd={};
@@ -404,7 +411,7 @@ window.toggleRole=function(r){
   renderForm();
 };
 window.toggleSlot=function(d,s){
-  const k=d+"_"+s;form.avail[k]=!form.avail[k];renderForm();
+  const k=d+"_"+s;if(form.avail[k])delete form.avail[k];else form.avail[k]=true;renderForm();
 };
 window.updBtn=function(){
   const b=document.getElementById("f-submit");
@@ -436,7 +443,7 @@ window.startEdit=function(id){
 };
 window.delEntry=async function(id){
   if(!confirm("Eintrag wirklich löschen?"))return;
-  await del(id);toast("Gelöscht");await load();
+  try{await del(id);toast("Gelöscht");await load()}catch(e){toast("Fehler beim Löschen")}
 };
 
 // ══════════════════════════════
@@ -453,7 +460,7 @@ function renderRoster(){
   if(!entries.length){html+=`<div class="empty">Noch keine Einträge. Sei der Erste!</div>`;el.innerHTML=html;return}
 
   entries.forEach(e=>{
-    const roles=e.roles||[e.role].filter(Boolean);
+    const roles=(e.roles||[e.role].filter(Boolean)).filter(r=>ROLES.includes(r));
     const slots=DAYS.flatMap(d=>slotsFor(d).filter(s=>e.availability?.[d+"_"+s]).map(s=>DS[d]+" "+s));
     html+=`<div class="entry">
       <div class="e-info">
@@ -464,8 +471,8 @@ function renderRoster(){
       <div class="e-slots">${slots.length?slots.map(s=>`<span class="stag">${s}</span>`).join(""):`<span style="font-size:11px;color:var(--tx5)">Keine Zeiten</span>`}</div>
       ${e.notes?`<div class="e-notes">„${h(e.notes)}"</div>`:""}
       <div class="e-actions">
-        <button class="btn-edit" onclick="startEdit('${e.id}')">Bearbeiten</button>
-        <button class="btn-del" onclick="delEntry('${e.id}')">✕</button>
+        <button class="btn-edit" data-edit="${h(e.id)}">Bearbeiten</button>
+        <button class="btn-del" data-del="${h(e.id)}">✕</button>
       </div>
     </div>`;
   });
@@ -594,6 +601,12 @@ function renderAnalytics(){
 }
 
 // ── Init ──
+document.getElementById("v-roster").addEventListener("click",function(ev){
+  const eb=ev.target.closest("[data-edit]");
+  if(eb){startEdit(eb.dataset.edit);return}
+  const db=ev.target.closest("[data-del]");
+  if(db){delEntry(db.dataset.del);return}
+});
 renderForm();
 load();
 </script>

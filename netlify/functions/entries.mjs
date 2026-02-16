@@ -1,13 +1,22 @@
 import { getStore } from "@netlify/blobs";
+import { randomUUID } from "crypto";
+
+const VALID_CLASSES = ["Druide","Hexenmeister","Jäger","Krieger","Magier","Paladin","Priester","Schamane","Schurke"];
+const VALID_ROLES = ["Tank","Heiler","DPS"];
+const DAYS_WD = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
+const DAYS_WE = ["Samstag","Sonntag"];
+const EVE = ["18:00–20:00","20:00–22:00","22:00–00:00"];
+const WEX = ["14:00–16:00","16:00–18:00"];
+
+const VALID_AVAIL_KEYS = new Set();
+for (const d of [...DAYS_WD, ...DAYS_WE]) {
+  const slots = DAYS_WE.includes(d) ? [...WEX, ...EVE] : EVE;
+  for (const s of slots) VALID_AVAIL_KEYS.add(d + "_" + s);
+}
 
 export default async (req, context) => {
   const store = getStore({ name: "raid-entries", consistency: "strong" });
-  const headers = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
+  const headers = { "Content-Type": "application/json" };
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers });
@@ -35,14 +44,50 @@ export default async (req, context) => {
         return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
       }
 
-      const id = body.id || charName.trim().toLowerCase().replace(/[^a-z0-9äöüß]/g, "-") + "-" + Date.now();
+      if (typeof charName !== "string" || charName.trim().length === 0 || charName.trim().length > 50) {
+        return new Response(JSON.stringify({ error: "Charaktername ungültig" }), { status: 400, headers });
+      }
+      if (!VALID_CLASSES.includes(className)) {
+        return new Response(JSON.stringify({ error: "Ungültige Klasse" }), { status: 400, headers });
+      }
+      if (!Array.isArray(roles) || roles.length === 0 || roles.some(r => !VALID_ROLES.includes(r))) {
+        return new Response(JSON.stringify({ error: "Ungültige Rolle" }), { status: 400, headers });
+      }
+      if (notes != null && typeof notes !== "string") {
+        return new Response(JSON.stringify({ error: "Anmerkungen ungültig" }), { status: 400, headers });
+      }
+      if (typeof notes === "string" && notes.length > 500) {
+        return new Response(JSON.stringify({ error: "Anmerkungen zu lang" }), { status: 400, headers });
+      }
+
+      // Sanitize availability: only keep valid keys with truthy values
+      const cleanAvail = {};
+      if (availability && typeof availability === "object" && !Array.isArray(availability)) {
+        for (const [k, v] of Object.entries(availability)) {
+          if (VALID_AVAIL_KEYS.has(k) && v) cleanAvail[k] = true;
+        }
+      }
+
+      // For updates, verify the entry exists; for new entries, generate a UUID
+      let id;
+      if (body.id && typeof body.id === "string") {
+        const existing = await store.get(body.id, { type: "json" });
+        if (existing) {
+          id = body.id;
+        } else {
+          return new Response(JSON.stringify({ error: "Eintrag nicht gefunden" }), { status: 404, headers });
+        }
+      } else {
+        id = randomUUID();
+      }
+
       const entry = {
         id,
-        charName: charName.trim(),
+        charName: charName.trim().slice(0, 50),
         className,
         roles,
-        availability: availability || {},
-        notes: (notes || "").trim(),
+        availability: cleanAvail,
+        notes: (notes || "").trim().slice(0, 500),
         timestamp: new Date().toISOString(),
       };
 
@@ -64,7 +109,7 @@ export default async (req, context) => {
     return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers });
   } catch (err) {
     console.error("API error:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });
+    return new Response(JSON.stringify({ error: "Interner Serverfehler" }), { status: 500, headers });
   }
 };
 
