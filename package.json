@@ -1,0 +1,8 @@
+{
+  "name": "vanilla-raid-planner",
+  "version": "1.0.0",
+  "description": "<Vanilla> TBC Raid Availability Planner",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}

@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>&lt;Vanilla&gt; Raid-Planer — TBC</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --gold:#c9a84c;--gold-l:#f0d878;--gold-d:#a8873a;
+  --bg:#0a0a12;--bg2:#12101f;
+  --card:rgba(255,255,255,0.025);--bdr:rgba(255,255,255,0.06);
+  --tx:#e0ddd4;--tx2:#8a8098;--tx3:#6a6278;--tx4:#5a5268;--tx5:#3a3548;
+  --tank:#5b9bd5;--heal:#66bb6a;--dps:#e57373;
+  --grn:#66bb6a;--grn-bg:rgba(76,175,80,0.15);--grn-bd:rgba(76,175,80,0.4);
+}
+body{
+  min-height:100vh;color:var(--tx);font-family:'Nunito Sans',system-ui,sans-serif;
+  background:linear-gradient(170deg,var(--bg) 0%,var(--bg2) 40%,#1a1028 70%,#0d0b16 100%);
+}
+.glow{position:fixed;pointer-events:none}
+.g1{top:-30%;left:-10%;width:50%;height:60%;background:radial-gradient(ellipse,rgba(80,40,120,.08),transparent 70%)}
+.g2{bottom:-20%;right:-10%;width:40%;height:50%;background:radial-gradient(ellipse,rgba(40,60,120,.06),transparent 70%)}
+.wrap{max-width:960px;margin:0 auto;padding:32px 20px;position:relative;z-index:1}
+.center{text-align:center}
+
+/* Header */
+.guild{font-size:11px;letter-spacing:6px;text-transform:uppercase;color:#7a6f8a;margin-bottom:4px}
+h1{font-family:'Cinzel',serif;font-size:34px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--gold-l),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:1px}
+.sub{color:var(--tx3);font-size:12px;margin-top:4px;font-style:italic}
+.cnt{color:var(--tx3);font-size:13px;margin-top:6px;transition:opacity .3s}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin:0 auto 28px;justify-content:center;flex-wrap:wrap}
+.tab{padding:9px 20px;border:none;border-radius:6px;cursor:pointer;font:600 13px 'Nunito Sans',sans-serif;letter-spacing:.5px;transition:all .2s;background:rgba(255,255,255,.04);color:var(--tx2)}
+.tab:hover{background:rgba(255,255,255,.07)}
+.tab.on{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg)}
+
+/* Card */
+.card{background:var(--card);border-radius:12px;border:1px solid var(--bdr);padding:20px;margin-bottom:12px}
+.card-t{font-size:12px;color:var(--tx2);text-transform:uppercase;letter-spacing:2px;margin-bottom:14px}
+
+/* Form fields */
+.lbl{font-size:12px;color:var(--tx2);text-transform:uppercase;letter-spacing:2px;display:block;margin-bottom:8px}
+.lbl-s{font-size:11px;color:var(--tx4);display:block;margin-bottom:8px}
+.fld{margin-bottom:18px}
+input[type=text]{
+  display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);
+  border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);
+  font:15px 'Nunito Sans',sans-serif;outline:none;transition:border-color .2s;
+}
+input[type=text]:focus{border-color:rgba(201,168,76,.3)}
+
+/* Class chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  padding:6px 13px;border-radius:6px;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;
+  border:2px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx3);transition:all .15s;user-select:none;
+}
+.chip:hover{border-color:rgba(255,255,255,.12)}
+
+/* Role chips */
+.rchips{display:flex;gap:8px}
+.rchip{
+  padding:10px 0;border-radius:8px;cursor:pointer;font:600 14px 'Nunito Sans',sans-serif;
+  border:2px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx3);
+  transition:all .15s;flex:1;text-align:center;user-select:none;
+}
+
+/* Availability grid */
+.atable{width:100%;border-collapse:separate;border-spacing:4px}
+.atable th{font-size:11px;color:var(--tx4);padding:4px;font-weight:500}
+.atable .dl{font-size:13px;color:#9a92a8;padding:4px 8px 4px 0;font-weight:500;white-space:nowrap;text-align:left}
+.sbtn{
+  width:100%;padding:10px 0;border-radius:6px;border:1px solid rgba(255,255,255,.04);
+  cursor:pointer;font:16px 'Nunito Sans',sans-serif;transition:all .15s;
+  background:rgba(0,0,0,.2);color:var(--tx5);
+}
+.sbtn.on{border-color:var(--grn-bd);background:var(--grn-bg);color:var(--grn)}
+
+/* Buttons */
+.brow{display:flex;gap:10px;margin-top:6px}
+.btn-p{
+  flex:1;padding:12px 0;border-radius:8px;border:none;cursor:pointer;
+  font:700 15px 'Nunito Sans',sans-serif;transition:all .2s;
+  background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg);
+}
+.btn-p:disabled{background:rgba(255,255,255,.05);color:#4a4458;cursor:not-allowed}
+.btn-s{padding:12px 24px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:0;color:var(--tx2);cursor:pointer;font:14px 'Nunito Sans',sans-serif}
+
+/* Roster */
+.entry{
+  background:var(--card);border-radius:10px;border:1px solid var(--bdr);
+  padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px;
+  animation:fadeIn .3s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.e-info{min-width:150px}
+.e-name{font-weight:700;font-size:15px}
+.e-class{font-size:12px;color:var(--tx3);margin-top:2px}
+.e-roles{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.rbadge{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600}
+.e-slots{flex:1;display:flex;flex-wrap:wrap;gap:4px}
+.stag{font-size:11px;padding:3px 8px;border-radius:4px;background:rgba(76,175,80,.1);color:var(--grn);white-space:nowrap}
+.e-notes{font-size:11px;color:#7a6f8a;font-style:italic;width:100%;margin-top:2px}
+.e-actions{display:flex;gap:4px}
+.e-actions button{background:0;border:none;cursor:pointer;font:12px 'Nunito Sans',sans-serif;padding:4px 8px}
+.btn-edit{color:var(--tx3)}
+.btn-edit:hover{color:var(--gold)}
+.btn-del{color:#5a3a3a}
+.btn-del:hover{color:var(--dps)}
+
+/* Role summary */
+.rsumm{display:flex;gap:10px;margin-bottom:20px;justify-content:center;flex-wrap:wrap}
+.rcard{text-align:center;flex:1;max-width:160px;padding:12px 24px}
+.rcard .num{font-size:22px;font-weight:700}
+.rcard .rl{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px}
+.rcard .ico{font-size:22px}
+
+/* Heatmap */
+.htable{width:100%;border-collapse:separate;border-spacing:5px}
+.htable th{font-size:11px;color:var(--tx4);font-weight:500;padding:6px}
+.htable .dl{font-size:13px;color:#9a92a8;font-weight:500;padding:4px 10px 4px 0;white-space:nowrap;text-align:left}
+.hcell{border-radius:8px;padding:14px 8px;text-align:center;font-weight:700;font-size:18px;transition:all .3s;position:relative;cursor:default}
+.hcell:hover .tooltip{display:block}
+.tooltip{
+  display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  background:#1a1828;border:1px solid rgba(201,168,76,.25);border-radius:8px;padding:8px 12px;
+  min-width:140px;z-index:10;font-size:11px;font-weight:400;color:var(--tx);text-align:left;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
+}
+.tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#1a1828}
+
+/* Section label */
+.sec-l{font-size:11px;color:var(--tx4);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+
+/* Top slots */
+.top-slots{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+.tslot{border-radius:8px;padding:10px 18px;text-align:center}
+.tslot .ts-t{font-weight:700;font-size:14px}
+.tslot .ts-c{font-size:12px;color:var(--tx3);margin-top:2px}
+
+/* Analytics bars */
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.bar-lbl{font-size:13px;font-weight:600;min-width:110px}
+.bar-track{flex:1;height:22px;border-radius:6px;background:rgba(255,255,255,.03);overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:6px;transition:width .5s}
+.bar-val{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700}
+
+/* Role analytics */
+.role-an{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.role-an-item{text-align:center;min-width:100px}
+.role-an-item .big{font-size:28px;font-weight:700}
+.role-an-item .sm{font-size:12px;color:var(--tx3)}
+.rprog{margin-top:6px;height:6px;border-radius:3px;background:rgba(255,255,255,.05);overflow:hidden}
+.rprog-f{height:100%;border-radius:3px;transition:width .5s}
+.flex-info{text-align:center;margin-top:12px;font-size:12px;color:var(--tx4)}
+
+/* Best slot detail */
+.bs-card{border-radius:10px;padding:16px;margin-bottom:10px}
+.bs-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.bs-hdr .rank{font-weight:700;font-size:15px}
+.bs-hdr .avail{font-size:12px;color:var(--tx3)}
+.bs-roles{display:flex;gap:16px;flex-wrap:wrap}
+.bs-role{min-width:120px}
+.bs-role-t{font-size:11px;font-weight:600;margin-bottom:4px}
+.bs-player{font-size:12px;margin-bottom:1px}
+
+/* Player availability */
+.pbar-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.pbar-name{font-size:13px;font-weight:600;min-width:110px}
+.pbar-track{flex:1;height:18px;border-radius:4px;background:rgba(255,255,255,.03);overflow:hidden}
+.pbar-fill{height:100%;border-radius:4px;background:rgba(76,175,80,.25);transition:width .5s}
+.pbar-val{font-size:12px;color:var(--grn);min-width:55px;text-align:right}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(40px);
+  padding:10px 24px;background:rgba(201,168,76,.92);color:var(--bg);border-radius:8px;
+  font-weight:600;font-size:14px;z-index:999;opacity:0;transition:all .3s;pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Loading */
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--tx4);border-top-color:var(--gold);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;color:var(--tx3);padding:24px;font-size:14px}
+
+/* Responsive */
+@media(max-width:640px){
+  h1{font-size:26px}
+  .rchips{flex-direction:column}
+  .rsumm{flex-direction:column;align-items:center}
+  .entry{padding:12px 14px;gap:10px}
+  .e-info{min-width:auto;width:100%}
+  .bs-roles{flex-direction:column}
+}
+
+/* Hidden */
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="glow g1"></div>
+<div class="glow g2"></div>
+<div class="wrap">
+  <!-- Header -->
+  <div class="center" style="margin-bottom:32px">
+    <div class="guild">&lt;Vanilla&gt;</div>
+    <h1>Raid-Verfügbarkeit</h1>
+    <div class="sub">The Burning Crusade</div>
+    <div class="cnt" id="counter"></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-v="form">Eintragen</button>
+    <button class="tab" data-v="roster">Aufstellung</button>
+    <button class="tab" data-v="heatmap">Heatmap</button>
+    <button class="tab" data-v="analytics">Auswertung</button>
+  </div>
+
+  <!-- VIEWS -->
+  <div id="v-form"></div>
+  <div id="v-roster" class="hidden"></div>
+  <div id="v-heatmap" class="hidden"></div>
+  <div id="v-analytics" class="hidden"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Constants ──
+const CLS=[
+  {n:"Druide",c:"#FF7C0A"},{n:"Hexenmeister",c:"#8788EE"},{n:"Jäger",c:"#AAD372"},
+  {n:"Krieger",c:"#C69B6D"},{n:"Magier",c:"#3FC7EB"},{n:"Paladin",c:"#F48CBA"},
+  {n:"Priester",c:"#FFFFFF"},{n:"Schamane",c:"#0070DD"},{n:"Schurke",c:"#FFF468"},
+];
+const ROLES=["Tank","Heiler","DPS"];
+const RI={Tank:"🛡️",Heiler:"💚",DPS:"⚔️"};
+const RC={Tank:"#5b9bd5",Heiler:"#66bb6a",DPS:"#e57373"};
+const WD=["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
+const WE=["Samstag","Sonntag"];
+const DAYS=[...WD,...WE];
+const DS={Montag:"Mo",Dienstag:"Di",Mittwoch:"Mi",Donnerstag:"Do",Freitag:"Fr",Samstag:"Sa",Sonntag:"So"};
+const EVE=["18:00–20:00","20:00–22:00","22:00–00:00"];
+const WEX=["14:00–16:00","16:00–18:00"];
+function slotsFor(d){return WE.includes(d)?[...WEX,...EVE]:EVE}
+
+// ── State ──
+let entries=[], view="form", editId=null;
+let form={name:"",cls:"",roles:[],avail:{},notes:""};
+
+// ── API ──
+const API="/api/entries";
+async function load(){
+  try{const r=await fetch(API);entries=await r.json()}catch(e){console.error(e);entries=[]}
+  updateAll();
+}
+async function save(data){
+  const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+  return r.json();
+}
+async function del(id){
+  await fetch(API+"?id="+encodeURIComponent(id),{method:"DELETE"});
+}
+
+// ── Toast ──
+function toast(msg){
+  const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),2200);
+}
+
+// ── Tabs ──
+document.getElementById("tabs").addEventListener("click",e=>{
+  if(!e.target.classList.contains("tab"))return;
+  view=e.target.dataset.v;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.v===view));
+  ["form","roster","heatmap","analytics"].forEach(v=>{
+    document.getElementById("v-"+v).classList.toggle("hidden",v!==view);
+  });
+  if(view==="form")renderForm();
+  if(view==="roster")renderRoster();
+  if(view==="heatmap")renderHeatmap();
+  if(view==="analytics")renderAnalytics();
+});
+
+function switchTab(v){
+  view=v;
+  document.querySelectorAll(".tab").forEach(t=>{
+    t.classList.toggle("on",t.dataset.v===v);
+    if(t.dataset.v===v && v==="form") t.textContent=editId?"Bearbeiten":"Eintragen";
+  });
+  ["form","roster","heatmap","analytics"].forEach(x=>{
+    document.getElementById("v-"+x).classList.toggle("hidden",x!==v);
+  });
+}
+
+function updateAll(){
+  document.getElementById("counter").textContent=entries.length+" Raider eingetragen";
+  if(view==="form")renderForm();
+  if(view==="roster")renderRoster();
+  if(view==="heatmap")renderHeatmap();
+  if(view==="analytics")renderAnalytics();
+}
+
+// ── Helpers ──
+function cc(n){return CLS.find(c=>c.n===n)?.c||"#ccc"}
+function h(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+
+function heatData(){
+  const hd={};
+  DAYS.forEach(d=>slotsFor(d).forEach(s=>{
+    const k=d+"_"+s;
+    hd[k]=entries.filter(e=>e.availability?.[k]).length;
+  }));
+  return hd;
+}
+
+function avForSlot(d,s){return entries.filter(e=>e.availability?.[d+"_"+s])}
+
+// ══════════════════════════════
+//  FORM
+// ══════════════════════════════
+function renderForm(){
+  const el=document.getElementById("v-form");
+  const canSave=form.name.trim()&&form.cls&&form.roles.length>0;
+
+  let gridWD="";
+  WD.forEach(d=>{
+    gridWD+=`<tr><td class="dl">${DS[d]}</td>`;
+    EVE.forEach(s=>{
+      const k=d+"_"+s, on=form.avail[k];
+      gridWD+=`<td><button class="sbtn${on?" on":""}" onclick="toggleSlot('${d}','${s}')">${on?"✓":"—"}</button></td>`;
+    });
+    gridWD+="</tr>";
+  });
+
+  let gridWE="";
+  WE.forEach(d=>{
+    gridWE+=`<tr><td class="dl">${DS[d]}</td>`;
+    [...WEX,...EVE].forEach(s=>{
+      const k=d+"_"+s, on=form.avail[k];
+      gridWE+=`<td><button class="sbtn${on?" on":""}" onclick="toggleSlot('${d}','${s}')">${on?"✓":"—"}</button></td>`;
+    });
+    gridWE+="</tr>";
+  });
+
+  el.innerHTML=`
+    <div class="card" style="padding:28px">
+      <div class="fld">
+        <span class="lbl">Charaktername</span>
+        <input type="text" id="f-name" value="${h(form.name)}" placeholder="z.B. Thrallmächtig" oninput="form.name=this.value;updBtn()">
+      </div>
+      <div class="fld">
+        <span class="lbl">Klasse</span>
+        <div class="chips">${CLS.map(c=>`<div class="chip${form.cls===c.n?" active":""}" style="${form.cls===c.n?`border-color:${c.c};color:${c.c};background:${c.c}18`:""}" onclick="pickCls('${c.n}')">${c.n}</div>`).join("")}</div>
+      </div>
+      <div class="fld">
+        <span class="lbl">Rolle(n)</span>
+        <span class="lbl-s">Mehrfachauswahl möglich</span>
+        <div class="rchips">${ROLES.map(r=>{
+          const on=form.roles.includes(r);
+          return`<div class="rchip${on?" active":""}" style="${on?`border-color:${RC[r]};color:${RC[r]};background:${RC[r]}18`:""}" onclick="toggleRole('${r}')">${RI[r]} ${r}</div>`;
+        }).join("")}</div>
+      </div>
+      <div class="fld">
+        <span class="lbl">Verfügbarkeit — Wochentags</span>
+        <div style="overflow-x:auto">
+          <table class="atable">
+            <thead><tr><th></th>${EVE.map(s=>`<th>${s}</th>`).join("")}</tr></thead>
+            <tbody>${gridWD}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="fld">
+        <span class="lbl">Verfügbarkeit — Wochenende</span>
+        <span class="lbl-s">Inkl. Nachmittags-Slots</span>
+        <div style="overflow-x:auto">
+          <table class="atable">
+            <thead><tr><th></th>${[...WEX,...EVE].map(s=>`<th>${s}</th>`).join("")}</tr></thead>
+            <tbody>${gridWE}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="fld">
+        <span class="lbl">Anmerkungen (optional)</span>
+        <input type="text" id="f-notes" value="${h(form.notes)}" placeholder="z.B. Erste Woche im Monat nicht verfügbar" oninput="form.notes=this.value">
+      </div>
+      <div class="brow">
+        <button class="btn-p" id="f-submit" ${canSave?"":"disabled"} onclick="submitForm()">${editId?"Aktualisieren":"Eintragen"}</button>
+        ${editId?`<button class="btn-s" onclick="cancelEdit()">Abbrechen</button>`:""}
+      </div>
+    </div>`;
+}
+
+window.pickCls=function(n){form.cls=n;renderForm()};
+window.toggleRole=function(r){
+  if(form.roles.includes(r))form.roles=form.roles.filter(x=>x!==r);
+  else form.roles=[...form.roles,r];
+  renderForm();
+};
+window.toggleSlot=function(d,s){
+  const k=d+"_"+s;form.avail[k]=!form.avail[k];renderForm();
+};
+window.updBtn=function(){
+  const b=document.getElementById("f-submit");
+  if(b)b.disabled=!(form.name.trim()&&form.cls&&form.roles.length>0);
+};
+window.submitForm=async function(){
+  const btn=document.getElementById("f-submit");
+  btn.disabled=true;btn.textContent="Speichern...";
+  try{
+    await save({id:editId||undefined,charName:form.name,className:form.cls,roles:form.roles,availability:form.avail,notes:form.notes});
+    toast(editId?"Eintrag aktualisiert ✓":"Eintrag gespeichert ✓");
+    editId=null;form={name:"",cls:"",roles:[],avail:{},notes:""};
+    document.querySelector('[data-v="form"]').textContent="Eintragen";
+    await load();
+    switchTab("roster");renderRoster();
+  }catch(e){toast("Fehler: "+e.message);btn.disabled=false;btn.textContent=editId?"Aktualisieren":"Eintragen"}
+};
+window.cancelEdit=function(){
+  editId=null;form={name:"",cls:"",roles:[],avail:{},notes:""};
+  document.querySelector('[data-v="form"]').textContent="Eintragen";
+  renderForm();
+};
+window.startEdit=function(id){
+  const e=entries.find(x=>x.id===id);if(!e)return;
+  editId=id;
+  form={name:e.charName,cls:e.className,roles:e.roles||[e.role].filter(Boolean),avail:{...e.availability},notes:e.notes||""};
+  document.querySelector('[data-v="form"]').textContent="Bearbeiten";
+  switchTab("form");renderForm();
+};
+window.delEntry=async function(id){
+  if(!confirm("Eintrag wirklich löschen?"))return;
+  await del(id);toast("Gelöscht");await load();
+};
+
+// ══════════════════════════════
+//  ROSTER
+// ══════════════════════════════
+function renderRoster(){
+  const el=document.getElementById("v-roster");
+  const rc=ROLES.map(r=>({r,c:entries.filter(e=>(e.roles||[]).includes(r)).length}));
+
+  let html=`<div class="rsumm">${rc.map(({r,c})=>`
+    <div class="card rcard"><div class="ico">${RI[r]}</div><div class="num" style="color:${RC[r]}">${c}</div><div class="rl">${r}</div></div>
+  `).join("")}</div>`;
+
+  if(!entries.length){html+=`<div class="empty">Noch keine Einträge. Sei der Erste!</div>`;el.innerHTML=html;return}
+
+  entries.forEach(e=>{
+    const roles=e.roles||[e.role].filter(Boolean);
+    const slots=DAYS.flatMap(d=>slotsFor(d).filter(s=>e.availability?.[d+"_"+s]).map(s=>DS[d]+" "+s));
+    html+=`<div class="entry">
+      <div class="e-info">
+        <div class="e-name" style="color:${cc(e.className)}">${h(e.charName)}</div>
+        <div class="e-class">${h(e.className)}</div>
+        <div class="e-roles">${roles.map(r=>`<span class="rbadge" style="background:${RC[r]}18;color:${RC[r]}">${RI[r]} ${r}</span>`).join("")}</div>
+      </div>
+      <div class="e-slots">${slots.length?slots.map(s=>`<span class="stag">${s}</span>`).join(""):`<span style="font-size:11px;color:var(--tx5)">Keine Zeiten</span>`}</div>
+      ${e.notes?`<div class="e-notes">„${h(e.notes)}"</div>`:""}
+      <div class="e-actions">
+        <button class="btn-edit" onclick="startEdit('${e.id}')">Bearbeiten</button>
+        <button class="btn-del" onclick="delEntry('${e.id}')">✕</button>
+      </div>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+// ══════════════════════════════
+//  HEATMAP
+// ══════════════════════════════
+function renderHeatmap(){
+  const el=document.getElementById("v-heatmap");
+  const hd=heatData();
+  const mx=Math.max(1,...Object.values(hd));
+
+  function cell(d,s){
+    const k=d+"_"+s, c=hd[k]||0, i=c/mx;
+    const players=avForSlot(d,s);
+    const tip=players.length?players.map(p=>`<div style="color:${cc(p.className)}">${h(p.charName)}</div>`).join(""):`<div style="color:var(--tx4)">Niemand</div>`;
+    return`<td><div class="hcell" style="background:${c?`rgba(201,168,76,${.08+i*.35})`:"rgba(255,255,255,.02)"};color:${c?`rgba(201,168,76,${.4+i*.6})`:"#2a2538"};border:1px solid rgba(201,168,76,${c?.1+i*.3:.02})">${c}<div class="tooltip">${tip}</div></div></td>`;
+  }
+
+  let wdRows="";WD.forEach(d=>{wdRows+=`<tr><td class="dl">${d}</td>${EVE.map(s=>cell(d,s)).join("")}</tr>`});
+  let weRows="";WE.forEach(d=>{weRows+=`<tr><td class="dl">${d}</td>${[...WEX,...EVE].map(s=>cell(d,s)).join("")}</tr>`});
+
+  const sorted=Object.entries(hd).sort((a,b)=>b[1]-a[1]).filter(([,v])=>v>0).slice(0,5);
+  let topHtml="";
+  if(sorted.length){
+    topHtml=`<div class="center" style="margin-top:20px">
+      <div class="sec-l" style="margin-bottom:10px">Top ${Math.min(5,sorted.length)} Raidzeiten</div>
+      <div class="top-slots">${sorted.map(([k,c],i)=>{
+        const[d,s]=k.split("_");
+        return`<div class="tslot" style="background:${i===0?"rgba(201,168,76,.12)":"rgba(255,255,255,.03)"};border:1px solid ${i===0?"rgba(201,168,76,.3)":"var(--bdr)"}">
+          <div class="ts-t" style="color:${i===0?"var(--gold)":"#9a92a8"}">#${i+1} ${DS[d]||d} ${s}</div>
+          <div class="ts-c">${c} Raider</div>
+        </div>`;
+      }).join("")}</div>
+    </div>`;
+  }
+
+  el.innerHTML=`
+    <p class="center" style="font-size:13px;color:var(--tx3);margin-bottom:16px">Heller = mehr Raider · Hover für Details</p>
+    <div class="card" style="overflow-x:auto">
+      <div class="sec-l">Unter der Woche</div>
+      <table class="htable"><thead><tr><th></th>${EVE.map(s=>`<th>${s}</th>`).join("")}</tr></thead><tbody>${wdRows}</tbody></table>
+    </div>
+    <div class="card" style="overflow-x:auto">
+      <div class="sec-l">Wochenende</div>
+      <table class="htable"><thead><tr><th></th>${[...WEX,...EVE].map(s=>`<th>${s}</th>`).join("")}</tr></thead><tbody>${weRows}</tbody></table>
+    </div>
+    ${topHtml}`;
+}
+
+// ══════════════════════════════
+//  ANALYTICS
+// ══════════════════════════════
+function renderAnalytics(){
+  const el=document.getElementById("v-analytics");
+  if(!entries.length){el.innerHTML=`<div class="empty">Noch keine Daten für die Auswertung.</div>`;return}
+
+  // Roles
+  const rc=ROLES.map(r=>({r,c:entries.filter(e=>(e.roles||[]).includes(r)).length}));
+  const multi=entries.filter(e=>(e.roles||[]).length>1).length;
+  const single=entries.length-multi;
+
+  let roleHtml=`<div class="card"><div class="card-t">Rollenverteilung</div>
+    <div class="role-an">${rc.map(({r,c})=>{
+      const pct=entries.length?Math.round(c/entries.length*100):0;
+      return`<div class="role-an-item">
+        <div class="big" style="color:${RC[r]}">${c}</div>
+        <div class="sm">${RI[r]} ${r}</div>
+        <div class="rprog"><div class="rprog-f" style="width:${pct}%;background:${RC[r]}"></div></div>
+        <div style="font-size:10px;color:var(--tx4);margin-top:3px">${pct}%</div>
+      </div>`;
+    }).join("")}</div>
+    <div class="flex-info">${multi} Spieler mit Mehrfachrolle · ${single} nur eine Rolle</div>
+  </div>`;
+
+  // Classes
+  const clsCounts=CLS.map(c=>({...c,count:entries.filter(e=>e.className===c.n).length})).filter(c=>c.count>0).sort((a,b)=>b.count-a.count);
+  const mxCls=Math.max(1,...clsCounts.map(c=>c.count));
+
+  let clsHtml=`<div class="card"><div class="card-t">Klassenverteilung</div>
+    ${clsCounts.map(c=>`<div class="bar-row">
+      <span class="bar-lbl" style="color:${c.c}">${c.n}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${c.count/mxCls*100}%;background:${c.c}40"></div><span class="bar-val" style="color:${c.c}">${c.count}×</span></div>
+    </div>`).join("")}
+  </div>`;
+
+  // Best slots detail
+  const hd=heatData();
+  const best=Object.entries(hd).sort((a,b)=>b[1]-a[1]).filter(([,v])=>v>0).slice(0,3);
+
+  let bestHtml=`<div class="card"><div class="card-t">Beste Raidzeiten — Details</div>
+    ${best.map(([k,c],i)=>{
+      const[d,s]=k.split("_");
+      const players=avForSlot(d,s);
+      const byRole=ROLES.map(r=>({r,ps:players.filter(p=>(p.roles||[]).includes(r))}));
+      return`<div class="bs-card" style="background:${i===0?"rgba(201,168,76,.06)":"rgba(255,255,255,.015)"};border:1px solid ${i===0?"rgba(201,168,76,.2)":"rgba(255,255,255,.04)"}">
+        <div class="bs-hdr"><span class="rank" style="color:${i===0?"var(--gold)":"#9a92a8"}">#${i+1} ${d} ${s}</span><span class="avail">${c} verfügbar</span></div>
+        <div class="bs-roles">${byRole.map(({r,ps})=>`
+          <div class="bs-role">
+            <div class="bs-role-t" style="color:${RC[r]}">${RI[r]} ${r} (${ps.length})</div>
+            ${ps.length?ps.map(p=>`<div class="bs-player" style="color:${cc(p.className)}">${h(p.charName)}</div>`).join(""):`<div style="font-size:11px;color:var(--tx5)">—</div>`}
+          </div>
+        `).join("")}</div>
+      </div>`;
+    }).join("")}
+  </div>`;
+
+  // Player availability ranking
+  const pSlots=entries.map(e=>{
+    const cnt=DAYS.reduce((s,d)=>s+slotsFor(d).filter(sl=>e.availability?.[d+"_"+sl]).length,0);
+    return{...e,sc:cnt};
+  }).sort((a,b)=>b.sc-a.sc);
+  const mxSl=Math.max(1,...pSlots.map(p=>p.sc));
+
+  let playerHtml=`<div class="card"><div class="card-t">Verfügbarkeit pro Spieler</div>
+    ${pSlots.map(p=>`<div class="pbar-row">
+      <span class="pbar-name" style="color:${cc(p.className)}">${h(p.charName)}</span>
+      <div class="pbar-track"><div class="pbar-fill" style="width:${p.sc/mxSl*100}%"></div></div>
+      <span class="pbar-val">${p.sc} Slots</span>
+    </div>`).join("")}
+  </div>`;
+
+  el.innerHTML=roleHtml+clsHtml+bestHtml+playerHtml;
+}
+
+// ── Init ──
+renderForm();
+load();
+</script>
+</body>
+</html>
