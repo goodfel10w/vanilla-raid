@@ -60,11 +60,14 @@ export default async (req, context) => {
         return new Response(JSON.stringify({ error: "Anmerkungen zu lang" }), { status: 400, headers });
       }
 
-      // Sanitize availability: only keep valid keys with truthy values
+      // Sanitize availability: accept "yes", "tentative"; normalize legacy true → "yes"
+      const VALID_AVAIL_VALUES = new Set(["yes", "tentative"]);
       const cleanAvail = {};
       if (availability && typeof availability === "object" && !Array.isArray(availability)) {
         for (const [k, v] of Object.entries(availability)) {
-          if (VALID_AVAIL_KEYS.has(k) && v) cleanAvail[k] = true;
+          if (!VALID_AVAIL_KEYS.has(k)) continue;
+          if (v === true) { cleanAvail[k] = "yes"; }
+          else if (VALID_AVAIL_VALUES.has(v)) { cleanAvail[k] = v; }
         }
       }
 

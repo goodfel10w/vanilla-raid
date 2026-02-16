@@ -16,6 +16,7 @@
   --tx:#e0ddd4;--tx2:#8a8098;--tx3:#6a6278;--tx4:#5a5268;--tx5:#3a3548;
   --tank:#5b9bd5;--heal:#66bb6a;--dps:#e57373;
   --grn:#66bb6a;--grn-bg:rgba(76,175,80,0.15);--grn-bd:rgba(76,175,80,0.4);
+  --ylw:#e5c244;--ylw-bg:rgba(229,194,68,0.15);--ylw-bd:rgba(229,194,68,0.4);
 }
 body{
   min-height:100vh;color:var(--tx);font-family:'Nunito Sans',system-ui,sans-serif;
@@ -59,6 +60,7 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .chip{
   padding:6px 13px;border-radius:6px;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;
   border:2px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx3);transition:all .15s;user-select:none;
+  min-height:44px;display:inline-flex;align-items:center;justify-content:center;
 }
 .chip:hover{border-color:rgba(255,255,255,.12)}
 
@@ -68,18 +70,20 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
   padding:10px 0;border-radius:8px;cursor:pointer;font:600 14px 'Nunito Sans',sans-serif;
   border:2px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx3);
   transition:all .15s;flex:1;text-align:center;user-select:none;
+  min-height:44px;display:flex;align-items:center;justify-content:center;
 }
 
 /* Availability grid */
 .atable{width:100%;border-collapse:separate;border-spacing:4px}
 .atable th{font-size:11px;color:var(--tx4);padding:4px;font-weight:500}
-.atable .dl{font-size:13px;color:#9a92a8;padding:4px 8px 4px 0;font-weight:500;white-space:nowrap;text-align:left}
+.atable .dl{font-size:13px;color:#9a92a8;padding:4px 8px 4px 0;font-weight:500;white-space:nowrap;text-align:left;position:sticky;left:0;background:var(--bg2);z-index:1}
 .sbtn{
   width:100%;padding:10px 0;border-radius:6px;border:1px solid rgba(255,255,255,.04);
   cursor:pointer;font:16px 'Nunito Sans',sans-serif;transition:all .15s;
-  background:rgba(0,0,0,.2);color:var(--tx5);
+  background:rgba(0,0,0,.2);color:var(--tx5);min-height:44px;
 }
 .sbtn.on{border-color:var(--grn-bd);background:var(--grn-bg);color:var(--grn)}
+.sbtn.tent{border-color:var(--ylw-bd);background:var(--ylw-bg);color:var(--ylw)}
 
 /* Buttons */
 .brow{display:flex;gap:10px;margin-top:6px}
@@ -105,12 +109,13 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .rbadge{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600}
 .e-slots{flex:1;display:flex;flex-wrap:wrap;gap:4px}
 .stag{font-size:11px;padding:3px 8px;border-radius:4px;background:rgba(76,175,80,.1);color:var(--grn);white-space:nowrap}
-.e-notes{font-size:11px;color:#7a6f8a;font-style:italic;width:100%;margin-top:2px}
+.stag.tent{background:var(--ylw-bg);color:var(--ylw)}
+.e-notes{font-size:11px;color:#a89cbc;font-style:italic;width:100%;margin-top:2px}
 .e-actions{display:flex;gap:4px}
 .e-actions button{background:none;border:none;cursor:pointer;font:12px 'Nunito Sans',sans-serif;padding:4px 8px}
 .btn-edit{color:var(--tx3)}
 .btn-edit:hover{color:var(--gold)}
-.btn-del{color:#5a3a3a}
+.btn-del{color:#c06060}
 .btn-del:hover{color:var(--dps)}
 
 /* Role summary */
@@ -123,13 +128,15 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 /* Heatmap */
 .htable{width:100%;border-collapse:separate;border-spacing:5px}
 .htable th{font-size:11px;color:var(--tx4);font-weight:500;padding:6px}
-.htable .dl{font-size:13px;color:#9a92a8;font-weight:500;padding:4px 10px 4px 0;white-space:nowrap;text-align:left}
-.hcell{border-radius:8px;padding:14px 8px;text-align:center;font-weight:700;font-size:18px;transition:all .3s;position:relative;cursor:default}
+.htable .dl{font-size:13px;color:#9a92a8;font-weight:500;padding:4px 10px 4px 0;white-space:nowrap;text-align:left;position:sticky;left:0;background:var(--bg2);z-index:1}
+.hcell{border-radius:8px;padding:10px 6px;text-align:center;font-weight:700;font-size:16px;transition:all .3s;position:relative;cursor:default}
 .hcell:hover .tooltip{display:block}
+.hcell-roles{font-size:9px;font-weight:500;color:var(--tx3);margin-top:3px;white-space:nowrap}
+.hcell.raid-ready{outline:2px solid var(--grn);outline-offset:-2px}
 .tooltip{
   display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
   background:#1a1828;border:1px solid rgba(201,168,76,.25);border-radius:8px;padding:8px 12px;
-  min-width:140px;z-index:10;font-size:11px;font-weight:400;color:var(--tx);text-align:left;
+  min-width:160px;z-index:10;font-size:11px;font-weight:400;color:var(--tx);text-align:left;
   box-shadow:0 4px 20px rgba(0,0,0,.5);
 }
 .tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#1a1828}
@@ -161,13 +168,14 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 
 /* Best slot detail */
 .bs-card{border-radius:10px;padding:16px;margin-bottom:10px}
-.bs-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.bs-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px}
 .bs-hdr .rank{font-weight:700;font-size:15px}
 .bs-hdr .avail{font-size:12px;color:var(--tx3)}
 .bs-roles{display:flex;gap:16px;flex-wrap:wrap}
 .bs-role{min-width:120px}
 .bs-role-t{font-size:11px;font-weight:600;margin-bottom:4px}
 .bs-player{font-size:12px;margin-bottom:1px}
+.badge-rr{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;background:var(--grn-bg);color:var(--grn);font-weight:700;margin-left:6px}
 
 /* Player availability */
 .pbar-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
@@ -185,9 +193,27 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* Loading */
+.loading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;gap:12px;color:var(--tx3);font-size:14px}
 .spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--tx4);border-top-color:var(--gold);border-radius:50%;animation:spin .6s linear infinite}
+.loading-wrap .spinner{width:32px;height:32px;border-width:3px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty{text-align:center;color:var(--tx3);padding:24px;font-size:14px}
+
+/* Delete modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;display:flex;align-items:center;justify-content:center;animation:fadeIn .15s ease}
+.modal{background:var(--bg2);border:1px solid rgba(201,168,76,.25);border-radius:12px;padding:28px;max-width:380px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+.modal-title{font-family:'Cinzel',serif;font-size:18px;font-weight:700;color:var(--gold);margin-bottom:8px}
+.modal-msg{font-size:14px;color:var(--tx2);margin-bottom:20px;line-height:1.5}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end}
+.modal-btns button{padding:10px 22px;border-radius:8px;border:none;cursor:pointer;font:600 14px 'Nunito Sans',sans-serif;transition:all .2s}
+.modal-cancel{background:rgba(255,255,255,.06);color:var(--tx2)}
+.modal-cancel:hover{background:rgba(255,255,255,.1)}
+.modal-confirm{background:var(--dps);color:#fff}
+.modal-confirm:hover{background:#ef5350}
+
+/* CSV export button */
+.btn-export{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:8px;border:1px solid rgba(201,168,76,.3);background:rgba(201,168,76,.08);color:var(--gold);cursor:pointer;font:600 13px 'Nunito Sans',sans-serif;transition:all .2s;margin-bottom:16px}
+.btn-export:hover{background:rgba(201,168,76,.15);border-color:rgba(201,168,76,.5)}
 
 /* Responsive */
 @media(max-width:640px){
@@ -197,6 +223,8 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
   .entry{padding:12px 14px;gap:10px}
   .e-info{min-width:auto;width:100%}
   .bs-roles{flex-direction:column}
+  .toast{left:12px;right:12px;transform:translateX(0) translateY(40px);text-align:center}
+  .toast.show{transform:translateX(0) translateY(0)}
 }
 
 /* Hidden */
@@ -216,18 +244,18 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
   </div>
 
   <!-- Tabs -->
-  <div class="tabs" id="tabs">
-    <button class="tab on" data-v="form">Eintragen</button>
-    <button class="tab" data-v="roster">Aufstellung</button>
-    <button class="tab" data-v="heatmap">Heatmap</button>
-    <button class="tab" data-v="analytics">Auswertung</button>
+  <div class="tabs" id="tabs" role="tablist">
+    <button class="tab on" data-v="form" role="tab" aria-selected="true" aria-controls="v-form" id="tab-form">Eintragen</button>
+    <button class="tab" data-v="roster" role="tab" aria-selected="false" aria-controls="v-roster" id="tab-roster">Aufstellung</button>
+    <button class="tab" data-v="heatmap" role="tab" aria-selected="false" aria-controls="v-heatmap" id="tab-heatmap">Heatmap</button>
+    <button class="tab" data-v="analytics" role="tab" aria-selected="false" aria-controls="v-analytics" id="tab-analytics">Auswertung</button>
   </div>
 
   <!-- VIEWS -->
-  <div id="v-form"></div>
-  <div id="v-roster" class="hidden"></div>
-  <div id="v-heatmap" class="hidden"></div>
-  <div id="v-analytics" class="hidden"></div>
+  <div id="v-form" role="tabpanel" aria-labelledby="tab-form"></div>
+  <div id="v-roster" class="hidden" role="tabpanel" aria-labelledby="tab-roster"></div>
+  <div id="v-heatmap" class="hidden" role="tabpanel" aria-labelledby="tab-heatmap"></div>
+  <div id="v-analytics" class="hidden" role="tabpanel" aria-labelledby="tab-analytics"></div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -239,15 +267,18 @@ const CLS=[
   {n:"Priester",c:"#FFFFFF"},{n:"Schamane",c:"#0070DD"},{n:"Schurke",c:"#FFF468"},
 ];
 const ROLES=["Tank","Heiler","DPS"];
-const RI={Tank:"🛡️",Heiler:"💚",DPS:"⚔️"};
+const RI={Tank:"\u{1F6E1}\uFE0F",Heiler:"\u{1F49A}",DPS:"\u2694\uFE0F"};
 const RC={Tank:"#5b9bd5",Heiler:"#66bb6a",DPS:"#e57373"};
 const WD=["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
 const WE=["Samstag","Sonntag"];
 const DAYS=[...WD,...WE];
 const DS={Montag:"Mo",Dienstag:"Di",Mittwoch:"Mi",Donnerstag:"Do",Freitag:"Fr",Samstag:"Sa",Sonntag:"So"};
-const EVE=["18:00–20:00","20:00–22:00","22:00–00:00"];
-const WEX=["14:00–16:00","16:00–18:00"];
+const EVE=["18:00\u201320:00","20:00\u201322:00","22:00\u201300:00"];
+const WEX=["14:00\u201316:00","16:00\u201318:00"];
 function slotsFor(d){return WE.includes(d)?[...WEX,...EVE]:EVE}
+
+// Raid-ready thresholds (25-man TBC)
+const RR_TANK=2, RR_HEAL=5, RR_DPS=18;
 
 // ── State ──
 let entries=[], view="form", editId=null;
@@ -256,11 +287,24 @@ let form={name:"",cls:"",roles:[],avail:{},notes:""};
 // ── API ──
 const API="/api/entries";
 async function load(){
+  // Show loading spinner in active view
+  const activeEl=document.getElementById("v-"+view);
+  if(activeEl && !activeEl.classList.contains("hidden")){
+    activeEl.innerHTML='<div class="loading-wrap"><div class="spinner"></div>Lade Daten...</div>';
+  }
   try{
     const r=await fetch(API);
     if(!r.ok)throw new Error("Laden fehlgeschlagen");
     const data=await r.json();
     entries=Array.isArray(data)?data:[];
+    // Normalize legacy true → "yes" in loaded entries
+    entries.forEach(e=>{
+      if(e.availability){
+        for(const k of Object.keys(e.availability)){
+          if(e.availability[k]===true) e.availability[k]="yes";
+        }
+      }
+    });
   }catch(e){console.error(e);entries=[]}
   updateAll();
 }
@@ -280,11 +324,38 @@ function toast(msg){
   setTimeout(()=>t.classList.remove("show"),2200);
 }
 
+// ── Modal ──
+function showModal(title,msg,onConfirm){
+  const bg=document.createElement("div");
+  bg.className="modal-bg";
+  bg.innerHTML=`<div class="modal">
+    <div class="modal-title">${title}</div>
+    <div class="modal-msg">${msg}</div>
+    <div class="modal-btns">
+      <button class="modal-cancel">Abbrechen</button>
+      <button class="modal-confirm">Bestätigen</button>
+    </div>
+  </div>`;
+  document.body.appendChild(bg);
+  const cancelBtn=bg.querySelector(".modal-cancel");
+  const confirmBtn=bg.querySelector(".modal-confirm");
+  function close(){bg.remove()}
+  cancelBtn.addEventListener("click",close);
+  confirmBtn.addEventListener("click",()=>{close();onConfirm()});
+  bg.addEventListener("click",e=>{if(e.target===bg)close()});
+  document.addEventListener("keydown",function esc(e){if(e.key==="Escape"){close();document.removeEventListener("keydown",esc)}});
+  confirmBtn.focus();
+}
+
 // ── Tabs ──
 document.getElementById("tabs").addEventListener("click",e=>{
   if(!e.target.classList.contains("tab"))return;
   view=e.target.dataset.v;
-  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.v===view));
+  document.querySelectorAll(".tab").forEach(t=>{
+    const isOn=t.dataset.v===view;
+    t.classList.toggle("on",isOn);
+    t.setAttribute("aria-selected",isOn?"true":"false");
+  });
   ["form","roster","heatmap","analytics"].forEach(v=>{
     document.getElementById("v-"+v).classList.toggle("hidden",v!==view);
   });
@@ -297,8 +368,10 @@ document.getElementById("tabs").addEventListener("click",e=>{
 function switchTab(v){
   view=v;
   document.querySelectorAll(".tab").forEach(t=>{
-    t.classList.toggle("on",t.dataset.v===v);
-    if(t.dataset.v===v && v==="form") t.textContent=editId?"Bearbeiten":"Eintragen";
+    const isOn=t.dataset.v===v;
+    t.classList.toggle("on",isOn);
+    t.setAttribute("aria-selected",isOn?"true":"false");
+    if(isOn && v==="form") t.textContent=editId?"Bearbeiten":"Eintragen";
   });
   ["form","roster","heatmap","analytics"].forEach(x=>{
     document.getElementById("v-"+x).classList.toggle("hidden",x!==v);
@@ -321,12 +394,35 @@ function heatData(){
   const hd={};
   DAYS.forEach(d=>slotsFor(d).forEach(s=>{
     const k=d+"_"+s;
-    hd[k]=entries.filter(e=>e.availability?.[k]).length;
+    let yes=0,tent=0;
+    entries.forEach(e=>{
+      const v=e.availability?.[k];
+      if(v==="yes"||v===true)yes++;
+      else if(v==="tentative")tent++;
+    });
+    hd[k]={yes,tent,total:yes+tent};
   }));
   return hd;
 }
 
-function avForSlot(d,s){return entries.filter(e=>e.availability?.[d+"_"+s])}
+function avForSlot(d,s){
+  const k=d+"_"+s;
+  return entries.filter(e=>e.availability?.[k]).map(e=>{
+    const v=e.availability[k];
+    return{...e,_availType:v==="tentative"?"tentative":"yes"};
+  });
+}
+
+function isRaidReady(players){
+  let t=0,hl=0,dp=0;
+  players.forEach(p=>{
+    const roles=p.roles||[];
+    if(roles.includes("Tank"))t++;
+    if(roles.includes("Heiler"))hl++;
+    if(roles.includes("DPS"))dp++;
+  });
+  return{t,hl,dp,ready:t>=RR_TANK&&hl>=RR_HEAL&&dp>=RR_DPS};
+}
 
 // ══════════════════════════════
 //  FORM
@@ -340,23 +436,25 @@ function renderForm(){
   const el=document.getElementById("v-form");
   const canSave=form.name.trim()&&form.cls&&form.roles.length>0;
 
+  function slotBtn(d,s){
+    const k=d+"_"+s, v=form.avail[k];
+    let cls="sbtn",label="\u2014";
+    if(v==="yes"){cls+=" on";label="\u2713";}
+    else if(v==="tentative"){cls+=" tent";label="?";}
+    return`<button class="${cls}" onclick="toggleSlot('${d}','${s}')">${label}</button>`;
+  }
+
   let gridWD="";
   WD.forEach(d=>{
     gridWD+=`<tr><td class="dl">${DS[d]}</td>`;
-    EVE.forEach(s=>{
-      const k=d+"_"+s, on=form.avail[k];
-      gridWD+=`<td><button class="sbtn${on?" on":""}" onclick="toggleSlot('${d}','${s}')">${on?"✓":"—"}</button></td>`;
-    });
+    EVE.forEach(s=>{gridWD+=`<td>${slotBtn(d,s)}</td>`});
     gridWD+="</tr>";
   });
 
   let gridWE="";
   WE.forEach(d=>{
     gridWE+=`<tr><td class="dl">${DS[d]}</td>`;
-    [...WEX,...EVE].forEach(s=>{
-      const k=d+"_"+s, on=form.avail[k];
-      gridWE+=`<td><button class="sbtn${on?" on":""}" onclick="toggleSlot('${d}','${s}')">${on?"✓":"—"}</button></td>`;
-    });
+    [...WEX,...EVE].forEach(s=>{gridWE+=`<td>${slotBtn(d,s)}</td>`});
     gridWE+="</tr>";
   });
 
@@ -364,22 +462,23 @@ function renderForm(){
     <div class="card" style="padding:28px">
       <div class="fld">
         <span class="lbl">Charaktername</span>
-        <input type="text" id="f-name" value="${h(form.name)}" placeholder="z.B. Thrallmächtig" oninput="form.name=this.value;updBtn()">
+        <input type="text" id="f-name" value="${h(form.name)}" placeholder="z.B. Thrallm\u00E4chtig" oninput="form.name=this.value;updBtn()">
       </div>
       <div class="fld">
         <span class="lbl">Klasse</span>
-        <div class="chips">${CLS.map(c=>`<div class="chip${form.cls===c.n?" active":""}" style="${form.cls===c.n?`border-color:${c.c};color:${c.c};background:${c.c}18`:""}" onclick="pickCls('${c.n}')">${c.n}</div>`).join("")}</div>
+        <div class="chips" role="radiogroup" aria-label="Klasse">${CLS.map(c=>`<div class="chip${form.cls===c.n?" active":""}" role="radio" aria-checked="${form.cls===c.n}" style="${form.cls===c.n?`border-color:${c.c};color:${c.c};background:${c.c}18`:""}" onclick="pickCls('${c.n}')" tabindex="0" onkeydown="if(event.key===' '||event.key==='Enter'){pickCls('${c.n}');event.preventDefault()}">${c.n}</div>`).join("")}</div>
       </div>
       <div class="fld">
         <span class="lbl">Rolle(n)</span>
-        <span class="lbl-s">Mehrfachauswahl möglich</span>
-        <div class="rchips">${ROLES.map(r=>{
+        <span class="lbl-s">Mehrfachauswahl m\u00F6glich</span>
+        <div class="rchips" role="group" aria-label="Rollen">${ROLES.map(r=>{
           const on=form.roles.includes(r);
-          return`<div class="rchip${on?" active":""}" style="${on?`border-color:${RC[r]};color:${RC[r]};background:${RC[r]}18`:""}" onclick="toggleRole('${r}')">${RI[r]} ${r}</div>`;
+          return`<div class="rchip${on?" active":""}" role="checkbox" aria-checked="${on}" style="${on?`border-color:${RC[r]};color:${RC[r]};background:${RC[r]}18`:""}" onclick="toggleRole('${r}')" tabindex="0" onkeydown="if(event.key===' '||event.key==='Enter'){toggleRole('${r}');event.preventDefault()}">${RI[r]} ${r}</div>`;
         }).join("")}</div>
       </div>
       <div class="fld">
-        <span class="lbl">Verfügbarkeit — Wochentags</span>
+        <span class="lbl">Verf\u00FCgbarkeit \u2014 Wochentags</span>
+        <span class="lbl-s">Klick: Ja \u2713 \u2192 Vielleicht ? \u2192 Aus</span>
         <div style="overflow-x:auto">
           <table class="atable">
             <thead><tr><th></th>${EVE.map(s=>`<th>${s}</th>`).join("")}</tr></thead>
@@ -388,7 +487,7 @@ function renderForm(){
         </div>
       </div>
       <div class="fld">
-        <span class="lbl">Verfügbarkeit — Wochenende</span>
+        <span class="lbl">Verf\u00FCgbarkeit \u2014 Wochenende</span>
         <span class="lbl-s">Inkl. Nachmittags-Slots</span>
         <div style="overflow-x:auto">
           <table class="atable">
@@ -399,9 +498,9 @@ function renderForm(){
       </div>
       <div class="fld">
         <span class="lbl">Anmerkungen (optional)</span>
-        <input type="text" id="f-notes" value="${h(form.notes)}" placeholder="z.B. Erste Woche im Monat nicht verfügbar" oninput="form.notes=this.value">
+        <input type="text" id="f-notes" value="${h(form.notes)}" placeholder="z.B. Erste Woche im Monat nicht verf\u00FCgbar" oninput="form.notes=this.value">
       </div>
-      ${!canSave?`<div style="font-size:12px;color:#e57373;margin-bottom:8px">Bitte ausfüllen: ${[!form.name.trim()&&"Charaktername",!form.cls&&"Klasse",!form.roles.length&&"Rolle"].filter(Boolean).join(", ")}</div>`:""}
+      ${!canSave?`<div style="font-size:12px;color:#e57373;margin-bottom:8px">Bitte ausf\u00FCllen: ${[!form.name.trim()&&"Charaktername",!form.cls&&"Klasse",!form.roles.length&&"Rolle"].filter(Boolean).join(", ")}</div>`:""}
       <div class="brow">
         <button class="btn-p" id="f-submit" ${canSave?"":"disabled"} onclick="submitForm()">${editId?"Aktualisieren":"Eintragen"}</button>
         ${editId?`<button class="btn-s" onclick="cancelEdit()">Abbrechen</button>`:""}
@@ -416,7 +515,12 @@ window.toggleRole=function(r){
   renderForm();
 };
 window.toggleSlot=function(d,s){
-  const k=d+"_"+s;if(form.avail[k])delete form.avail[k];else form.avail[k]=true;renderForm();
+  const k=d+"_"+s;
+  const cur=form.avail[k];
+  if(!cur) form.avail[k]="yes";
+  else if(cur==="yes") form.avail[k]="tentative";
+  else delete form.avail[k];
+  renderForm();
 };
 window.updBtn=function(){
   const b=document.getElementById("f-submit");
@@ -427,7 +531,7 @@ window.submitForm=async function(){
   btn.disabled=true;btn.textContent="Speichern...";
   try{
     await save({id:editId||undefined,charName:form.name,className:form.cls,roles:form.roles,availability:form.avail,notes:form.notes});
-    toast(editId?"Eintrag aktualisiert ✓":"Eintrag gespeichert ✓");
+    toast(editId?"Eintrag aktualisiert \u2713":"Eintrag gespeichert \u2713");
     editId=null;form={name:"",cls:"",roles:[],avail:{},notes:""};
     document.querySelector('[data-v="form"]').textContent="Eintragen";
     await load();
@@ -442,13 +546,24 @@ window.cancelEdit=function(){
 window.startEdit=function(id){
   const e=entries.find(x=>x.id===id);if(!e)return;
   editId=id;
-  form={name:e.charName,cls:e.className,roles:e.roles||[e.role].filter(Boolean),avail:{...e.availability},notes:e.notes||""};
+  // Normalize legacy true → "yes"
+  const normAvail={};
+  if(e.availability){
+    for(const[k,v] of Object.entries(e.availability)){
+      if(v===true) normAvail[k]="yes";
+      else normAvail[k]=v;
+    }
+  }
+  form={name:e.charName,cls:e.className,roles:e.roles||[e.role].filter(Boolean),avail:normAvail,notes:e.notes||""};
   document.querySelector('[data-v="form"]').textContent="Bearbeiten";
   switchTab("form");renderForm();
 };
 window.delEntry=async function(id){
-  if(!confirm("Eintrag wirklich löschen?"))return;
-  try{await del(id);toast("Gelöscht");await load()}catch(e){toast("Fehler beim Löschen")}
+  const e=entries.find(x=>x.id===id);
+  const name=e?e.charName:"diesen Eintrag";
+  showModal("Eintrag l\u00F6schen",`Soll der Eintrag von <strong>${h(name)}</strong> wirklich gel\u00F6scht werden?`,async()=>{
+    try{await del(id);toast("Gel\u00F6scht");await load()}catch(err){toast("Fehler beim L\u00F6schen")}
+  });
 };
 
 // ══════════════════════════════
@@ -462,22 +577,30 @@ function renderRoster(){
     <div class="card rcard"><div class="ico">${RI[r]}</div><div class="num" style="color:${RC[r]}">${c}</div><div class="rl">${r}</div></div>
   `).join("")}</div>`;
 
-  if(!entries.length){html+=`<div class="empty">Noch keine Einträge. Sei der Erste!</div>`;el.innerHTML=html;return}
+  if(entries.length){
+    html+=`<div style="margin-bottom:16px"><button class="btn-export" onclick="exportCSV()">\u{1F4BE} CSV Export</button></div>`;
+  }
+
+  if(!entries.length){html+=`<div class="empty">Noch keine Eintr\u00E4ge. Sei der Erste!</div>`;el.innerHTML=html;return}
 
   entries.forEach(e=>{
     const roles=(e.roles||[e.role].filter(Boolean)).filter(r=>ROLES.includes(r));
-    const slots=DAYS.flatMap(d=>slotsFor(d).filter(s=>e.availability?.[d+"_"+s]).map(s=>DS[d]+" "+s));
+    const slotTags=DAYS.flatMap(d=>slotsFor(d).filter(s=>e.availability?.[d+"_"+s]).map(s=>{
+      const v=e.availability[d+"_"+s];
+      const isTent=v==="tentative";
+      return`<span class="stag${isTent?" tent":""}">${isTent?"? ":""}${DS[d]} ${s}</span>`;
+    }));
     html+=`<div class="entry">
       <div class="e-info">
         <div class="e-name" style="color:${cc(e.className)}">${h(e.charName)}</div>
         <div class="e-class">${h(e.className)}</div>
         <div class="e-roles">${roles.map(r=>`<span class="rbadge" style="background:${RC[r]}18;color:${RC[r]}">${RI[r]} ${r}</span>`).join("")}</div>
       </div>
-      <div class="e-slots">${slots.length?slots.map(s=>`<span class="stag">${s}</span>`).join(""):`<span style="font-size:11px;color:var(--tx5)">Keine Zeiten</span>`}</div>
-      ${e.notes?`<div class="e-notes">„${h(e.notes)}"</div>`:""}
+      <div class="e-slots">${slotTags.length?slotTags.join(""):`<span style="font-size:11px;color:var(--tx5)">Keine Zeiten</span>`}</div>
+      ${e.notes?`<div class="e-notes">\u201E${h(e.notes)}\u201C</div>`:""}
       <div class="e-actions">
         <button class="btn-edit" data-edit="${h(e.id)}">Bearbeiten</button>
-        <button class="btn-del" data-del="${h(e.id)}">✕</button>
+        <button class="btn-del" data-del="${h(e.id)}" aria-label="Eintrag von ${h(e.charName)} l\u00F6schen">\u2715</button>
       </div>
     </div>`;
   });
@@ -490,35 +613,57 @@ function renderRoster(){
 function renderHeatmap(){
   const el=document.getElementById("v-heatmap");
   const hd=heatData();
-  const mx=Math.max(1,...Object.values(hd));
+  const mx=Math.max(1,...Object.values(hd).map(v=>v.total));
 
   function cell(d,s){
-    const k=d+"_"+s, c=hd[k]||0, i=c/mx;
+    const k=d+"_"+s, dat=hd[k]||{yes:0,tent:0,total:0}, c=dat.total, i=c/mx;
     const players=avForSlot(d,s);
-    const tip=players.length?players.map(p=>`<div style="color:${cc(p.className)}">${h(p.charName)}</div>`).join(""):`<div style="color:var(--tx4)">Niemand</div>`;
-    return`<td><div class="hcell" style="background:${c?`rgba(201,168,76,${.08+i*.35})`:"rgba(255,255,255,.02)"};color:${c?`rgba(201,168,76,${.4+i*.6})`:"#2a2538"};border:1px solid rgba(201,168,76,${c?.1+i*.3:.02})">${c}<div class="tooltip">${tip}</div></div></td>`;
+    const rr=isRaidReady(players);
+    const rrCls=rr.ready?" raid-ready":"";
+
+    // Role badges
+    let roleBadges="";
+    if(c>0){
+      roleBadges=`<div class="hcell-roles"><span style="color:var(--tank)">${rr.t}T</span> <span style="color:var(--heal)">${rr.hl}H</span> <span style="color:var(--dps)">${rr.dp}D</span></div>`;
+    }
+
+    // Tooltip with role breakdown
+    let tipHdr="";
+    if(c>0){
+      tipHdr=`<div style="margin-bottom:4px;font-weight:600">${RI.Tank}${rr.t} ${RI.Heiler}${rr.hl} ${RI.DPS}${rr.dp}${rr.ready?' \u2014 <span style="color:var(--grn)">Raid-Ready!</span>':""}</div>`;
+    }
+    const tipPlayers=players.length?players.map(p=>`<div style="color:${p._availType==="tentative"?"var(--ylw)":cc(p.className)}">${p._availType==="tentative"?"(?) ":""}${h(p.charName)}</div>`).join(""):`<div style="color:var(--tx4)">Niemand</div>`;
+
+    // Count display: "yes+tent" or just total
+    let countStr=c.toString();
+    if(dat.tent>0) countStr=`${dat.yes}<span style="font-size:12px;font-weight:400;color:var(--ylw)">+${dat.tent}</span>`;
+
+    return`<td><div class="hcell${rrCls}" style="background:${c?`rgba(201,168,76,${.08+i*.35})`:"rgba(255,255,255,.02)"};color:${c?`rgba(201,168,76,${.4+i*.6})`:"#2a2538"};border:1px solid rgba(201,168,76,${c?.1+i*.3:.02})">${countStr}${roleBadges}<div class="tooltip">${tipHdr}${tipPlayers}</div></div></td>`;
   }
 
   let wdRows="";WD.forEach(d=>{wdRows+=`<tr><td class="dl">${d}</td>${EVE.map(s=>cell(d,s)).join("")}</tr>`});
   let weRows="";WE.forEach(d=>{weRows+=`<tr><td class="dl">${d}</td>${[...WEX,...EVE].map(s=>cell(d,s)).join("")}</tr>`});
 
-  const sorted=Object.entries(hd).sort((a,b)=>b[1]-a[1]).filter(([,v])=>v>0).slice(0,5);
+  const sorted=Object.entries(hd).sort((a,b)=>b[1].total-a[1].total).filter(([,v])=>v.total>0).slice(0,5);
   let topHtml="";
   if(sorted.length){
     topHtml=`<div class="center" style="margin-top:20px">
       <div class="sec-l" style="margin-bottom:10px">Top ${Math.min(5,sorted.length)} Raidzeiten</div>
-      <div class="top-slots">${sorted.map(([k,c],i)=>{
+      <div class="top-slots">${sorted.map(([k,dat],i)=>{
         const[d,s]=k.split("_");
+        const players=avForSlot(d,s);
+        const rr=isRaidReady(players);
         return`<div class="tslot" style="background:${i===0?"rgba(201,168,76,.12)":"rgba(255,255,255,.03)"};border:1px solid ${i===0?"rgba(201,168,76,.3)":"var(--bdr)"}">
           <div class="ts-t" style="color:${i===0?"var(--gold)":"#9a92a8"}">#${i+1} ${DS[d]||d} ${s}</div>
-          <div class="ts-c">${c} Raider</div>
+          <div class="ts-c">${dat.total} Raider${dat.tent>0?` (${dat.tent} vielleicht)`:""}</div>
+          ${rr.ready?'<div class="badge-rr" style="margin-top:4px">Raid-Ready!</div>':""}
         </div>`;
       }).join("")}</div>
     </div>`;
   }
 
   el.innerHTML=`
-    <p class="center" style="font-size:13px;color:var(--tx3);margin-bottom:16px">Heller = mehr Raider · Hover für Details</p>
+    <p class="center" style="font-size:13px;color:var(--tx3);margin-bottom:16px">Heller = mehr Raider \u00B7 Hover f\u00FCr Details \u00B7 Gr\u00FCner Rand = Raid-Ready</p>
     <div class="card" style="overflow-x:auto">
       <div class="sec-l">Unter der Woche</div>
       <table class="htable"><thead><tr><th></th>${EVE.map(s=>`<th>${s}</th>`).join("")}</tr></thead><tbody>${wdRows}</tbody></table>
@@ -535,7 +680,7 @@ function renderHeatmap(){
 // ══════════════════════════════
 function renderAnalytics(){
   const el=document.getElementById("v-analytics");
-  if(!entries.length){el.innerHTML=`<div class="empty">Noch keine Daten für die Auswertung.</div>`;return}
+  if(!entries.length){el.innerHTML=`<div class="empty">Noch keine Daten f\u00FCr die Auswertung.</div>`;return}
 
   // Roles
   const rc=ROLES.map(r=>({r,c:entries.filter(e=>(e.roles||[]).includes(r)).length}));
@@ -552,7 +697,7 @@ function renderAnalytics(){
         <div style="font-size:10px;color:var(--tx4);margin-top:3px">${pct}%</div>
       </div>`;
     }).join("")}</div>
-    <div class="flex-info">${multi} Spieler mit Mehrfachrolle · ${single} nur eine Rolle</div>
+    <div class="flex-info">${multi} Spieler mit Mehrfachrolle \u00B7 ${single} nur eine Rolle</div>
   </div>`;
 
   // Classes
@@ -562,39 +707,40 @@ function renderAnalytics(){
   let clsHtml=`<div class="card"><div class="card-t">Klassenverteilung</div>
     ${clsCounts.map(c=>`<div class="bar-row">
       <span class="bar-lbl" style="color:${c.c}">${c.n}</span>
-      <div class="bar-track"><div class="bar-fill" style="width:${c.count/mxCls*100}%;background:${c.c}40"></div><span class="bar-val" style="color:${c.c}">${c.count}×</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${c.count/mxCls*100}%;background:${c.c}40"></div><span class="bar-val" style="color:${c.c}">${c.count}\u00D7</span></div>
     </div>`).join("")}
   </div>`;
 
   // Best slots detail
   const hd=heatData();
-  const best=Object.entries(hd).sort((a,b)=>b[1]-a[1]).filter(([,v])=>v>0).slice(0,3);
+  const best=Object.entries(hd).sort((a,b)=>b[1].total-a[1].total).filter(([,v])=>v.total>0).slice(0,3);
 
-  let bestHtml=`<div class="card"><div class="card-t">Beste Raidzeiten — Details</div>
-    ${best.map(([k,c],i)=>{
+  let bestHtml=`<div class="card"><div class="card-t">Beste Raidzeiten \u2014 Details</div>
+    ${best.map(([k,dat],i)=>{
       const[d,s]=k.split("_");
       const players=avForSlot(d,s);
+      const rr=isRaidReady(players);
       const byRole=ROLES.map(r=>({r,ps:players.filter(p=>(p.roles||[]).includes(r))}));
       return`<div class="bs-card" style="background:${i===0?"rgba(201,168,76,.06)":"rgba(255,255,255,.015)"};border:1px solid ${i===0?"rgba(201,168,76,.2)":"rgba(255,255,255,.04)"}">
-        <div class="bs-hdr"><span class="rank" style="color:${i===0?"var(--gold)":"#9a92a8"}">#${i+1} ${d} ${s}</span><span class="avail">${c} verfügbar</span></div>
+        <div class="bs-hdr"><span class="rank" style="color:${i===0?"var(--gold)":"#9a92a8"}">#${i+1} ${d} ${s}</span><span class="avail">${dat.total} verf\u00FCgbar${dat.tent>0?` (${dat.tent} vielleicht)`:""}</span>${rr.ready?'<span class="badge-rr">Raid-Ready!</span>':""}</div>
         <div class="bs-roles">${byRole.map(({r,ps})=>`
           <div class="bs-role">
             <div class="bs-role-t" style="color:${RC[r]}">${RI[r]} ${r} (${ps.length})</div>
-            ${ps.length?ps.map(p=>`<div class="bs-player" style="color:${cc(p.className)}">${h(p.charName)}</div>`).join(""):`<div style="font-size:11px;color:var(--tx5)">—</div>`}
+            ${ps.length?ps.map(p=>`<div class="bs-player" style="color:${p._availType==="tentative"?"var(--ylw)":cc(p.className)}">${p._availType==="tentative"?"(?) ":""}${h(p.charName)}</div>`).join(""):`<div style="font-size:11px;color:var(--tx5)">\u2014</div>`}
           </div>
         `).join("")}</div>
       </div>`;
     }).join("")}
   </div>`;
 
-  // Player availability ranking
+  // Player availability ranking (count both yes and tentative)
   const pSlots=entries.map(e=>{
     const cnt=DAYS.reduce((s,d)=>s+slotsFor(d).filter(sl=>e.availability?.[d+"_"+sl]).length,0);
     return{...e,sc:cnt};
   }).sort((a,b)=>b.sc-a.sc);
   const mxSl=Math.max(1,...pSlots.map(p=>p.sc));
 
-  let playerHtml=`<div class="card"><div class="card-t">Verfügbarkeit pro Spieler</div>
+  let playerHtml=`<div class="card"><div class="card-t">Verf\u00FCgbarkeit pro Spieler</div>
     ${pSlots.map(p=>`<div class="pbar-row">
       <span class="pbar-name" style="color:${cc(p.className)}">${h(p.charName)}</span>
       <div class="pbar-track"><div class="pbar-fill" style="width:${p.sc/mxSl*100}%"></div></div>
@@ -604,6 +750,47 @@ function renderAnalytics(){
 
   el.innerHTML=roleHtml+clsHtml+bestHtml+playerHtml;
 }
+
+// ══════════════════════════════
+//  CSV EXPORT
+// ══════════════════════════════
+window.exportCSV=function(){
+  // Build all slot keys
+  const allSlots=[];
+  DAYS.forEach(d=>slotsFor(d).forEach(s=>allSlots.push({d,s,k:d+"_"+s,label:DS[d]+" "+s})));
+
+  function csvVal(str){
+    str=String(str);
+    if(str.includes('"')||str.includes(',')||str.includes('\n'))return'"'+str.replace(/"/g,'""')+'"';
+    return str;
+  }
+
+  const header=["Charakter","Klasse","Rollen",...allSlots.map(s=>s.label),"Anmerkungen"];
+  const rows=[header.map(csvVal).join(",")];
+
+  entries.forEach(e=>{
+    const roles=(e.roles||[]).join(", ");
+    const cols=[e.charName,e.className,roles];
+    allSlots.forEach(({k})=>{
+      const v=e.availability?.[k];
+      if(v==="yes"||v===true) cols.push("Ja");
+      else if(v==="tentative") cols.push("Vielleicht");
+      else cols.push("Nein");
+    });
+    cols.push(e.notes||"");
+    rows.push(cols.map(csvVal).join(","));
+  });
+
+  const bom="\uFEFF";
+  const blob=new Blob([bom+rows.join("\r\n")],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download="raid-verfuegbarkeit.csv";
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast("CSV exportiert \u2713");
+};
 
 // ── Init ──
 document.getElementById("v-roster").addEventListener("click",function(ev){
