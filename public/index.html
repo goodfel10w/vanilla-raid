@@ -139,16 +139,19 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .htable th{font-size:11px;color:var(--tx4);font-weight:500;padding:6px}
 .htable .dl{font-size:13px;color:#9a92a8;font-weight:500;padding:4px 10px 4px 0;white-space:nowrap;text-align:left;position:sticky;left:0;background:var(--bg2);z-index:1}
 .hcell{border-radius:8px;padding:10px 6px;text-align:center;font-weight:700;font-size:16px;transition:all .3s;position:relative;cursor:default}
-.hcell:hover .tooltip{display:block}
 .hcell-roles{font-size:9px;font-weight:500;color:var(--tx3);margin-top:3px;white-space:nowrap}
 .hcell.raid-ready{outline:2px solid var(--grn);outline-offset:-2px}
 .tooltip{
-  display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  position:fixed;z-index:999;
   background:#1a1828;border:1px solid rgba(201,168,76,.25);border-radius:8px;padding:8px 12px;
-  min-width:160px;z-index:10;font-size:11px;font-weight:400;color:var(--tx);text-align:left;
-  box-shadow:0 4px 20px rgba(0,0,0,.5);
+  min-width:160px;font-size:11px;font-weight:400;color:var(--tx);text-align:left;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);pointer-events:none;
+  opacity:0;transition:opacity .15s;
 }
-.tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#1a1828}
+.tooltip.show{opacity:1}
+.tooltip::after{content:'';position:absolute;left:var(--arrow-left,50%);transform:translateX(-50%);border:6px solid transparent}
+.tooltip.arrow-down::after{top:100%;border-top-color:#1a1828}
+.tooltip.arrow-up::after{bottom:100%;border-bottom-color:#1a1828}
 
 /* Section label */
 .sec-l{font-size:11px;color:var(--tx4);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
@@ -274,6 +277,7 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
   <div id="v-analytics" class="hidden" role="tabpanel" aria-labelledby="tab-analytics"></div>
 </div>
 <div class="toast" id="toast"></div>
+<div class="tooltip" id="htooltip"></div>
 
 <script>
 // ── Constants ──
@@ -384,6 +388,7 @@ document.getElementById("tabs").addEventListener("click",e=>{
   ["form","roster","heatmap","analytics"].forEach(v=>{
     document.getElementById("v-"+v).classList.toggle("hidden",v!==view);
   });
+  document.getElementById('htooltip')?.classList.remove('show','arrow-down','arrow-up');
   if(view==="form")renderForm();
   if(view==="roster")renderRoster();
   if(view==="heatmap")renderHeatmap();
@@ -713,7 +718,7 @@ function renderHeatmap(){
     const tipPlayers=players.length?players.map(p=>`<div style="color:${p._availType==="tentative"?"var(--ylw)":cc(p.className)}">${p._availType==="tentative"?"(?) ":""}${h(p.charName)}</div>`).join(""):`<div style="color:var(--tx4)">Niemand</div>`;
     let countStr=c.toString();
     if(dat.tent>0) countStr=`${dat.yes}<span style="font-size:12px;font-weight:400;color:var(--ylw)">+${dat.tent}</span>`;
-    return`<td><div class="hcell${rrCls}" style="background:${c?`rgba(201,168,76,${.08+i*.35})`:"rgba(255,255,255,.02)"};color:${c?`rgba(201,168,76,${.4+i*.6})`:"#2a2538"};border:1px solid rgba(201,168,76,${c?.1+i*.3:.02})">${countStr}${roleBadges}<div class="tooltip">${tipHdr}${tipPlayers}</div></div></td>`;
+    return`<td><div class="hcell${rrCls}" style="background:${c?`rgba(201,168,76,${.08+i*.35})`:"rgba(255,255,255,.02)"};color:${c?`rgba(201,168,76,${.4+i*.6})`:"#2a2538"};border:1px solid rgba(201,168,76,${c?.1+i*.3:.02})">${countStr}${roleBadges}<template class="tip-content">${tipHdr}${tipPlayers}</template></div></td>`;
   }
 
   function cell2h(d,s){
@@ -779,6 +784,43 @@ function renderHeatmap(){
     ${topHtml}`;
 }
 window.setHeatMode=function(m){heatMode=m;renderHeatmap()};
+
+// ── Heatmap tooltip (body-level, fixed positioning) ──
+(function(){
+  const tip=document.getElementById("htooltip");
+  const view=document.getElementById("v-heatmap");
+  view.addEventListener("mouseenter",function(e){
+    const cell=e.target.closest(".hcell");
+    if(!cell)return;
+    const tpl=cell.querySelector(".tip-content");
+    if(!tpl)return;
+    tip.innerHTML=tpl.innerHTML;
+    const r=cell.getBoundingClientRect();
+    const tw=tip.offsetWidth||160, th=tip.offsetHeight||40;
+    // Prefer above; flip below if near top
+    const above=r.top-th-10>0;
+    let top=above?r.top-th-10:r.bottom+10;
+    let left=r.left+r.width/2-tw/2;
+    // Clamp horizontal
+    const margin=4;
+    if(left<margin)left=margin;
+    if(left+tw>window.innerWidth-margin)left=window.innerWidth-margin-tw;
+    // Arrow offset
+    const cellCenter=r.left+r.width/2;
+    const arrowLeft=Math.max(12,Math.min(tw-12,cellCenter-left));
+    tip.style.left=left+"px";
+    tip.style.top=top+"px";
+    tip.style.setProperty("--arrow-left",arrowLeft+"px");
+    tip.classList.remove("arrow-down","arrow-up");
+    tip.classList.add(above?"arrow-down":"arrow-up");
+    tip.classList.add("show");
+  },true);
+  view.addEventListener("mouseleave",function(e){
+    const cell=e.target.closest(".hcell");
+    if(!cell)return;
+    tip.classList.remove("show","arrow-down","arrow-up");
+  },true);
+})();
 
 // ══════════════════════════════
 //  ANALYTICS

@@ -66,12 +66,12 @@ test.describe('Heatmap', () => {
       }
     }
     expect(targetCell).not.toBeNull();
-    const tooltip = targetCell.locator('.tooltip');
+    const tooltip = page.locator('#htooltip');
     // Tooltip hidden initially
-    await expect(tooltip).toBeHidden();
+    await expect(tooltip).not.toHaveClass(/show/);
     // Hover shows tooltip
     await targetCell.hover();
-    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toHaveClass(/show/);
   });
 
   test('heatmap shows section labels', async ({ page }) => {
