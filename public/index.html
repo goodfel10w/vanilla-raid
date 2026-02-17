@@ -130,6 +130,9 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .rcls-name{flex:1;font-weight:500}
 .rcls-ct{color:var(--tx3);font-size:11px;font-weight:600}
 .rcls-empty{font-size:11px;color:var(--tx4);padding:2px 0}
+.sort-bar{font-size:13px;color:var(--tx3);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sort-sel{background:var(--c2);color:var(--tx1);border:1px solid var(--bdr);border-radius:6px;padding:4px 8px;font-size:13px;cursor:pointer}
+.sort-sel:focus{outline:none;border-color:rgba(201,168,76,.4)}
 
 /* Heatmap */
 .htable{width:100%;border-collapse:separate;border-spacing:5px}
@@ -303,7 +306,7 @@ function windowsFor(d){
 const RR_TANK=2, RR_HEAL=5, RR_DPS=18;
 
 // ── State ──
-let entries=[], view="form", editId=null, heatMode="2h";
+let entries=[], view="form", editId=null, heatMode="2h", rosterSort="name";
 let form={name:"",cls:"",roles:[],avail:{},notes:""};
 
 // ── API ──
@@ -647,7 +650,26 @@ function renderRoster(){
 
   if(!entries.length){html+=`<div class="empty">Noch keine Eintr\u00E4ge. Sei der Erste!</div>`;el.innerHTML=html;return}
 
-  entries.forEach(e=>{
+  html+=`<div class="sort-bar">Sortieren: <select class="sort-sel" onchange="rosterSort=this.value;renderRoster()">
+    <option value="name"${rosterSort==="name"?" selected":""}>Name</option>
+    <option value="class"${rosterSort==="class"?" selected":""}>Klasse</option>
+    <option value="role"${rosterSort==="role"?" selected":""}>Rolle</option>
+  </select></div>`;
+
+  const sortedEntries=[...entries].sort((a,b)=>{
+    if(rosterSort==="class"){
+      const ci=CLS.findIndex(c=>c.n===a.className)-CLS.findIndex(c=>c.n===b.className);
+      return ci||a.charName.localeCompare(b.charName);
+    }
+    if(rosterSort==="role"){
+      const ra=(a.roles||[])[0]||"",rb=(b.roles||[])[0]||"";
+      const ri=ROLES.indexOf(ra)-ROLES.indexOf(rb);
+      return ri||a.charName.localeCompare(b.charName);
+    }
+    return a.charName.localeCompare(b.charName);
+  });
+
+  sortedEntries.forEach(e=>{
     const roles=(e.roles||[e.role].filter(Boolean)).filter(r=>ROLES.includes(r));
     const slotTags=DAYS.flatMap(d=>slotsFor(d).filter(s=>e.availability?.[d+"_"+s]).map(s=>{
       const v=e.availability[d+"_"+s];
