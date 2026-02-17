@@ -120,10 +120,16 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 
 /* Role summary */
 .rsumm{display:flex;gap:10px;margin-bottom:20px;justify-content:center;flex-wrap:wrap}
-.rcard{text-align:center;flex:1;max-width:160px;padding:12px 24px}
+.rcard{text-align:center;flex:1;max-width:200px;padding:12px 24px}
 .rcard .num{font-size:22px;font-weight:700}
-.rcard .rl{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px}
+.rcard .rl{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
 .rcard .ico{font-size:22px}
+.rcls-list{border-top:1px solid var(--bdr);padding-top:8px;text-align:left}
+.rcls-row{display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0}
+.rcls-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.rcls-name{flex:1;font-weight:500}
+.rcls-ct{color:var(--tx3);font-size:11px;font-weight:600}
+.rcls-empty{font-size:11px;color:var(--tx4);padding:2px 0}
 
 /* Heatmap */
 .htable{width:100%;border-collapse:separate;border-spacing:5px}
@@ -622,11 +628,18 @@ window.delEntry=async function(id){
 // ══════════════════════════════
 function renderRoster(){
   const el=document.getElementById("v-roster");
-  const rc=ROLES.map(r=>({r,c:entries.filter(e=>(e.roles||[]).includes(r)).length}));
+  const rc=ROLES.map(r=>{
+    const members=entries.filter(e=>(e.roles||[]).includes(r));
+    const classCounts={};
+    members.forEach(e=>{const cn=e.className;classCounts[cn]=(classCounts[cn]||0)+1});
+    const classes=Object.entries(classCounts).sort((a,b)=>b[1]-a[1]).map(([cn,ct])=>({name:cn,count:ct,color:cc(cn)}));
+    return{r,c:members.length,classes};
+  });
 
-  let html=`<div class="rsumm">${rc.map(({r,c})=>`
-    <div class="card rcard"><div class="ico">${RI[r]}</div><div class="num" style="color:${RC[r]}">${c}</div><div class="rl">${r}</div></div>
-  `).join("")}</div>`;
+  let html=`<div class="rsumm">${rc.map(({r,c,classes})=>{
+    const clsHtml=classes.length?classes.map(cl=>`<div class="rcls-row"><span class="rcls-dot" style="background:${cl.color}"></span><span class="rcls-name" style="color:${cl.color}">${h(cl.name)}</span><span class="rcls-ct">${cl.count}</span></div>`).join(""):`<div class="rcls-empty">—</div>`;
+    return`<div class="card rcard"><div class="ico">${RI[r]}</div><div class="num" style="color:${RC[r]}">${c}</div><div class="rl">${r}</div><div class="rcls-list">${clsHtml}</div></div>`;
+  }).join("")}</div>`;
 
   if(entries.length){
     html+=`<div style="margin-bottom:16px"><button class="btn-export" onclick="exportCSV()">\u{1F4BE} CSV Export</button></div>`;
