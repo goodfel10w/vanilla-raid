@@ -491,8 +491,8 @@ function syncInputs(){
   const n=document.getElementById("f-name");if(n)form.name=n.value;
   const t=document.getElementById("f-notes");if(t)form.notes=t.value;
 }
-function renderForm(){
-  syncInputs();
+function renderForm(skipSync){
+  if(!skipSync)syncInputs();
   const el=document.getElementById("v-form");
   const canSave=form.name.trim()&&form.cls&&form.roles.length>0;
 
@@ -616,7 +616,7 @@ window.startEdit=function(id){
   }
   form={name:e.charName,cls:e.className,roles:e.roles||[e.role].filter(Boolean),avail:normAvail,notes:e.notes||""};
   document.querySelector('[data-v="form"]').textContent="Bearbeiten";
-  switchTab("form");renderForm();
+  switchTab("form");renderForm(true);
 };
 window.delEntry=async function(id){
   const e=entries.find(x=>x.id===id);
