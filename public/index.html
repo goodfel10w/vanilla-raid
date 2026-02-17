@@ -144,6 +144,13 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 /* Section label */
 .sec-l{font-size:11px;color:var(--tx4);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
 
+/* Heat toggle */
+.heat-toggle{display:flex;gap:0;justify-content:center;margin-bottom:18px}
+.ht-btn{padding:8px 20px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.2);color:var(--tx3);cursor:pointer;font:600 13px 'Nunito Sans',sans-serif;transition:all .15s}
+.ht-btn:first-child{border-radius:6px 0 0 6px}
+.ht-btn:last-child{border-radius:0 6px 6px 0;border-left:none}
+.ht-btn.active{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg);border-color:var(--gold-d)}
+
 /* Top slots */
 .top-slots{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:20px}
 .tslot{border-radius:8px;padding:10px 18px;text-align:center}
@@ -276,12 +283,21 @@ const DS={Montag:"Mo",Dienstag:"Di",Mittwoch:"Mi",Donnerstag:"Do",Freitag:"Fr",S
 const EVE=["18:00\u201320:00","20:00\u201322:00","22:00\u201300:00"];
 const WEX=["14:00\u201316:00","16:00\u201318:00"];
 function slotsFor(d){return WE.includes(d)?[...WEX,...EVE]:EVE}
+function windowsFor(d){
+  const sl=slotsFor(d);const wins=[];
+  for(let i=0;i<sl.length-1;i++){
+    const a=sl[i],b=sl[i+1];
+    const label=a.split("\u2013")[0]+"\u2013"+b.split("\u2013")[1];
+    wins.push({label,slots:[a,b]});
+  }
+  return wins;
+}
 
 // Raid-ready thresholds (25-man TBC)
 const RR_TANK=2, RR_HEAL=5, RR_DPS=18;
 
 // ── State ──
-let entries=[], view="form", editId=null;
+let entries=[], view="form", editId=null, heatMode="2h";
 let form={name:"",cls:"",roles:[],avail:{},notes:""};
 
 // ── API ──
@@ -410,6 +426,41 @@ function avForSlot(d,s){
   return entries.filter(e=>e.availability?.[k]).map(e=>{
     const v=e.availability[k];
     return{...e,_availType:v==="tentative"?"tentative":"yes"};
+  });
+}
+
+function heatData4h(){
+  const hd={};
+  DAYS.forEach(d=>windowsFor(d).forEach(w=>{
+    const k=d+"_"+w.label;
+    let yes=0,tent=0;
+    entries.forEach(e=>{
+      const v1=e.availability?.[d+"_"+w.slots[0]];
+      const v2=e.availability?.[d+"_"+w.slots[1]];
+      const a1=v1==="yes"||v1===true?"yes":v1==="tentative"?"tentative":null;
+      const a2=v2==="yes"||v2===true?"yes":v2==="tentative"?"tentative":null;
+      if(!a1||!a2)return;
+      if(a1==="yes"&&a2==="yes")yes++;
+      else tent++;
+    });
+    hd[k]={yes,tent,total:yes+tent};
+  }));
+  return hd;
+}
+function avForWindow(d,w){
+  return entries.filter(e=>{
+    const v1=e.availability?.[d+"_"+w.slots[0]];
+    const v2=e.availability?.[d+"_"+w.slots[1]];
+    const a1=v1==="yes"||v1===true?"yes":v1==="tentative"?"tentative":null;
+    const a2=v2==="yes"||v2===true?"yes":v2==="tentative"?"tentative":null;
+    return a1&&a2;
+  }).map(e=>{
+    const v1=e.availability[d+"_"+w.slots[0]];
+    const v2=e.availability[d+"_"+w.slots[1]];
+    const a1=v1==="yes"||v1===true?"yes":"tentative";
+    const a2=v2==="yes"||v2===true?"yes":"tentative";
+    const t=(a1==="yes"&&a2==="yes")?"yes":"tentative";
+    return{...e,_availType:t};
   });
 }
 
@@ -612,46 +663,60 @@ function renderRoster(){
 // ══════════════════════════════
 function renderHeatmap(){
   const el=document.getElementById("v-heatmap");
-  const hd=heatData();
+  const is4=heatMode==="4h";
+  const hd=is4?heatData4h():heatData();
   const mx=Math.max(1,...Object.values(hd).map(v=>v.total));
 
-  function cell(d,s){
-    const k=d+"_"+s, dat=hd[k]||{yes:0,tent:0,total:0}, c=dat.total, i=c/mx;
-    const players=avForSlot(d,s);
+  function makeCell(k,players,dat){
+    const c=dat.total,i=c/mx;
     const rr=isRaidReady(players);
     const rrCls=rr.ready?" raid-ready":"";
-
-    // Role badges
     let roleBadges="";
-    if(c>0){
-      roleBadges=`<div class="hcell-roles"><span style="color:var(--tank)">${rr.t}T</span> <span style="color:var(--heal)">${rr.hl}H</span> <span style="color:var(--dps)">${rr.dp}D</span></div>`;
-    }
-
-    // Tooltip with role breakdown
+    if(c>0) roleBadges=`<div class="hcell-roles"><span style="color:var(--tank)">${rr.t}T</span> <span style="color:var(--heal)">${rr.hl}H</span> <span style="color:var(--dps)">${rr.dp}D</span></div>`;
     let tipHdr="";
-    if(c>0){
-      tipHdr=`<div style="margin-bottom:4px;font-weight:600">${RI.Tank}${rr.t} ${RI.Heiler}${rr.hl} ${RI.DPS}${rr.dp}${rr.ready?' \u2014 <span style="color:var(--grn)">Raid-Ready!</span>':""}</div>`;
-    }
+    if(c>0) tipHdr=`<div style="margin-bottom:4px;font-weight:600">${RI.Tank}${rr.t} ${RI.Heiler}${rr.hl} ${RI.DPS}${rr.dp}${rr.ready?' \u2014 <span style="color:var(--grn)">Raid-Ready!</span>':""}</div>`;
     const tipPlayers=players.length?players.map(p=>`<div style="color:${p._availType==="tentative"?"var(--ylw)":cc(p.className)}">${p._availType==="tentative"?"(?) ":""}${h(p.charName)}</div>`).join(""):`<div style="color:var(--tx4)">Niemand</div>`;
-
-    // Count display: "yes+tent" or just total
     let countStr=c.toString();
     if(dat.tent>0) countStr=`${dat.yes}<span style="font-size:12px;font-weight:400;color:var(--ylw)">+${dat.tent}</span>`;
-
     return`<td><div class="hcell${rrCls}" style="background:${c?`rgba(201,168,76,${.08+i*.35})`:"rgba(255,255,255,.02)"};color:${c?`rgba(201,168,76,${.4+i*.6})`:"#2a2538"};border:1px solid rgba(201,168,76,${c?.1+i*.3:.02})">${countStr}${roleBadges}<div class="tooltip">${tipHdr}${tipPlayers}</div></div></td>`;
   }
 
-  let wdRows="";WD.forEach(d=>{wdRows+=`<tr><td class="dl">${d}</td>${EVE.map(s=>cell(d,s)).join("")}</tr>`});
-  let weRows="";WE.forEach(d=>{weRows+=`<tr><td class="dl">${d}</td>${[...WEX,...EVE].map(s=>cell(d,s)).join("")}</tr>`});
+  function cell2h(d,s){
+    const k=d+"_"+s;
+    return makeCell(k,avForSlot(d,s),hd[k]||{yes:0,tent:0,total:0});
+  }
+  function cell4h(d,w){
+    const k=d+"_"+w.label;
+    return makeCell(k,avForWindow(d,w),hd[k]||{yes:0,tent:0,total:0});
+  }
+
+  let wdRows="",weRows="";
+  if(is4){
+    WD.forEach(d=>{wdRows+=`<tr><td class="dl">${d}</td>${windowsFor(d).map(w=>cell4h(d,w)).join("")}</tr>`});
+    WE.forEach(d=>{weRows+=`<tr><td class="dl">${d}</td>${windowsFor(d).map(w=>cell4h(d,w)).join("")}</tr>`});
+  }else{
+    WD.forEach(d=>{wdRows+=`<tr><td class="dl">${d}</td>${EVE.map(s=>cell2h(d,s)).join("")}</tr>`});
+    WE.forEach(d=>{weRows+=`<tr><td class="dl">${d}</td>${[...WEX,...EVE].map(s=>cell2h(d,s)).join("")}</tr>`});
+  }
+
+  const wdCols=is4?windowsFor("Montag").map(w=>w.label):EVE;
+  const weCols=is4?windowsFor("Samstag").map(w=>w.label):[...WEX,...EVE];
 
   const sorted=Object.entries(hd).sort((a,b)=>b[1].total-a[1].total).filter(([,v])=>v.total>0).slice(0,5);
   let topHtml="";
   if(sorted.length){
     topHtml=`<div class="center" style="margin-top:20px">
-      <div class="sec-l" style="margin-bottom:10px">Top ${Math.min(5,sorted.length)} Raidzeiten</div>
+      <div class="sec-l" style="margin-bottom:10px">Top ${Math.min(5,sorted.length)} Raidzeiten${is4?" (4h)":""}</div>
       <div class="top-slots">${sorted.map(([k,dat],i)=>{
-        const[d,s]=k.split("_");
-        const players=avForSlot(d,s);
+        const sep=k.indexOf("_"),d=k.substring(0,sep),s=k.substring(sep+1);
+        let players;
+        if(is4){
+          const wins=windowsFor(d);
+          const w=wins.find(x=>x.label===s);
+          players=w?avForWindow(d,w):[];
+        }else{
+          players=avForSlot(d,s);
+        }
         const rr=isRaidReady(players);
         return`<div class="tslot" style="background:${i===0?"rgba(201,168,76,.12)":"rgba(255,255,255,.03)"};border:1px solid ${i===0?"rgba(201,168,76,.3)":"var(--bdr)"}">
           <div class="ts-t" style="color:${i===0?"var(--gold)":"#9a92a8"}">#${i+1} ${DS[d]||d} ${s}</div>
@@ -663,17 +728,22 @@ function renderHeatmap(){
   }
 
   el.innerHTML=`
-    <p class="center" style="font-size:13px;color:var(--tx3);margin-bottom:16px">Heller = mehr Raider \u00B7 Hover f\u00FCr Details \u00B7 Gr\u00FCner Rand = Raid-Ready</p>
+    <div class="heat-toggle">
+      <button class="ht-btn${heatMode==="2h"?" active":""}" onclick="setHeatMode('2h')">2h Slots</button>
+      <button class="ht-btn${heatMode==="4h"?" active":""}" onclick="setHeatMode('4h')">4h Raid-Fenster</button>
+    </div>
+    <p class="center" style="font-size:13px;color:var(--tx3);margin-bottom:16px">Heller = mehr Raider \u00B7 Hover f\u00FCr Details \u00B7 Gr\u00FCner Rand = Raid-Ready${is4?" \u00B7 4h = beide Slots verf\u00FCgbar":""}</p>
     <div class="card" style="overflow-x:auto">
       <div class="sec-l">Unter der Woche</div>
-      <table class="htable"><thead><tr><th></th>${EVE.map(s=>`<th>${s}</th>`).join("")}</tr></thead><tbody>${wdRows}</tbody></table>
+      <table class="htable"><thead><tr><th></th>${wdCols.map(s=>`<th>${s}</th>`).join("")}</tr></thead><tbody>${wdRows}</tbody></table>
     </div>
     <div class="card" style="overflow-x:auto">
       <div class="sec-l">Wochenende</div>
-      <table class="htable"><thead><tr><th></th>${[...WEX,...EVE].map(s=>`<th>${s}</th>`).join("")}</tr></thead><tbody>${weRows}</tbody></table>
+      <table class="htable"><thead><tr><th></th>${weCols.map(s=>`<th>${s}</th>`).join("")}</tr></thead><tbody>${weRows}</tbody></table>
     </div>
     ${topHtml}`;
 }
+window.setHeatMode=function(m){heatMode=m;renderHeatmap()};
 
 // ══════════════════════════════
 //  ANALYTICS
