@@ -11,6 +11,7 @@ export const SAMPLE_ENTRY = {
     'Samstag_16:00\u201318:00': 'tentative',
   },
   notes: 'Testnotiz',
+  userId: 'mock-user-1',
   timestamp: '2026-01-15T18:00:00.000Z',
 };
 
@@ -25,6 +26,7 @@ export const SAMPLE_ENTRY_2 = {
     'Sonntag_14:00\u201316:00': 'yes',
   },
   notes: '',
+  userId: 'mock-user-2',
   timestamp: '2026-01-16T10:00:00.000Z',
 };
 
@@ -37,6 +39,7 @@ export function makeStoredEntry(overrides = {}) {
     roles: ['DPS'],
     availability: {},
     notes: '',
+    userId: 'mock-user-1',
     timestamp: new Date().toISOString(),
     ...overrides,
   };

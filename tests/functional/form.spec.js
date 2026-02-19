@@ -4,6 +4,11 @@ import { setupMockApi } from '../fixtures/mock-api.js';
 test.describe('Form', () => {
   test.beforeEach(async ({ page }) => {
     await setupMockApi(page, []);
+    await page.addInitScript(() => {
+      localStorage.setItem('raid-auth', JSON.stringify({
+        token: 'mock-token', username: 'Testuser', userId: 'mock-user-1'
+      }));
+    });
     await page.goto('/');
     await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
   });

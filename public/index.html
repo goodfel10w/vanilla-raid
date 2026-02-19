@@ -230,6 +230,30 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .modal-confirm{background:var(--dps);color:#fff}
 .modal-confirm:hover{background:#ef5350}
 
+/* Auth bar */
+.auth-bar{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:12px;font-size:13px;color:var(--tx2);min-height:32px}
+.auth-bar .auth-user{font-weight:600;color:var(--gold)}
+.auth-bar button{background:none;border:1px solid rgba(255,255,255,.1);color:var(--tx2);padding:5px 14px;border-radius:6px;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;transition:all .2s}
+.auth-bar button:hover{border-color:rgba(201,168,76,.4);color:var(--gold)}
+.auth-bar .btn-logout{border-color:rgba(255,255,255,.06);color:var(--tx3);font-weight:400}
+
+/* Auth overlay */
+.auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1001;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease}
+.auth-box{background:var(--bg2);border:1px solid rgba(201,168,76,.25);border-radius:14px;padding:32px;max-width:380px;width:92%;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+.auth-box h2{font-family:'Cinzel',serif;font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--gold-l));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:20px;text-align:center}
+.auth-tabs{display:flex;gap:0;margin-bottom:20px}
+.auth-tab{flex:1;padding:9px 0;text-align:center;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.2);color:var(--tx3);cursor:pointer;font:600 13px 'Nunito Sans',sans-serif;transition:all .15s}
+.auth-tab:first-child{border-radius:6px 0 0 6px}
+.auth-tab:last-child{border-radius:0 6px 6px 0;border-left:none}
+.auth-tab.active{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg);border-color:var(--gold-d)}
+.auth-input{display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;margin-bottom:12px;transition:border-color .2s}
+.auth-input:focus{border-color:rgba(201,168,76,.3)}
+.auth-err{color:#e57373;font-size:12px;margin-bottom:10px;min-height:16px}
+.auth-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--tx3);font-size:20px;cursor:pointer;padding:4px}
+.auth-close:hover{color:var(--tx)}
+.auth-hint{text-align:center;padding:20px;color:var(--tx3);font-size:14px}
+.auth-hint button{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg);border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font:600 13px 'Nunito Sans',sans-serif;margin-top:8px}
+
 /* CSV export button */
 .btn-export{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:8px;border:1px solid rgba(201,168,76,.3);background:rgba(201,168,76,.08);color:var(--gold);cursor:pointer;font:600 13px 'Nunito Sans',sans-serif;transition:all .2s;margin-bottom:16px}
 .btn-export:hover{background:rgba(201,168,76,.15);border-color:rgba(201,168,76,.5)}
@@ -254,6 +278,9 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 <div class="glow g1"></div>
 <div class="glow g2"></div>
 <div class="wrap">
+  <!-- Auth bar -->
+  <div id="auth-bar"></div>
+
   <!-- Header -->
   <div class="center" style="margin-bottom:32px">
     <div class="guild">&lt;Vanilla&gt;</div>
@@ -276,6 +303,7 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
   <div id="v-heatmap" class="hidden" role="tabpanel" aria-labelledby="tab-heatmap"></div>
   <div id="v-analytics" class="hidden" role="tabpanel" aria-labelledby="tab-analytics"></div>
 </div>
+<div id="auth-overlay"></div>
 <div class="toast" id="toast"></div>
 <div class="tooltip" id="htooltip"></div>
 
@@ -312,6 +340,103 @@ const RR_TANK=2, RR_HEAL=5, RR_DPS=18;
 // ── State ──
 let entries=[], view="form", editId=null, heatMode="2h", rosterSort="name";
 let form={name:"",cls:"",roles:[],avail:{},notes:""};
+let currentUser=null; // { token, username, userId }
+
+// ── Auth API ──
+async function authApi(action,data){
+  const hdrs={"Content-Type":"application/json"};
+  if(currentUser?.token)hdrs["Authorization"]="Bearer "+currentUser.token;
+  const r=await fetch("/api/auth",{method:"POST",headers:hdrs,body:JSON.stringify({action,...data})});
+  const j=await r.json();
+  if(!r.ok)throw new Error(j.error||"Auth-Fehler");
+  return j;
+}
+function authHeader(){
+  if(currentUser?.token)return{Authorization:"Bearer "+currentUser.token};
+  return{};
+}
+
+// ── Auth UI ──
+function renderAuthBar(){
+  const el=document.getElementById("auth-bar");
+  if(currentUser){
+    el.innerHTML=`<div class="auth-bar">Eingeloggt als <span class="auth-user">${h(currentUser.username)}</span> <button class="btn-logout" onclick="doLogout()">Abmelden</button></div>`;
+  }else{
+    el.innerHTML=`<div class="auth-bar"><button onclick="renderAuthOverlay(true)">Anmelden</button></div>`;
+  }
+}
+let authMode="login";
+function renderAuthOverlay(show){
+  const el=document.getElementById("auth-overlay");
+  if(!show){el.innerHTML="";return}
+  const isReg=authMode==="register";
+  el.innerHTML=`<div class="auth-overlay">
+    <div class="auth-box" style="position:relative">
+      <button class="auth-close" onclick="renderAuthOverlay(false)">&times;</button>
+      <h2>${isReg?"Registrieren":"Anmelden"}</h2>
+      <div class="auth-tabs">
+        <button class="auth-tab${!isReg?" active":""}" onclick="authMode='login';renderAuthOverlay(true)">Anmelden</button>
+        <button class="auth-tab${isReg?" active":""}" onclick="authMode='register';renderAuthOverlay(true)">Registrieren</button>
+      </div>
+      <input class="auth-input" id="auth-user" type="text" placeholder="Benutzername" autocomplete="username">
+      <input class="auth-input" id="auth-pass" type="password" placeholder="Passwort" autocomplete="${isReg?"new-password":"current-password"}">
+      ${isReg?'<input class="auth-input" id="auth-pass2" type="password" placeholder="Passwort wiederholen" autocomplete="new-password">':""}
+      <div class="auth-err" id="auth-err"></div>
+      <button class="btn-p" style="width:100%" onclick="doAuth()">${isReg?"Registrieren":"Anmelden"}</button>
+    </div>
+  </div>`;
+  document.getElementById("auth-user").focus();
+  // Allow Enter to submit
+  el.querySelectorAll(".auth-input").forEach(inp=>{
+    inp.addEventListener("keydown",e=>{if(e.key==="Enter")doAuth()});
+  });
+  // Click overlay bg to close
+  el.querySelector(".auth-overlay").addEventListener("click",e=>{if(e.target===e.currentTarget)renderAuthOverlay(false)});
+}
+window.doAuth=async function(){
+  const user=document.getElementById("auth-user")?.value.trim();
+  const pass=document.getElementById("auth-pass")?.value;
+  const errEl=document.getElementById("auth-err");
+  if(!user||!pass){if(errEl)errEl.textContent="Bitte alle Felder ausfüllen";return}
+  if(authMode==="register"){
+    const pass2=document.getElementById("auth-pass2")?.value;
+    if(pass!==pass2){if(errEl)errEl.textContent="Passwörter stimmen nicht überein";return}
+  }
+  try{
+    const res=await authApi(authMode==="register"?"register":"login",{username:user,password:pass});
+    currentUser={token:res.token,username:res.username,userId:res.userId};
+    localStorage.setItem("raid-auth",JSON.stringify(currentUser));
+    renderAuthOverlay(false);
+    renderAuthBar();
+    updateAll();
+    toast(authMode==="register"?"Registrierung erfolgreich ✓":"Angemeldet ✓");
+  }catch(e){if(errEl)errEl.textContent=e.message}
+};
+window.doLogout=async function(){
+  try{await authApi("logout")}catch(e){}
+  currentUser=null;
+  localStorage.removeItem("raid-auth");
+  renderAuthBar();
+  updateAll();
+  toast("Abgemeldet");
+};
+async function initAuth(){
+  const stored=localStorage.getItem("raid-auth");
+  if(stored){
+    try{
+      const data=JSON.parse(stored);
+      currentUser=data;
+      const res=await authApi("validate");
+      currentUser={...data,username:res.username,userId:res.userId};
+    }catch(e){
+      currentUser=null;
+      localStorage.removeItem("raid-auth");
+    }
+  }
+  renderAuthBar();
+  renderForm();
+  load();
+}
 
 // ── API ──
 const API="/api/entries";
@@ -322,7 +447,7 @@ async function load(){
     activeEl.innerHTML='<div class="loading-wrap"><div class="spinner"></div>Lade Daten...</div>';
   }
   try{
-    const r=await fetch(API);
+    const r=await fetch(API,{headers:authHeader()});
     if(!r.ok)throw new Error("Laden fehlgeschlagen");
     const data=await r.json();
     entries=Array.isArray(data)?data:[];
@@ -338,13 +463,13 @@ async function load(){
   updateAll();
 }
 async function save(data){
-  const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+  const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify(data)});
   if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Speichern fehlgeschlagen")}
   return r.json();
 }
 async function del(id){
-  const r=await fetch(API+"?id="+encodeURIComponent(id),{method:"DELETE"});
-  if(!r.ok)throw new Error("Löschen fehlgeschlagen");
+  const r=await fetch(API+"?id="+encodeURIComponent(id),{method:"DELETE",headers:authHeader()});
+  if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Löschen fehlgeschlagen")}
 }
 
 // ── Toast ──
@@ -499,6 +624,10 @@ function syncInputs(){
 function renderForm(skipSync){
   if(!skipSync)syncInputs();
   const el=document.getElementById("v-form");
+  if(!currentUser){
+    el.innerHTML=`<div class="auth-hint">Bitte melde dich an, um einen Eintrag zu erstellen.<br><button onclick="renderAuthOverlay(true)">Anmelden</button></div>`;
+    return;
+  }
   const canSave=form.name.trim()&&form.cls&&form.roles.length>0;
 
   function slotBtn(d,s){
@@ -601,7 +730,15 @@ window.submitForm=async function(){
     document.querySelector('[data-v="form"]').textContent="Eintragen";
     await load();
     switchTab("roster");renderRoster();
-  }catch(e){toast("Fehler: "+e.message);btn.disabled=false;btn.textContent=editId?"Aktualisieren":"Eintragen"}
+  }catch(e){
+    if(e.message==="Nicht angemeldet"||e.message==="Sitzung ungültig"){
+      currentUser=null;localStorage.removeItem("raid-auth");renderAuthBar();renderForm();
+      toast("Sitzung abgelaufen — bitte erneut anmelden");
+    }else if(e.message==="Keine Berechtigung"){
+      toast("Du kannst nur eigene Einträge bearbeiten");
+    }else{toast("Fehler: "+e.message)}
+    btn.disabled=false;btn.textContent=editId?"Aktualisieren":"Eintragen";
+  }
 };
 window.cancelEdit=function(){
   editId=null;form={name:"",cls:"",roles:[],avail:{},notes:""};
@@ -627,7 +764,13 @@ window.delEntry=async function(id){
   const e=entries.find(x=>x.id===id);
   const name=e?e.charName:"diesen Eintrag";
   showModal("Eintrag l\u00F6schen",`Soll der Eintrag von <strong>${h(name)}</strong> wirklich gel\u00F6scht werden?`,async()=>{
-    try{await del(id);toast("Gel\u00F6scht");await load()}catch(err){toast("Fehler beim L\u00F6schen")}
+    try{await del(id);toast("Gel\u00F6scht");await load()}catch(err){
+      if(err.message==="Nicht angemeldet"||err.message==="Sitzung ung\u00FCltig"){
+        currentUser=null;localStorage.removeItem("raid-auth");renderAuthBar();updateAll();
+        toast("Sitzung abgelaufen \u2014 bitte erneut anmelden");
+      }else if(err.message==="Keine Berechtigung"){toast("Du kannst nur eigene Eintr\u00E4ge l\u00F6schen")}
+      else{toast("Fehler beim L\u00F6schen")}
+    }
   });
 };
 
@@ -689,10 +832,10 @@ function renderRoster(){
       </div>
       <div class="e-slots">${slotTags.length?slotTags.join(""):`<span style="font-size:11px;color:var(--tx5)">Keine Zeiten</span>`}</div>
       ${e.notes?`<div class="e-notes">\u201E${h(e.notes)}\u201C</div>`:""}
-      <div class="e-actions">
+      ${currentUser&&(!e.userId||e.userId===currentUser.userId)?`<div class="e-actions">
         <button class="btn-edit" data-edit="${h(e.id)}">Bearbeiten</button>
         <button class="btn-del" data-del="${h(e.id)}" aria-label="Eintrag von ${h(e.charName)} l\u00F6schen">\u2715</button>
-      </div>
+      </div>`:""}
     </div>`;
   });
   el.innerHTML=html;
@@ -946,8 +1089,7 @@ document.getElementById("v-roster").addEventListener("click",function(ev){
   const db=ev.target.closest("[data-del]");
   if(db){delEntry(db.dataset.del);return}
 });
-renderForm();
-load();
+initAuth();
 </script>
 </body>
 </html>

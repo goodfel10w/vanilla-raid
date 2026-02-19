@@ -5,6 +5,11 @@ import { SAMPLE_ENTRY, SAMPLE_ENTRY_2 } from '../fixtures/test-data.js';
 test.describe('Heatmap', () => {
   test.beforeEach(async ({ page }) => {
     await setupMockApi(page, [SAMPLE_ENTRY, SAMPLE_ENTRY_2]);
+    await page.addInitScript(() => {
+      localStorage.setItem('raid-auth', JSON.stringify({
+        token: 'mock-token', username: 'Testuser', userId: 'mock-user-1'
+      }));
+    });
     await page.goto('/');
     await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
     await page.click('[data-v="heatmap"]');
@@ -23,7 +28,7 @@ test.describe('Heatmap', () => {
   });
 
   test('cells show non-zero counts for slots with availability', async ({ page }) => {
-    // Both entries available on Montag 18:00-20:00 → cell should show 2
+    // Both entries available on Montag 18:00-20:00 \u2192 cell should show 2
     const cellTexts = await page.locator('.hcell').allInnerTexts();
     const hasNonZero = cellTexts.some(t => /[1-9]/.test(t));
     expect(hasNonZero).toBe(true);

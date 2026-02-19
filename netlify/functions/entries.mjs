@@ -1,5 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import { randomUUID } from "crypto";
+import { validateSession } from "./shared/auth-utils.mjs";
 
 const VALID_CLASSES = ["Druide","Hexenmeister","Jäger","Krieger","Magier","Paladin","Priester","Schamane","Schurke"];
 const VALID_ROLES = ["Tank","Heiler","DPS"];
@@ -37,6 +38,10 @@ export default async (req, context) => {
 
     // POST — create or update entry
     if (req.method === "POST") {
+      const user = await validateSession(req);
+      if (!user) {
+        return new Response(JSON.stringify({ error: "Nicht angemeldet" }), { status: 401, headers });
+      }
       const body = await req.json();
       const { charName, className, roles, availability, notes } = body;
 
@@ -76,6 +81,10 @@ export default async (req, context) => {
       if (body.id && typeof body.id === "string") {
         const existing = await store.get(body.id, { type: "json" });
         if (existing) {
+          // Ownership check: deny if entry belongs to another user (legacy entries without userId are open)
+          if (existing.userId && existing.userId !== user.userId) {
+            return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
+          }
           id = body.id;
         } else {
           return new Response(JSON.stringify({ error: "Eintrag nicht gefunden" }), { status: 404, headers });
@@ -91,6 +100,7 @@ export default async (req, context) => {
         roles,
         availability: cleanAvail,
         notes: (notes || "").trim().slice(0, 500),
+        userId: user.userId,
         timestamp: new Date().toISOString(),
       };
 
@@ -100,10 +110,18 @@ export default async (req, context) => {
 
     // DELETE — remove entry
     if (req.method === "DELETE") {
+      const user = await validateSession(req);
+      if (!user) {
+        return new Response(JSON.stringify({ error: "Nicht angemeldet" }), { status: 401, headers });
+      }
       const url = new URL(req.url);
       const id = url.searchParams.get("id");
       if (!id) {
         return new Response(JSON.stringify({ error: "ID fehlt" }), { status: 400, headers });
+      }
+      const existing = await store.get(id, { type: "json" });
+      if (existing && existing.userId && existing.userId !== user.userId) {
+        return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
       }
       await store.delete(id);
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
@@ -117,5 +135,5 @@ export default async (req, context) => {
 };
 
 export const config = {
-  path: "/api/*",
+  path: "/api/entries",
 };

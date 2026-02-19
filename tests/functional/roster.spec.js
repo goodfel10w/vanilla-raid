@@ -6,6 +6,11 @@ test.describe('Roster', () => {
   test.describe('with entries', () => {
     test.beforeEach(async ({ page }) => {
       await setupMockApi(page, [SAMPLE_ENTRY, SAMPLE_ENTRY_2]);
+      await page.addInitScript(() => {
+        localStorage.setItem('raid-auth', JSON.stringify({
+          token: 'mock-token', username: 'Testuser', userId: 'mock-user-1'
+        }));
+      });
       await page.goto('/');
       await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
       await page.click('[data-v="roster"]');
@@ -35,7 +40,7 @@ test.describe('Roster', () => {
     test('sorting by name orders alphabetically', async ({ page }) => {
       await page.selectOption('.sort-sel', 'name');
       const names = await page.locator('.e-name').allTextContents();
-      // Heiligschein < Thrallmächtig
+      // Heiligschein < Thrallm\u00e4chtig
       expect(names[0]).toBe('Heiligschein');
       expect(names[1]).toBe('Thrallm\u00e4chtig');
     });
@@ -51,12 +56,27 @@ test.describe('Roster', () => {
     test('sorting by role orders Tank > Heiler > DPS', async ({ page }) => {
       await page.selectOption('.sort-sel', 'role');
       const names = await page.locator('.e-name').allTextContents();
-      // Tank (Thrallmächtig) before Heiler (Heiligschein)
+      // Tank (Thrallm\u00e4chtig) before Heiler (Heiligschein)
       expect(names[0]).toBe('Thrallm\u00e4chtig');
       expect(names[1]).toBe('Heiligschein');
     });
 
+    test('own entry shows edit/delete buttons', async ({ page }) => {
+      // SAMPLE_ENTRY has userId mock-user-1 = our user
+      const ownEntry = page.locator('.entry', { has: page.locator('.e-name', { hasText: 'Thrallm\u00e4chtig' }) });
+      await expect(ownEntry.locator('[data-edit]')).toBeVisible();
+      await expect(ownEntry.locator('[data-del]')).toBeVisible();
+    });
+
+    test('other user entry hides edit/delete buttons', async ({ page }) => {
+      // SAMPLE_ENTRY_2 has userId mock-user-2 = different user
+      const otherEntry = page.locator('.entry', { has: page.locator('.e-name', { hasText: 'Heiligschein' }) });
+      await expect(otherEntry.locator('[data-edit]')).toHaveCount(0);
+      await expect(otherEntry.locator('[data-del]')).toHaveCount(0);
+    });
+
     test('delete with modal confirm removes entry', async ({ page }) => {
+      // Only own entry (Thrallm\u00e4chtig) has delete button
       await page.locator('[data-del]').first().click();
       await expect(page.locator('.modal-bg')).toBeVisible();
       await expect(page.locator('.modal-title')).toHaveText('Eintrag l\u00f6schen');
@@ -97,6 +117,11 @@ test.describe('Roster', () => {
   test.describe('empty state', () => {
     test('shows empty message when no entries', async ({ page }) => {
       await setupMockApi(page, []);
+      await page.addInitScript(() => {
+        localStorage.setItem('raid-auth', JSON.stringify({
+          token: 'mock-token', username: 'Testuser', userId: 'mock-user-1'
+        }));
+      });
       await page.goto('/');
       await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
       await page.click('[data-v="roster"]');
