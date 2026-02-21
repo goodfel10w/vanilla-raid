@@ -35,25 +35,21 @@ test.describe('Form', () => {
     await expect(page.locator('#f-submit')).toBeEnabled();
   });
 
-  test('availability button cycles: off \u2192 yes \u2192 tentative \u2192 off', async ({ page }) => {
-    const btn = page.locator('.sbtn').first();
-    // Initial: off
-    await expect(btn).toHaveText('\u2014');
-    await expect(btn).not.toHaveClass(/\bon\b/);
-    await expect(btn).not.toHaveClass(/\btent\b/);
+  test('availability cell cycles: off → yes → tentative → off', async ({ page }) => {
+    const cell = page.locator('.tl-cell').first();
+    // Initial: off (no .on or .tent class)
+    await expect(cell).not.toHaveClass(/\bon\b/);
+    await expect(cell).not.toHaveClass(/\btent\b/);
     // Click 1: yes
-    await btn.click();
-    await expect(btn).toHaveText('\u2713');
-    await expect(btn).toHaveClass(/\bon\b/);
+    await cell.click();
+    await expect(cell).toHaveClass(/\bon\b/);
     // Click 2: tentative
-    await btn.click();
-    await expect(btn).toHaveText('?');
-    await expect(btn).toHaveClass(/\btent\b/);
+    await cell.click();
+    await expect(cell).toHaveClass(/\btent\b/);
     // Click 3: off
-    await btn.click();
-    await expect(btn).toHaveText('\u2014');
-    await expect(btn).not.toHaveClass(/\bon\b/);
-    await expect(btn).not.toHaveClass(/\btent\b/);
+    await cell.click();
+    await expect(cell).not.toHaveClass(/\bon\b/);
+    await expect(cell).not.toHaveClass(/\btent\b/);
   });
 
   test('class chip selection toggles active state', async ({ page }) => {
@@ -85,7 +81,7 @@ test.describe('Form', () => {
     await page.fill('#f-name', 'Testkrieger');
     await page.locator('.chip', { hasText: 'Krieger' }).click();
     await page.locator('.rchip', { hasText: 'Tank' }).click();
-    await page.locator('.sbtn').first().click();
+    await page.locator('.tl-cell').first().click();
     await page.click('#f-submit');
     // After submit, switches to roster view
     await expect(page.locator('#v-roster')).toBeVisible();

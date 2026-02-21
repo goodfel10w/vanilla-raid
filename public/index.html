@@ -73,17 +73,18 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
   min-height:44px;display:flex;align-items:center;justify-content:center;
 }
 
-/* Availability grid */
-.atable{width:100%;border-collapse:separate;border-spacing:4px}
-.atable th{font-size:11px;color:var(--tx4);padding:4px;font-weight:500}
-.atable .dl{font-size:13px;color:#9a92a8;padding:4px 8px 4px 0;font-weight:500;white-space:nowrap;text-align:left;position:sticky;left:0;background:var(--bg2);z-index:1}
-.sbtn{
-  width:100%;padding:10px 0;border-radius:6px;border:1px solid rgba(255,255,255,.04);
-  cursor:pointer;font:16px 'Nunito Sans',sans-serif;transition:all .15s;
-  background:rgba(0,0,0,.2);color:var(--tx5);min-height:44px;
-}
-.sbtn.on{border-color:var(--grn-bd);background:var(--grn-bg);color:var(--grn)}
-.sbtn.tent{border-color:var(--ylw-bd);background:var(--ylw-bg);color:var(--ylw)}
+/* Timeline grid */
+.tl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+.tl-table{border-collapse:collapse;user-select:none}
+.tl-table th{font-size:10px;color:var(--tx4);padding:2px 0;text-align:center;font-weight:500}
+.tl-table .dl{font-size:13px;color:#9a92a8;padding:4px 8px 4px 0;font-weight:500;white-space:nowrap;text-align:left;position:sticky;left:0;background:var(--card);z-index:1}
+.tl-cell{width:14px;min-width:14px;height:32px;border:1px solid rgba(255,255,255,.03);cursor:pointer;background:rgba(0,0,0,.2);transition:background .1s;padding:0}
+.tl-cell.hstart{border-left:2px solid rgba(255,255,255,.1)}
+.tl-cell.on{background:var(--grn-bg);border-color:var(--grn-bd)}
+.tl-cell.tent{background:var(--ylw-bg);border-color:var(--ylw-bd)}
+.tl-cell:hover{background:rgba(255,255,255,.06)}
+.tl-cell.on:hover{background:rgba(76,175,80,.25)}
+.tl-cell.tent:hover{background:rgba(229,194,68,.25)}
 
 /* Buttons */
 .brow{display:flex;gap:10px;margin-top:6px}
@@ -321,24 +322,48 @@ const WD=["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
 const WE=["Samstag","Sonntag"];
 const DAYS=[...WD,...WE];
 const DS={Montag:"Mo",Dienstag:"Di",Mittwoch:"Mi",Donnerstag:"Do",Freitag:"Fr",Samstag:"Sa",Sonntag:"So"};
-const EVE=["18:00\u201320:00","20:00\u201322:00","22:00\u201300:00"];
-const WEX=["14:00\u201316:00","16:00\u201318:00"];
-function slotsFor(d){return WE.includes(d)?[...WEX,...EVE]:EVE}
-function windowsFor(d){
-  const sl=slotsFor(d);const wins=[];
-  for(let i=0;i<sl.length-1;i++){
-    const a=sl[i],b=sl[i+1];
-    const label=a.split("\u2013")[0]+"\u2013"+b.split("\u2013")[1];
-    wins.push({label,slots:[a,b]});
+// 15-min slots from 12:00 to 23:45 (48 slots)
+const SLOTS=[];for(let hh=12;hh<24;hh++)for(let mm=0;mm<60;mm+=15)SLOTS.push(String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0'));
+const HOUR_LABELS=[];for(let hh=12;hh<24;hh++)HOUR_LABELS.push(String(hh).padStart(2,'0'));
+function slotsFor(){return SLOTS}
+function addMins(t,m){const[h,n]=t.split(':').map(Number);const s=h*60+n+m;return String(Math.floor(s/60)%24).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+function hourQuarters(hLabel){return[0,15,30,45].map(m=>hLabel+':'+String(m).padStart(2,'0'))}
+function migrateLegacyAvail(av){
+  if(!av||typeof av!=='object')return{};
+  const out={};
+  for(const[k,v] of Object.entries(av)){
+    const sep=k.indexOf('_');if(sep<0)continue;
+    const day=k.substring(0,sep),slot=k.substring(sep+1),val=v===true?'yes':v;
+    if(slot.includes('\u2013')){
+      const[st,en]=slot.split('\u2013');
+      const[sh,sm]=st.split(':').map(Number);let[eh,em]=en.split(':').map(Number);
+      if(eh===0&&em===0)eh=24;
+      for(let t=sh*60+sm;t<eh*60+em;t+=15){
+        const tk=String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+        out[day+'_'+tk]=val;
+      }
+    }else{out[k]=val}
   }
-  return wins;
+  return out;
+}
+function collapseRanges(avail,day){
+  const ds=SLOTS.filter(s=>avail[day+'_'+s]);
+  if(!ds.length)return[];
+  const ranges=[];let rs=ds[0],re=ds[0],rt=avail[day+'_'+ds[0]];
+  for(let i=1;i<ds.length;i++){
+    const s=ds[i],v=avail[day+'_'+s];
+    if(SLOTS.indexOf(s)===SLOTS.indexOf(re)+1&&v===rt){re=s}
+    else{ranges.push({start:rs,end:addMins(re,15),type:rt});rs=s;re=s;rt=v}
+  }
+  ranges.push({start:rs,end:addMins(re,15),type:rt});
+  return ranges;
 }
 
 // Raid-ready thresholds (25-man TBC)
 const RR_TANK=2, RR_HEAL=5, RR_DPS=18;
 
 // ── State ──
-let entries=[], view="form", editId=null, heatMode="2h", rosterSort="name";
+let entries=[], view="form", editId=null, heatMode="1h", rosterSort="name";
 let form={name:"",cls:"",roles:[],avail:{},notes:""};
 let currentUser=null; // { token, username, userId }
 
@@ -451,12 +476,10 @@ async function load(){
     if(!r.ok)throw new Error("Laden fehlgeschlagen");
     const data=await r.json();
     entries=Array.isArray(data)?data:[];
-    // Normalize legacy true → "yes" in loaded entries
+    // Normalize legacy entries: convert old 2h range keys to 15-min keys, true → "yes"
     entries.forEach(e=>{
       if(e.availability){
-        for(const k of Object.keys(e.availability)){
-          if(e.availability[k]===true) e.availability[k]="yes";
-        }
+        e.availability=migrateLegacyAvail(e.availability);
       }
     });
   }catch(e){console.error(e);entries=[]}
@@ -545,61 +568,73 @@ function updateAll(){
 function cc(n){return CLS.find(c=>c.n===n)?.c||"#ccc"}
 function h(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
 
+// Heatmap: aggregate per hour (player counts as available if ALL 4 quarters are marked)
 function heatData(){
   const hd={};
-  DAYS.forEach(d=>slotsFor(d).forEach(s=>{
-    const k=d+"_"+s;
+  DAYS.forEach(d=>HOUR_LABELS.forEach(hl=>{
+    const k=d+"_"+hl;
+    const qs=hourQuarters(hl).map(q=>d+"_"+q);
     let yes=0,tent=0;
     entries.forEach(e=>{
-      const v=e.availability?.[k];
-      if(v==="yes"||v===true)yes++;
-      else if(v==="tentative")tent++;
+      const vals=qs.map(q=>e.availability?.[q]);
+      const allAvail=vals.every(v=>v==="yes"||v===true||v==="tentative");
+      if(!allAvail)return;
+      if(vals.every(v=>v==="yes"||v===true))yes++;else tent++;
     });
     hd[k]={yes,tent,total:yes+tent};
   }));
   return hd;
 }
 
-function avForSlot(d,s){
-  const k=d+"_"+s;
-  return entries.filter(e=>e.availability?.[k]).map(e=>{
-    const v=e.availability[k];
-    return{...e,_availType:v==="tentative"?"tentative":"yes"};
+function avForSlot(d,hl){
+  const qs=hourQuarters(hl).map(q=>d+"_"+q);
+  return entries.filter(e=>{
+    return qs.every(q=>e.availability?.[q]);
+  }).map(e=>{
+    const allYes=qs.every(q=>{const v=e.availability[q];return v==="yes"||v===true});
+    return{...e,_availType:allYes?"yes":"tentative"};
   });
 }
 
-function heatData4h(){
+// 3h raid-window mode: sliding 3-hour windows (12 quarter-slots each)
+function heatData3h(){
   const hd={};
-  DAYS.forEach(d=>windowsFor(d).forEach(w=>{
-    const k=d+"_"+w.label;
-    let yes=0,tent=0;
-    entries.forEach(e=>{
-      const v1=e.availability?.[d+"_"+w.slots[0]];
-      const v2=e.availability?.[d+"_"+w.slots[1]];
-      const a1=v1==="yes"||v1===true?"yes":v1==="tentative"?"tentative":null;
-      const a2=v2==="yes"||v2===true?"yes":v2==="tentative"?"tentative":null;
-      if(!a1||!a2)return;
-      if(a1==="yes"&&a2==="yes")yes++;
-      else tent++;
-    });
-    hd[k]={yes,tent,total:yes+tent};
-  }));
+  DAYS.forEach(d=>{
+    for(let h=12;h<=21;h++){
+      const endH=h+3;
+      const label=String(h).padStart(2,'0')+":00\u2013"+String(endH===24?0:endH).padStart(2,'0')+":00";
+      const k=d+"_"+label;
+      const qs=[];
+      for(let wh=h;wh<endH;wh++)for(const m of[0,15,30,45])qs.push(d+"_"+String(wh).padStart(2,'0')+":"+String(m).padStart(2,'0'));
+      let yes=0,tent=0;
+      entries.forEach(e=>{
+        const vals=qs.map(q=>e.availability?.[q]);
+        if(!vals.every(v=>v==="yes"||v===true||v==="tentative"))return;
+        if(vals.every(v=>v==="yes"||v===true))yes++;else tent++;
+      });
+      hd[k]={yes,tent,total:yes+tent};
+    }
+  });
   return hd;
 }
-function avForWindow(d,w){
-  return entries.filter(e=>{
-    const v1=e.availability?.[d+"_"+w.slots[0]];
-    const v2=e.availability?.[d+"_"+w.slots[1]];
-    const a1=v1==="yes"||v1===true?"yes":v1==="tentative"?"tentative":null;
-    const a2=v2==="yes"||v2===true?"yes":v2==="tentative"?"tentative":null;
-    return a1&&a2;
-  }).map(e=>{
-    const v1=e.availability[d+"_"+w.slots[0]];
-    const v2=e.availability[d+"_"+w.slots[1]];
-    const a1=v1==="yes"||v1===true?"yes":"tentative";
-    const a2=v2==="yes"||v2===true?"yes":"tentative";
-    const t=(a1==="yes"&&a2==="yes")?"yes":"tentative";
-    return{...e,_availType:t};
+function windowLabels3h(){
+  const labels=[];
+  for(let h=12;h<=21;h++){
+    const endH=h+3;
+    labels.push(String(h).padStart(2,'0')+":00\u2013"+String(endH===24?0:endH).padStart(2,'0')+":00");
+  }
+  return labels;
+}
+function avForWindow3h(d,label){
+  const parts=label.split('\u2013');
+  const startH=parseInt(parts[0]);
+  let endH=parseInt(parts[1]);
+  if(endH===0)endH=24;
+  const qs=[];
+  for(let wh=startH;wh<endH;wh++)for(const m of[0,15,30,45])qs.push(d+"_"+String(wh).padStart(2,'0')+":"+String(m).padStart(2,'0'));
+  return entries.filter(e=>qs.every(q=>e.availability?.[q])).map(e=>{
+    const allYes=qs.every(q=>{const v=e.availability[q];return v==="yes"||v===true});
+    return{...e,_availType:allYes?"yes":"tentative"};
   });
 }
 
@@ -630,26 +665,19 @@ function renderForm(skipSync){
   }
   const canSave=form.name.trim()&&form.cls&&form.roles.length>0;
 
-  function slotBtn(d,s){
-    const k=d+"_"+s, v=form.avail[k];
-    let cls="sbtn",label="\u2014";
-    if(v==="yes"){cls+=" on";label="\u2713";}
-    else if(v==="tentative"){cls+=" tent";label="?";}
-    return`<button class="${cls}" onclick="toggleSlot('${d}','${s}')">${label}</button>`;
-  }
-
-  let gridWD="";
-  WD.forEach(d=>{
-    gridWD+=`<tr><td class="dl">${DS[d]}</td>`;
-    EVE.forEach(s=>{gridWD+=`<td>${slotBtn(d,s)}</td>`});
-    gridWD+="</tr>";
-  });
-
-  let gridWE="";
-  WE.forEach(d=>{
-    gridWE+=`<tr><td class="dl">${DS[d]}</td>`;
-    [...WEX,...EVE].forEach(s=>{gridWE+=`<td>${slotBtn(d,s)}</td>`});
-    gridWE+="</tr>";
+  // Build timeline grid (7 days × 48 quarter-hour cells)
+  let gridRows="";
+  DAYS.forEach(d=>{
+    gridRows+=`<tr><td class="dl">${DS[d]}</td>`;
+    SLOTS.forEach((s,i)=>{
+      const k=d+"_"+s,v=form.avail[k];
+      let cls="tl-cell";
+      if(i%4===0)cls+=" hstart";
+      if(v==="yes")cls+=" on";
+      else if(v==="tentative")cls+=" tent";
+      gridRows+=`<td class="${cls}" data-k="${k}"></td>`;
+    });
+    gridRows+="</tr>";
   });
 
   el.innerHTML=`
@@ -671,22 +699,12 @@ function renderForm(skipSync){
         }).join("")}</div>
       </div>
       <div class="fld">
-        <span class="lbl">Verf\u00FCgbarkeit \u2014 Wochentags</span>
-        <span class="lbl-s">Klick: Ja \u2713 \u2192 Vielleicht ? \u2192 Aus</span>
-        <div style="overflow-x:auto">
-          <table class="atable">
-            <thead><tr><th></th>${EVE.map(s=>`<th>${s}</th>`).join("")}</tr></thead>
-            <tbody>${gridWD}</tbody>
-          </table>
-        </div>
-      </div>
-      <div class="fld">
-        <span class="lbl">Verf\u00FCgbarkeit \u2014 Wochenende</span>
-        <span class="lbl-s">Inkl. Nachmittags-Slots</span>
-        <div style="overflow-x:auto">
-          <table class="atable">
-            <thead><tr><th></th>${[...WEX,...EVE].map(s=>`<th>${s}</th>`).join("")}</tr></thead>
-            <tbody>${gridWE}</tbody>
+        <span class="lbl">Verf\u00FCgbarkeit</span>
+        <span class="lbl-s">Klick: Ja \u2713 \u2192 Vielleicht ? \u2192 Aus \u00B7 Ziehen f\u00FCr Bereiche</span>
+        <div class="tl-wrap">
+          <table class="tl-table">
+            <thead><tr><th></th>${HOUR_LABELS.map(hl=>`<th colspan="4">${hl}</th>`).join("")}</tr></thead>
+            <tbody>${gridRows}</tbody>
           </table>
         </div>
       </div>
@@ -708,14 +726,56 @@ window.toggleRole=function(r){
   else form.roles=[...form.roles,r];
   renderForm();
 };
-window.toggleSlot=function(d,s){
-  const k=d+"_"+s;
-  const cur=form.avail[k];
-  if(!cur) form.avail[k]="yes";
-  else if(cur==="yes") form.avail[k]="tentative";
-  else delete form.avail[k];
-  renderForm();
-};
+// Drag-to-paint for timeline cells
+let _painting=false, _paintState=null;
+function applyPaint(k,cell){
+  if(_paintState===null)delete form.avail[k];
+  else form.avail[k]=_paintState;
+  if(cell){
+    cell.classList.remove("on","tent");
+    if(_paintState==="yes")cell.classList.add("on");
+    else if(_paintState==="tentative")cell.classList.add("tent");
+  }
+}
+(function(){
+  const formEl=document.getElementById("v-form");
+  formEl.addEventListener("mousedown",function(e){
+    const cell=e.target.closest(".tl-cell");
+    if(!cell||!cell.dataset.k)return;
+    e.preventDefault();
+    _painting=true;
+    const k=cell.dataset.k,cur=form.avail[k];
+    if(!cur)_paintState="yes";
+    else if(cur==="yes")_paintState="tentative";
+    else _paintState=null;
+    applyPaint(k,cell);
+  });
+  formEl.addEventListener("mousemove",function(e){
+    if(!_painting)return;
+    const cell=e.target.closest(".tl-cell");
+    if(cell&&cell.dataset.k)applyPaint(cell.dataset.k,cell);
+  });
+  document.addEventListener("mouseup",function(){if(_painting){_painting=false}});
+  // Touch support
+  formEl.addEventListener("touchstart",function(e){
+    const cell=e.target.closest(".tl-cell");
+    if(!cell||!cell.dataset.k)return;
+    e.preventDefault();
+    _painting=true;
+    const k=cell.dataset.k,cur=form.avail[k];
+    if(!cur)_paintState="yes";
+    else if(cur==="yes")_paintState="tentative";
+    else _paintState=null;
+    applyPaint(k,cell);
+  },{passive:false});
+  formEl.addEventListener("touchmove",function(e){
+    if(!_painting)return;
+    const t=e.touches[0];
+    const el=document.elementFromPoint(t.clientX,t.clientY);
+    if(el){const cell=el.closest(".tl-cell");if(cell&&cell.dataset.k)applyPaint(cell.dataset.k,cell)}
+  },{passive:true});
+  document.addEventListener("touchend",function(){if(_painting){_painting=false}});
+})();
 window.updBtn=function(){
   const b=document.getElementById("f-submit");
   if(b)b.disabled=!(form.name.trim()&&form.cls&&form.roles.length>0);
@@ -748,15 +808,7 @@ window.cancelEdit=function(){
 window.startEdit=function(id){
   const e=entries.find(x=>x.id===id);if(!e)return;
   editId=id;
-  // Normalize legacy true → "yes"
-  const normAvail={};
-  if(e.availability){
-    for(const[k,v] of Object.entries(e.availability)){
-      if(v===true) normAvail[k]="yes";
-      else normAvail[k]=v;
-    }
-  }
-  form={name:e.charName,cls:e.className,roles:e.roles||[e.role].filter(Boolean),avail:normAvail,notes:e.notes||""};
+  form={name:e.charName,cls:e.className,roles:e.roles||[e.role].filter(Boolean),avail:migrateLegacyAvail(e.availability),notes:e.notes||""};
   document.querySelector('[data-v="form"]').textContent="Bearbeiten";
   switchTab("form");renderForm(true);
 };
@@ -819,10 +871,9 @@ function renderRoster(){
 
   sortedEntries.forEach(e=>{
     const roles=(e.roles||[e.role].filter(Boolean)).filter(r=>ROLES.includes(r));
-    const slotTags=DAYS.flatMap(d=>slotsFor(d).filter(s=>e.availability?.[d+"_"+s]).map(s=>{
-      const v=e.availability[d+"_"+s];
-      const isTent=v==="tentative";
-      return`<span class="stag${isTent?" tent":""}">${isTent?"? ":""}${DS[d]} ${s}</span>`;
+    const slotTags=DAYS.flatMap(d=>collapseRanges(e.availability||{},d).map(r=>{
+      const isTent=r.type==="tentative";
+      return`<span class="stag${isTent?" tent":""}">${isTent?"? ":""}${DS[d]} ${r.start}\u2013${r.end}</span>`;
     }));
     html+=`<div class="entry">
       <div class="e-info">
@@ -846,8 +897,8 @@ function renderRoster(){
 // ══════════════════════════════
 function renderHeatmap(){
   const el=document.getElementById("v-heatmap");
-  const is4=heatMode==="4h";
-  const hd=is4?heatData4h():heatData();
+  const is3h=heatMode==="3h";
+  const hd=is3h?heatData3h():heatData();
   const mx=Math.max(1,...Object.values(hd).map(v=>v.total));
 
   function makeCell(k,players,dat){
@@ -864,45 +915,31 @@ function renderHeatmap(){
     return`<td><div class="hcell${rrCls}" style="background:${c?`rgba(201,168,76,${.08+i*.35})`:"rgba(255,255,255,.02)"};color:${c?`rgba(201,168,76,${.4+i*.6})`:"#2a2538"};border:1px solid rgba(201,168,76,${c?.1+i*.3:.02})">${countStr}${roleBadges}<template class="tip-content">${tipHdr}${tipPlayers}</template></div></td>`;
   }
 
-  function cell2h(d,s){
-    const k=d+"_"+s;
-    return makeCell(k,avForSlot(d,s),hd[k]||{yes:0,tent:0,total:0});
+  function cell1h(d,hl){
+    const k=d+"_"+hl;
+    return makeCell(k,avForSlot(d,hl),hd[k]||{yes:0,tent:0,total:0});
   }
-  function cell4h(d,w){
-    const k=d+"_"+w.label;
-    return makeCell(k,avForWindow(d,w),hd[k]||{yes:0,tent:0,total:0});
+  function cell3h(d,label){
+    const k=d+"_"+label;
+    return makeCell(k,avForWindow3h(d,label),hd[k]||{yes:0,tent:0,total:0});
   }
 
+  const cols=is3h?windowLabels3h():HOUR_LABELS;
   let wdRows="",weRows="";
-  if(is4){
-    WD.forEach(d=>{wdRows+=`<tr><td class="dl">${d}</td>${windowsFor(d).map(w=>cell4h(d,w)).join("")}</tr>`});
-    WE.forEach(d=>{weRows+=`<tr><td class="dl">${d}</td>${windowsFor(d).map(w=>cell4h(d,w)).join("")}</tr>`});
-  }else{
-    WD.forEach(d=>{wdRows+=`<tr><td class="dl">${d}</td>${EVE.map(s=>cell2h(d,s)).join("")}</tr>`});
-    WE.forEach(d=>{weRows+=`<tr><td class="dl">${d}</td>${[...WEX,...EVE].map(s=>cell2h(d,s)).join("")}</tr>`});
-  }
-
-  const wdCols=is4?windowsFor("Montag").map(w=>w.label):EVE;
-  const weCols=is4?windowsFor("Samstag").map(w=>w.label):[...WEX,...EVE];
+  WD.forEach(d=>{wdRows+=`<tr><td class="dl">${d}</td>${cols.map(c=>is3h?cell3h(d,c):cell1h(d,c)).join("")}</tr>`});
+  WE.forEach(d=>{weRows+=`<tr><td class="dl">${d}</td>${cols.map(c=>is3h?cell3h(d,c):cell1h(d,c)).join("")}</tr>`});
 
   const sorted=Object.entries(hd).sort((a,b)=>b[1].total-a[1].total).filter(([,v])=>v.total>0).slice(0,5);
   let topHtml="";
   if(sorted.length){
     topHtml=`<div class="center" style="margin-top:20px">
-      <div class="sec-l" style="margin-bottom:10px">Top ${Math.min(5,sorted.length)} Raidzeiten${is4?" (4h)":""}</div>
+      <div class="sec-l" style="margin-bottom:10px">Top ${Math.min(5,sorted.length)} Raidzeiten${is3h?" (3h)":""}</div>
       <div class="top-slots">${sorted.map(([k,dat],i)=>{
         const sep=k.indexOf("_"),d=k.substring(0,sep),s=k.substring(sep+1);
-        let players;
-        if(is4){
-          const wins=windowsFor(d);
-          const w=wins.find(x=>x.label===s);
-          players=w?avForWindow(d,w):[];
-        }else{
-          players=avForSlot(d,s);
-        }
+        const players=is3h?avForWindow3h(d,s):avForSlot(d,s);
         const rr=isRaidReady(players);
         return`<div class="tslot" style="background:${i===0?"rgba(201,168,76,.12)":"rgba(255,255,255,.03)"};border:1px solid ${i===0?"rgba(201,168,76,.3)":"var(--bdr)"}">
-          <div class="ts-t" style="color:${i===0?"var(--gold)":"#9a92a8"}">#${i+1} ${DS[d]||d} ${s}</div>
+          <div class="ts-t" style="color:${i===0?"var(--gold)":"#9a92a8"}">#${i+1} ${DS[d]||d} ${is3h?s:s+":00"}</div>
           <div class="ts-c">${dat.total} Raider${dat.tent>0?` (${dat.tent} vielleicht)`:""}</div>
           ${rr.ready?'<div class="badge-rr" style="margin-top:4px">Raid-Ready!</div>':""}
         </div>`;
@@ -912,17 +949,17 @@ function renderHeatmap(){
 
   el.innerHTML=`
     <div class="heat-toggle">
-      <button class="ht-btn${heatMode==="2h"?" active":""}" onclick="setHeatMode('2h')">2h Slots</button>
-      <button class="ht-btn${heatMode==="4h"?" active":""}" onclick="setHeatMode('4h')">4h Raid-Fenster</button>
+      <button class="ht-btn${heatMode==="1h"?" active":""}" onclick="setHeatMode('1h')">1h Stunden</button>
+      <button class="ht-btn${heatMode==="3h"?" active":""}" onclick="setHeatMode('3h')">3h Raid-Fenster</button>
     </div>
-    <p class="center" style="font-size:13px;color:var(--tx3);margin-bottom:16px">Heller = mehr Raider \u00B7 Hover f\u00FCr Details \u00B7 Gr\u00FCner Rand = Raid-Ready${is4?" \u00B7 4h = beide Slots verf\u00FCgbar":""}</p>
+    <p class="center" style="font-size:13px;color:var(--tx3);margin-bottom:16px">Heller = mehr Raider \u00B7 Hover f\u00FCr Details \u00B7 Gr\u00FCner Rand = Raid-Ready${is3h?" \u00B7 3h = alle Viertelstunden im Fenster verf\u00FCgbar":""}</p>
     <div class="card" style="overflow-x:auto">
       <div class="sec-l">Unter der Woche</div>
-      <table class="htable"><thead><tr><th></th>${wdCols.map(s=>`<th>${s}</th>`).join("")}</tr></thead><tbody>${wdRows}</tbody></table>
+      <table class="htable"><thead><tr><th></th>${cols.map(s=>`<th>${s}</th>`).join("")}</tr></thead><tbody>${wdRows}</tbody></table>
     </div>
     <div class="card" style="overflow-x:auto">
       <div class="sec-l">Wochenende</div>
-      <table class="htable"><thead><tr><th></th>${weCols.map(s=>`<th>${s}</th>`).join("")}</tr></thead><tbody>${weRows}</tbody></table>
+      <table class="htable"><thead><tr><th></th>${cols.map(s=>`<th>${s}</th>`).join("")}</tr></thead><tbody>${weRows}</tbody></table>
     </div>
     ${topHtml}`;
 }
@@ -1001,18 +1038,18 @@ function renderAnalytics(){
     </div>`).join("")}
   </div>`;
 
-  // Best slots detail
+  // Best slots detail (hourly aggregation)
   const hd=heatData();
   const best=Object.entries(hd).sort((a,b)=>b[1].total-a[1].total).filter(([,v])=>v.total>0).slice(0,3);
 
   let bestHtml=`<div class="card"><div class="card-t">Beste Raidzeiten \u2014 Details</div>
     ${best.map(([k,dat],i)=>{
-      const[d,s]=k.split("_");
-      const players=avForSlot(d,s);
+      const sep=k.indexOf("_"),d=k.substring(0,sep),hl=k.substring(sep+1);
+      const players=avForSlot(d,hl);
       const rr=isRaidReady(players);
       const byRole=ROLES.map(r=>({r,ps:players.filter(p=>(p.roles||[]).includes(r))}));
       return`<div class="bs-card" style="background:${i===0?"rgba(201,168,76,.06)":"rgba(255,255,255,.015)"};border:1px solid ${i===0?"rgba(201,168,76,.2)":"rgba(255,255,255,.04)"}">
-        <div class="bs-hdr"><span class="rank" style="color:${i===0?"var(--gold)":"#9a92a8"}">#${i+1} ${d} ${s}</span><span class="avail">${dat.total} verf\u00FCgbar${dat.tent>0?` (${dat.tent} vielleicht)`:""}</span>${rr.ready?'<span class="badge-rr">Raid-Ready!</span>':""}</div>
+        <div class="bs-hdr"><span class="rank" style="color:${i===0?"var(--gold)":"#9a92a8"}">#${i+1} ${d} ${hl}:00</span><span class="avail">${dat.total} verf\u00FCgbar${dat.tent>0?` (${dat.tent} vielleicht)`:""}</span>${rr.ready?'<span class="badge-rr">Raid-Ready!</span>':""}</div>
         <div class="bs-roles">${byRole.map(({r,ps})=>`
           <div class="bs-role">
             <div class="bs-role-t" style="color:${RC[r]}">${RI[r]} ${r} (${ps.length})</div>
@@ -1023,9 +1060,9 @@ function renderAnalytics(){
     }).join("")}
   </div>`;
 
-  // Player availability ranking (count both yes and tentative)
+  // Player availability ranking (count individual 15-min slots, both yes and tentative)
   const pSlots=entries.map(e=>{
-    const cnt=DAYS.reduce((s,d)=>s+slotsFor(d).filter(sl=>e.availability?.[d+"_"+sl]).length,0);
+    const cnt=DAYS.reduce((s,d)=>s+SLOTS.filter(sl=>e.availability?.[d+"_"+sl]).length,0);
     return{...e,sc:cnt};
   }).sort((a,b)=>b.sc-a.sc);
   const mxSl=Math.max(1,...pSlots.map(p=>p.sc));
@@ -1045,27 +1082,27 @@ function renderAnalytics(){
 //  CSV EXPORT
 // ══════════════════════════════
 window.exportCSV=function(){
-  // Build all slot keys
-  const allSlots=[];
-  DAYS.forEach(d=>slotsFor(d).forEach(s=>allSlots.push({d,s,k:d+"_"+s,label:DS[d]+" "+s})));
-
   function csvVal(str){
     str=String(str);
     if(str.includes('"')||str.includes(',')||str.includes('\n'))return'"'+str.replace(/"/g,'""')+'"';
     return str;
   }
 
-  const header=["Charakter","Klasse","Rollen",...allSlots.map(s=>s.label),"Anmerkungen"];
+  // One column per day showing collapsed time ranges
+  const header=["Charakter","Klasse","Rollen",...DAYS.map(d=>DS[d]),"Anmerkungen"];
   const rows=[header.map(csvVal).join(",")];
 
   entries.forEach(e=>{
     const roles=(e.roles||[]).join(", ");
     const cols=[e.charName,e.className,roles];
-    allSlots.forEach(({k})=>{
-      const v=e.availability?.[k];
-      if(v==="yes"||v===true) cols.push("Ja");
-      else if(v==="tentative") cols.push("Vielleicht");
-      else cols.push("Nein");
+    DAYS.forEach(d=>{
+      const ranges=collapseRanges(e.availability||{},d);
+      if(!ranges.length){cols.push("—");return}
+      const parts=ranges.map(r=>{
+        const prefix=r.type==="tentative"?"? ":"";
+        return prefix+r.start+"\u2013"+r.end;
+      });
+      cols.push(parts.join(", "));
     });
     cols.push(e.notes||"");
     rows.push(cols.map(csvVal).join(","));
