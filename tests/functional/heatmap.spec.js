@@ -47,7 +47,7 @@ test.describe('Heatmap', () => {
 
     // Switch to 3h
     await page.locator('.ht-btn', { hasText: '3h' }).click();
-    await expect(page.locator('.ht-btn').last()).toHaveClass(/active/);
+    await expect(page.locator('.ht-btn', { hasText: '3h' })).toHaveClass(/active/);
     const headers3h = await getHeaders();
     expect(headers3h).not.toEqual(headers1h);
 
