@@ -330,6 +330,94 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .rt-btn:last-child{border-radius:0 6px 6px 0}
 .rt-btn.active{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg);border-color:var(--gold-d)}
 
+/* DKP */
+.dkp-standings{width:100%;border-collapse:separate;border-spacing:0 4px}
+.dkp-standings th{font-size:11px;color:var(--tx4);text-transform:uppercase;letter-spacing:1px;padding:6px 10px;text-align:left;font-weight:500;cursor:pointer;user-select:none;white-space:nowrap;transition:color .15s}
+.dkp-standings th:hover{color:var(--gold)}
+.dkp-standings th.dkp-sort-active{color:var(--gold)}
+.dkp-standings th .dkp-sort-arrow{font-size:10px;margin-left:3px;opacity:.5}
+.dkp-standings th.dkp-sort-active .dkp-sort-arrow{opacity:1}
+.dkp-standings td{padding:10px;background:var(--card);font-size:14px}
+.dkp-standings tr td:first-child{border-radius:8px 0 0 8px}
+.dkp-standings tr td:last-child{border-radius:0 8px 8px 0}
+.dkp-standings tbody tr{cursor:pointer;transition:background .1s}
+.dkp-standings tbody tr:hover td{background:rgba(201,168,76,.04)}
+.dkp-bal{font-weight:700;font-size:16px;font-variant-numeric:tabular-nums}
+.dkp-pos{color:var(--grn)}.dkp-neg{color:var(--dps)}.dkp-zero{color:var(--tx4)}
+.dkp-rank{font-size:12px;color:var(--tx4);font-weight:600;min-width:28px;text-align:center}
+.dkp-actions-bar{display:flex;gap:0;justify-content:center;margin:18px 0;flex-wrap:wrap}
+.dkp-toolbar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.dkp-toolbar-btn{padding:6px 14px;border-radius:6px;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;border:1px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx3);transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.dkp-toolbar-btn:hover{border-color:rgba(255,255,255,.12);color:var(--tx)}
+.dkp-toolbar-btn.dkp-undo{border-color:rgba(229,115,115,.2);color:var(--dps)}
+.dkp-toolbar-btn.dkp-undo:hover{border-color:rgba(229,115,115,.4);background:rgba(229,115,115,.05)}
+.dkp-tx{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px}
+.dkp-tx:last-child{border-bottom:none}
+.dkp-tx-type{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}
+.dkp-tx-earn{background:var(--grn-bg);color:var(--grn)}
+.dkp-tx-spend{background:rgba(229,115,115,.15);color:var(--dps)}
+.dkp-tx-decay{background:var(--ylw-bg);color:var(--ylw)}
+.dkp-tx-undo{background:rgba(150,150,150,.15);color:var(--tx4)}
+.dkp-tx-name{font-weight:600;min-width:90px}
+.dkp-tx-reason{flex:1;color:var(--tx3);font-style:italic}
+.dkp-tx-amount{font-weight:700;min-width:60px;text-align:right;font-variant-numeric:tabular-nums}
+.dkp-tx-meta{font-size:11px;color:var(--tx4);min-width:100px;text-align:right}
+.dkp-form{max-width:500px;margin:0 auto}
+.dkp-form .fld{margin-bottom:14px}
+.dkp-pchips{display:flex;flex-wrap:wrap;gap:6px}
+.dkp-pchip{padding:6px 12px;border-radius:6px;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;border:2px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx3);transition:all .15s;user-select:none;min-height:36px;display:inline-flex;align-items:center}
+.dkp-pchip.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08)}
+.dkp-pchip:hover{border-color:rgba(255,255,255,.12)}
+.dkp-selectall{font-size:12px;color:var(--gold);cursor:pointer;margin-left:8px}
+.dkp-selectall:hover{text-decoration:underline}
+input[type=number]{display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;transition:border-color .2s}
+input[type=number]:focus{border-color:rgba(201,168,76,.3)}
+.dkp-decay-preview{font-size:12px;color:var(--tx3);margin-top:6px;padding:8px 12px;background:rgba(0,0,0,.2);border-radius:6px}
+.dkp-cfg-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.dkp-cfg-row:last-child{border-bottom:none}
+.dkp-cfg-label{flex:1;font-size:14px;color:var(--tx2)}
+.dkp-cfg-label small{display:block;font-size:11px;color:var(--tx4);margin-top:2px}
+.dkp-cfg-input{width:160px}
+.dkp-cfg-input input,.dkp-cfg-input select{display:block;width:100%;padding:8px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:14px 'Nunito Sans',sans-serif;outline:none}
+.dkp-cfg-input input:focus,.dkp-cfg-input select:focus{border-color:rgba(201,168,76,.3)}
+.dkp-cfg-saved{display:inline-block;color:var(--grn);font-size:13px;margin-left:10px;opacity:0;transition:opacity .3s}
+.dkp-cfg-saved.show{opacity:1}
+.dkp-roles-section{margin-top:24px;padding-top:18px;border-top:1px solid rgba(255,255,255,.04)}
+.dkp-role-list{margin:12px 0}
+.dkp-role-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.dkp-role-row:last-child{border-bottom:none}
+.dkp-role-name{font-weight:600;flex:1;color:var(--tx)}
+.dkp-role-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.dkp-role-admin{background:rgba(201,168,76,.15);color:var(--gold)}
+.dkp-role-officer{background:rgba(100,149,237,.15);color:#6495ed}
+.dkp-role-btn{padding:4px 10px;border-radius:4px;cursor:pointer;font:600 11px 'Nunito Sans',sans-serif;border:1px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx4);transition:all .15s}
+.dkp-role-btn:hover{border-color:rgba(255,255,255,.12);color:var(--tx)}
+.dkp-role-btn.dkp-role-del{border-color:rgba(229,115,115,.2);color:var(--dps)}
+.dkp-role-btn.dkp-role-del:hover{border-color:rgba(229,115,115,.4);background:rgba(229,115,115,.05)}
+.dkp-role-add{display:flex;gap:8px;margin-top:10px}
+.dkp-role-add input,.dkp-role-add select{padding:8px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:13px 'Nunito Sans',sans-serif;outline:none}
+.dkp-role-add input{flex:1;min-width:0}
+.dkp-role-add select{width:120px}
+.dkp-player-detail{margin-top:16px;padding:20px;background:rgba(0,0,0,.15);border-radius:10px;border:1px solid var(--bdr)}
+.dkp-detail-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.dkp-detail-name{font-size:18px;font-weight:700}
+.dkp-detail-class{font-size:12px;color:var(--tx4)}
+.dkp-detail-bal{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.dkp-detail-close{margin-left:auto;cursor:pointer;font-size:20px;color:var(--tx4);transition:color .15s;background:none;border:none;padding:4px 8px}
+.dkp-detail-close:hover{color:var(--tx)}
+.dkp-detail-stats{display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.dkp-detail-stat{padding:8px 14px;border-radius:8px;background:rgba(0,0,0,.2);font-size:12px;color:var(--tx3)}
+.dkp-detail-stat strong{display:block;font-size:16px;color:var(--tx);margin-bottom:2px;font-variant-numeric:tabular-nums}
+@media(max-width:640px){
+  .dkp-tx{flex-wrap:wrap;gap:6px}
+  .dkp-tx-meta{min-width:auto;text-align:left;width:100%;margin-top:2px}
+  .dkp-cfg-row{flex-direction:column;align-items:flex-start;gap:6px}
+  .dkp-cfg-input{width:100%}
+  .dkp-detail-stats{gap:8px}
+  .dkp-role-add{flex-wrap:wrap}
+  .dkp-role-add input{width:100%}
+}
+
 /* Hidden */
 .hidden{display:none!important}
 </style>
@@ -356,6 +444,7 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
     <button class="tab" data-v="roster" role="tab" aria-selected="false" aria-controls="v-roster" id="tab-roster">Aufstellung</button>
     <button class="tab" data-v="heatmap" role="tab" aria-selected="false" aria-controls="v-heatmap" id="tab-heatmap">Heatmap</button>
     <button class="tab" data-v="analytics" role="tab" aria-selected="false" aria-controls="v-analytics" id="tab-analytics">Auswertung</button>
+    <button class="tab" data-v="dkp" role="tab" aria-selected="false" aria-controls="v-dkp" id="tab-dkp">DKP</button>
   </div>
 
   <!-- VIEWS -->
@@ -364,6 +453,7 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
   <div id="v-roster" class="hidden" role="tabpanel" aria-labelledby="tab-roster"></div>
   <div id="v-heatmap" class="hidden" role="tabpanel" aria-labelledby="tab-heatmap"></div>
   <div id="v-analytics" class="hidden" role="tabpanel" aria-labelledby="tab-analytics"></div>
+  <div id="v-dkp" class="hidden" role="tabpanel" aria-labelledby="tab-dkp"></div>
 </div>
 <div id="auth-overlay"></div>
 <div class="toast" id="toast"></div>
@@ -443,6 +533,17 @@ const TBC_RAIDS=[
 const RAID_API="/api/raids";
 let raids=[], raidView="list", raidEditId=null;
 let raidForm={instance:"",date:"",time:"20:00",maxPlayers:25,notes:""};
+
+// DKP state
+const DKP_API="/api/dkp";
+let dkpBalances=[], dkpTransactions=[], dkpView="overview";
+let dkpAwardPlayers=[], dkpAwardAmount="", dkpAwardReason="";
+let dkpSpendPlayer="", dkpSpendAmount="", dkpSpendItem="";
+let dkpDecayPercent=15;
+let dkpConfig={roles:{},defaultDecayPercent:15,maxDkpAmount:10000,allowNegativeBalance:true,startingBalance:0,transactionLimit:50,reasonMaxLength:200};
+let dkpSortCol="balance", dkpSortDir="desc";
+let dkpPlayerDetail=null, dkpPlayerTx=[];
+let dkpRoleAddUser="", dkpRoleAddRole="officer";
 
 // ── Auth API ──
 async function authApi(action,data){
@@ -565,6 +666,11 @@ async function load(){
     const rr=await fetch(RAID_API,{headers:authHeader()});
     if(rr.ok){const rd=await rr.json();raids=Array.isArray(rd)?rd:[];}
   }catch(e){console.error(e)}
+  // Also load DKP
+  try{
+    const dr=await fetch(DKP_API,{headers:authHeader()});
+    if(dr.ok){const dd=await dr.json();dkpBalances=dd.balances||[];dkpTransactions=dd.transactions||[];}
+  }catch(e){console.error(e)}
   updateAll();
 }
 async function save(data){
@@ -615,7 +721,7 @@ document.getElementById("tabs").addEventListener("click",e=>{
     t.classList.toggle("on",isOn);
     t.setAttribute("aria-selected",isOn?"true":"false");
   });
-  ["form","raids","roster","heatmap","analytics"].forEach(v=>{
+  ["form","raids","roster","heatmap","analytics","dkp"].forEach(v=>{
     document.getElementById("v-"+v).classList.toggle("hidden",v!==view);
   });
   document.getElementById('htooltip')?.classList.remove('show','arrow-down','arrow-up');
@@ -624,6 +730,7 @@ document.getElementById("tabs").addEventListener("click",e=>{
   if(view==="roster")renderRoster();
   if(view==="heatmap")renderHeatmap();
   if(view==="analytics")renderAnalytics();
+  if(view==="dkp")renderDkp();
 });
 
 function switchTab(v){
@@ -646,6 +753,7 @@ function updateAll(){
   if(view==="roster")renderRoster();
   if(view==="heatmap")renderHeatmap();
   if(view==="analytics")renderAnalytics();
+  if(view==="dkp")renderDkp();
 }
 
 // ── Helpers ──
@@ -1595,6 +1703,503 @@ window.unsignRaid=async function(raidId){
     await loadRaids();
     renderRaids();
   }catch(e){toast("Fehler: "+e.message)}
+};
+
+// ══════════════════════════════
+//  DKP
+// ══════════════════════════════
+async function loadDkp(){
+  try{
+    const r=await fetch(DKP_API,{headers:authHeader()});
+    if(!r.ok)throw new Error("Laden fehlgeschlagen");
+    const d=await r.json();
+    dkpBalances=d.balances||[];dkpTransactions=d.transactions||[];
+    if(d.config){dkpConfig=d.config;dkpDecayPercent=dkpConfig.defaultDecayPercent||15}
+  }catch(e){console.error(e)}
+}
+
+function getDkpRole(){
+  if(!currentUser||!dkpConfig.roles)return null;
+  return dkpConfig.roles[currentUser.username.toLowerCase()]||null;
+}
+function isDkpAdmin(){return getDkpRole()==="admin"}
+function isDkpOfficer(){const r=getDkpRole();return r==="admin"||r==="officer"}
+
+function dkpSortedBalances(){
+  const list=[...dkpBalances];
+  const dir=dkpSortDir==="asc"?1:-1;
+  list.sort((a,b)=>{
+    if(dkpSortCol==="name")return dir*a.playerName.localeCompare(b.playerName);
+    if(dkpSortCol==="class")return dir*(a.className||"").localeCompare(b.className||"");
+    return dir*(a.balance-b.balance);
+  });
+  return list;
+}
+
+function renderDkp(){
+  const el=document.getElementById("v-dkp");
+  const admin=isDkpAdmin();
+  const officer=isDkpOfficer();
+
+  let html=`<div class="dkp-actions-bar">
+    <button class="ht-btn${dkpView==="overview"?" active":""}" onclick="dkpView='overview';dkpPlayerDetail=null;renderDkp()">Übersicht</button>
+    ${officer?`<button class="ht-btn${dkpView==="award"?" active":""}" onclick="dkpView='award';renderDkp()">Vergeben</button>
+    <button class="ht-btn${dkpView==="spend"?" active":""}" onclick="dkpView='spend';renderDkp()">Beute</button>`:""}
+    ${admin?`<button class="ht-btn${dkpView==="decay"?" active":""}" onclick="dkpView='decay';renderDkp()">Verfall</button>
+    <button class="ht-btn${dkpView==="settings"?" active":""}" onclick="dkpView='settings';renderDkp()">Einstellungen</button>`:""}
+  </div>`;
+
+  if(dkpView==="award"&&officer){html+=renderDkpAward()}
+  else if(dkpView==="spend"&&officer){html+=renderDkpSpend()}
+  else if(dkpView==="decay"&&admin){html+=renderDkpDecay()}
+  else if(dkpView==="settings"&&admin){html+=renderDkpSettings()}
+  else{html+=renderDkpOverview()}
+
+  el.innerHTML=html;
+}
+
+function renderDkpOverview(){
+  let html="";
+  const admin=isDkpAdmin();
+  const sorted=dkpSortedBalances();
+
+  // Toolbar: CSV export + Undo
+  html+=`<div class="dkp-toolbar">`;
+  html+=`<button class="dkp-toolbar-btn" onclick="exportDkpCsv()">CSV Export</button>`;
+  if(admin&&dkpTransactions.length){
+    html+=`<button class="dkp-toolbar-btn dkp-undo" onclick="doDkpUndo()">Rückgängig</button>`;
+  }
+  html+=`</div>`;
+
+  // Player detail view
+  if(dkpPlayerDetail){
+    html+=renderDkpPlayerDetail();
+    return html;
+  }
+
+  // Standings table
+  html+=`<div class="card"><div class="card-t">DKP-Übersicht</div>`;
+  if(!sorted.length){
+    html+=`<div class="empty">Noch keine DKP-Einträge. Vergib DKP über den "Vergeben"-Tab.</div>`;
+  }else{
+    const sortArrow=c=>dkpSortCol===c?(dkpSortDir==="asc"?"▲":"▼"):"";
+    const sortCls=c=>dkpSortCol===c?" dkp-sort-active":"";
+    html+=`<div style="overflow-x:auto"><table class="dkp-standings">
+      <thead><tr>
+        <th>#</th>
+        <th class="${sortCls("name")}" onclick="dkpSortBy('name')">Spieler<span class="dkp-sort-arrow">${sortArrow("name")}</span></th>
+        <th class="${sortCls("class")}" onclick="dkpSortBy('class')">Klasse<span class="dkp-sort-arrow">${sortArrow("class")}</span></th>
+        <th class="${sortCls("balance")}" style="text-align:right" onclick="dkpSortBy('balance')">DKP<span class="dkp-sort-arrow">${sortArrow("balance")}</span></th>
+      </tr></thead>
+      <tbody>${sorted.map((b,i)=>{
+        const balCls=b.balance>0?"dkp-pos":b.balance<0?"dkp-neg":"dkp-zero";
+        const clr=cc(b.className);
+        return`<tr onclick="showDkpPlayerDetail('${h(b.playerName).replace(/'/g,"\\'")}')">
+          <td class="dkp-rank">${i+1}</td>
+          <td style="font-weight:600;color:${clr}">${h(b.playerName)}</td>
+          <td style="font-size:12px;color:var(--tx3)">${b.className?h(b.className):"—"}</td>
+          <td style="text-align:right"><span class="dkp-bal ${balCls}">${b.balance>0?"+":""}${b.balance}</span></td>
+        </tr>`;
+      }).join("")}</tbody>
+    </table></div>`;
+  }
+  html+=`</div>`;
+
+  // Recent transactions
+  if(dkpTransactions.length){
+    html+=`<div class="card"><div class="card-t">Letzte Transaktionen</div>`;
+    html+=renderDkpTxList(dkpTransactions.slice(0,20));
+    html+=`</div>`;
+  }
+
+  return html;
+}
+
+function renderDkpTxList(txList){
+  return txList.map(tx=>{
+    const typeCls=tx.type==="earn"?"dkp-tx-earn":tx.type==="spend"?"dkp-tx-spend":"dkp-tx-decay";
+    const typeLabel=tx.type==="earn"?"Verdient":tx.type==="spend"?"Beute":"Verfall";
+    const amtCls=tx.amount>0?"dkp-pos":tx.amount<0?"dkp-neg":"dkp-zero";
+    const amtStr=tx.amount>0?"+"+tx.amount:String(tx.amount);
+    const clr=cc(dkpBalances.find(b=>b.playerName===tx.playerName)?.className);
+    const date=new Date(tx.timestamp);
+    const dateStr=String(date.getDate()).padStart(2,"0")+"."+String(date.getMonth()+1).padStart(2,"0")+". "+String(date.getHours()).padStart(2,"0")+":"+String(date.getMinutes()).padStart(2,"0");
+    return`<div class="dkp-tx">
+      <span class="dkp-tx-type ${typeCls}">${typeLabel}</span>
+      <span class="dkp-tx-name" style="color:${clr}">${h(tx.playerName)}</span>
+      <span class="dkp-tx-reason">${h(tx.reason)}</span>
+      <span class="dkp-tx-amount ${amtCls}">${amtStr}</span>
+      <span class="dkp-tx-meta">${h(tx.createdBy||"")} · ${dateStr}</span>
+    </div>`;
+  }).join("");
+}
+
+function renderDkpPlayerDetail(){
+  const bal=dkpBalances.find(b=>b.playerName===dkpPlayerDetail);
+  if(!bal)return`<div class="card"><div class="empty">Spieler nicht gefunden</div></div>`;
+  const clr=cc(bal.className);
+  const balCls=bal.balance>0?"dkp-pos":bal.balance<0?"dkp-neg":"dkp-zero";
+  const earned=dkpPlayerTx.filter(t=>t.type==="earn").reduce((s,t)=>s+t.amount,0);
+  const spent=dkpPlayerTx.filter(t=>t.type==="spend").reduce((s,t)=>s+Math.abs(t.amount),0);
+  const decayed=dkpPlayerTx.filter(t=>t.type==="decay").reduce((s,t)=>s+Math.abs(t.amount),0);
+
+  let html=`<div class="card dkp-player-detail">
+    <div class="dkp-detail-header">
+      <div>
+        <div class="dkp-detail-name" style="color:${clr}">${h(bal.playerName)}</div>
+        <div class="dkp-detail-class">${bal.className?h(bal.className):""}</div>
+      </div>
+      <div class="dkp-detail-bal ${balCls}">${bal.balance>0?"+":""}${bal.balance} DKP</div>
+      <button class="dkp-detail-close" onclick="dkpPlayerDetail=null;renderDkp()">✕</button>
+    </div>
+    <div class="dkp-detail-stats">
+      <div class="dkp-detail-stat"><strong style="color:var(--grn)">+${earned}</strong>Verdient</div>
+      <div class="dkp-detail-stat"><strong style="color:var(--dps)">−${spent}</strong>Beute</div>
+      <div class="dkp-detail-stat"><strong style="color:var(--ylw)">−${decayed}</strong>Verfall</div>
+      <div class="dkp-detail-stat"><strong>${dkpPlayerTx.length}</strong>Transaktionen</div>
+    </div>`;
+
+  if(dkpPlayerTx.length){
+    html+=`<div class="card-t" style="margin-bottom:8px">Alle Transaktionen</div>`;
+    html+=renderDkpTxList(dkpPlayerTx);
+  }else{
+    html+=`<div class="empty">Keine Transaktionen</div>`;
+  }
+
+  html+=`</div>`;
+  return html;
+}
+
+function renderDkpAward(){
+  const players=entries.map(e=>({name:e.charName,className:e.className}));
+
+  let html=`<div class="card dkp-form" style="padding:28px">
+    <div class="card-t">DKP vergeben</div>
+    <div class="fld">
+      <span class="lbl">Spieler auswählen <span class="dkp-selectall" onclick="dkpSelectAll()">Alle</span></span>
+      <div class="dkp-pchips">
+        ${players.length?players.map(p=>{
+          const on=dkpAwardPlayers.some(a=>a.name===p.name);
+          return`<div class="dkp-pchip${on?" active":""}" style="${on?`color:${cc(p.className)};border-color:${cc(p.className)}`:""}" onclick="dkpTogglePlayer('${h(p.name).replace(/'/g,"\\'")}')">${h(p.name)}</div>`;
+        }).join(""):`<div style="font-size:12px;color:var(--tx4)">Keine Spieler im Kader. Erst Einträge erstellen.</div>`}
+      </div>
+    </div>
+    <div class="fld">
+      <span class="lbl">DKP-Betrag</span>
+      <input type="number" id="dkp-award-amount" value="${h(dkpAwardAmount)}" placeholder="z.B. 10" min="1" max="${dkpConfig.maxDkpAmount}" oninput="dkpAwardAmount=this.value">
+    </div>
+    <div class="fld">
+      <span class="lbl">Grund</span>
+      <input type="text" id="dkp-award-reason" value="${h(dkpAwardReason)}" placeholder="z.B. Gruul Kill, Pünktlichkeitsbonus" maxlength="${dkpConfig.reasonMaxLength||200}" oninput="dkpAwardReason=this.value">
+    </div>
+    ${dkpAwardPlayers.length&&dkpAwardAmount?`<div style="font-size:12px;color:var(--tx3);margin-bottom:12px">${dkpAwardPlayers.length} Spieler × ${h(dkpAwardAmount)} DKP = <strong style="color:var(--grn)">${dkpAwardPlayers.length*Number(dkpAwardAmount)} DKP</strong> gesamt</div>`:""}
+    <div class="brow">
+      <button class="btn-p" ${dkpAwardPlayers.length&&dkpAwardAmount&&dkpAwardReason?"":"disabled"} onclick="doDkpAward()">Vergeben</button>
+    </div>
+  </div>`;
+  return html;
+}
+
+function renderDkpSpend(){
+  const playersWithDkp=dkpBalances.filter(b=>true);
+
+  let html=`<div class="card dkp-form" style="padding:28px">
+    <div class="card-t">Beute verteilen (DKP ausgeben)</div>
+    <div class="fld">
+      <span class="lbl">Spieler</span>
+      <select id="dkp-spend-player" style="display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer" onchange="dkpSpendPlayer=this.value">
+        <option value="">— Spieler wählen —</option>
+        ${playersWithDkp.map(b=>`<option value="${h(b.playerName)}"${dkpSpendPlayer===b.playerName?" selected":""}>${h(b.playerName)} (${b.balance} DKP)</option>`).join("")}
+      </select>
+    </div>
+    <div class="fld">
+      <span class="lbl">DKP-Kosten</span>
+      <input type="number" id="dkp-spend-amount" value="${h(dkpSpendAmount)}" placeholder="z.B. 25" min="1" max="${dkpConfig.maxDkpAmount}" oninput="dkpSpendAmount=this.value">
+    </div>
+    <div class="fld">
+      <span class="lbl">Gegenstand</span>
+      <input type="text" id="dkp-spend-item" value="${h(dkpSpendItem)}" placeholder="z.B. Dragonspine Trophy" maxlength="${dkpConfig.reasonMaxLength||200}" oninput="dkpSpendItem=this.value">
+    </div>
+    <div class="brow">
+      <button class="btn-p" ${dkpSpendPlayer&&dkpSpendAmount?"":"disabled"} onclick="doDkpSpend()">Beute verbuchen</button>
+    </div>
+  </div>`;
+  return html;
+}
+
+function renderDkpDecay(){
+  const totalDkp=dkpBalances.reduce((s,b)=>s+Math.max(0,b.balance),0);
+  const decayTotal=Math.round(totalDkp*dkpDecayPercent/100);
+
+  let html=`<div class="card dkp-form" style="padding:28px">
+    <div class="card-t">Wöchentlicher Verfall</div>
+    <p style="font-size:13px;color:var(--tx3);margin-bottom:16px">Reduziert alle positiven DKP-Stände um einen Prozentsatz. Empfohlen: 10–20% pro Woche.</p>
+    <div class="fld">
+      <span class="lbl">Verfall-Prozent</span>
+      <input type="number" id="dkp-decay-pct" value="${dkpDecayPercent}" placeholder="z.B. 15" min="1" max="100" oninput="dkpDecayPercent=Number(this.value)||15;renderDkp()">
+    </div>
+    ${dkpBalances.length?`<div class="dkp-decay-preview">
+      <strong>Vorschau:</strong> ${dkpDecayPercent}% von ${totalDkp} DKP = <span style="color:var(--ylw)">−${decayTotal} DKP</span> gesamt
+      ${dkpBalances.filter(b=>b.balance>0).slice(0,5).map(b=>{
+        const loss=Math.round(b.balance*dkpDecayPercent/100);
+        return`<br>${h(b.playerName)}: ${b.balance} → ${b.balance-loss} (−${loss})`;
+      }).join("")}
+      ${dkpBalances.filter(b=>b.balance>0).length>5?`<br><span style="color:var(--tx4)">... und ${dkpBalances.filter(b=>b.balance>0).length-5} weitere</span>`:""}
+    </div>`:""}
+    <div class="brow" style="margin-top:16px">
+      <button class="btn-p" ${dkpBalances.length?"":"disabled"} onclick="doDkpDecay()" style="background:linear-gradient(135deg,var(--ylw),#c9a020)">Verfall anwenden</button>
+    </div>
+  </div>`;
+  return html;
+}
+
+function renderDkpSettings(){
+  const c=dkpConfig;
+  const roles=c.roles||{};
+  const roleEntries=Object.entries(roles).sort((a,b)=>{
+    if(a[1]==="admin"&&b[1]!=="admin")return -1;
+    if(b[1]==="admin"&&a[1]!=="admin")return 1;
+    return a[0].localeCompare(b[0]);
+  });
+
+  let html=`<div class="card dkp-form" style="padding:28px;max-width:560px">
+    <div class="card-t">DKP-Einstellungen</div>
+    <p style="font-size:13px;color:var(--tx3);margin-bottom:16px">Konfiguriere das DKP-System. Änderungen werden sofort gespeichert.</p>
+    <div class="dkp-cfg-row">
+      <div class="dkp-cfg-label">Standard-Verfall %<small>Vorgabewert für wöchentlichen Verfall</small></div>
+      <div class="dkp-cfg-input"><input type="number" id="cfg-decay" value="${c.defaultDecayPercent}" min="1" max="100"></div>
+    </div>
+    <div class="dkp-cfg-row">
+      <div class="dkp-cfg-label">Max. DKP pro Aktion<small>Obergrenze für Vergabe und Ausgabe</small></div>
+      <div class="dkp-cfg-input"><input type="number" id="cfg-max" value="${c.maxDkpAmount}" min="1" max="100000"></div>
+    </div>
+    <div class="dkp-cfg-row">
+      <div class="dkp-cfg-label">Startwert neue Spieler<small>DKP-Stand bei erster Vergabe</small></div>
+      <div class="dkp-cfg-input"><input type="number" id="cfg-start" value="${c.startingBalance}" min="0" max="100000"></div>
+    </div>
+    <div class="dkp-cfg-row">
+      <div class="dkp-cfg-label">Negative DKP erlauben<small>Dürfen Spieler ins Minus gehen?</small></div>
+      <div class="dkp-cfg-input"><select id="cfg-neg">
+        <option value="true"${c.allowNegativeBalance?" selected":""}>Ja</option>
+        <option value="false"${!c.allowNegativeBalance?" selected":""}>Nein</option>
+      </select></div>
+    </div>
+    <div class="dkp-cfg-row">
+      <div class="dkp-cfg-label">Transaktions-Limit<small>Max. Transaktionen in der Übersicht</small></div>
+      <div class="dkp-cfg-input"><input type="number" id="cfg-txlimit" value="${c.transactionLimit||50}" min="10" max="500"></div>
+    </div>
+    <div class="dkp-cfg-row">
+      <div class="dkp-cfg-label">Max. Zeichenlänge Grund<small>Für Vergabe- und Beute-Gründe</small></div>
+      <div class="dkp-cfg-input"><input type="number" id="cfg-reasonlen" value="${c.reasonMaxLength||200}" min="50" max="500"></div>
+    </div>
+    <div class="brow" style="margin-top:18px">
+      <button class="btn-p" onclick="saveDkpConfig()">Speichern</button>
+      <span class="dkp-cfg-saved" id="cfg-saved">Gespeichert!</span>
+    </div>
+
+    <!-- Rollen-Verwaltung -->
+    <div class="dkp-roles-section">
+      <div class="card-t">Rollen-Verwaltung</div>
+      <p style="font-size:13px;color:var(--tx3);margin:8px 0 12px"><strong>Admin</strong> = Volle Kontrolle (Einstellungen, Verfall, Rollen). <strong>Offizier</strong> = DKP vergeben und Beute verbuchen.</p>
+      <div class="dkp-role-list">
+        ${roleEntries.map(([uname,role])=>{
+          const isMe=currentUser&&uname===currentUser.username.toLowerCase();
+          const roleLabel=role==="admin"?"Admin":"Offizier";
+          const roleCls=role==="admin"?"dkp-role-admin":"dkp-role-officer";
+          return`<div class="dkp-role-row">
+            <span class="dkp-role-name">${h(uname)}${isMe?" (Du)":""}</span>
+            <span class="dkp-role-badge ${roleCls}">${roleLabel}</span>
+            ${!isMe?`<button class="dkp-role-btn" onclick="dkpChangeRole('${h(uname).replace(/'/g,"\\'")}','${role==="admin"?"officer":"admin"}')">${role==="admin"?"→ Offizier":"→ Admin"}</button>
+            <button class="dkp-role-btn dkp-role-del" onclick="dkpRemoveRole('${h(uname).replace(/'/g,"\\'")}')">Entfernen</button>`:""}
+          </div>`;
+        }).join("")}
+        ${!roleEntries.length?`<div style="font-size:12px;color:var(--tx4)">Keine Rollen zugewiesen.</div>`:""}
+      </div>
+      <div class="dkp-role-add">
+        <input type="text" id="dkp-role-user" placeholder="Benutzername" value="${h(dkpRoleAddUser)}" oninput="dkpRoleAddUser=this.value">
+        <select id="dkp-role-type" onchange="dkpRoleAddRole=this.value">
+          <option value="officer"${dkpRoleAddRole==="officer"?" selected":""}>Offizier</option>
+          <option value="admin"${dkpRoleAddRole==="admin"?" selected":""}>Admin</option>
+        </select>
+        <button class="btn-p" style="padding:8px 16px;font-size:13px" onclick="dkpAddRole()">Hinzufügen</button>
+      </div>
+    </div>
+  </div>`;
+  return html;
+}
+
+window.saveDkpConfig=async function(){
+  const defaultDecayPercent=Number(document.getElementById("cfg-decay").value);
+  const maxDkpAmount=Number(document.getElementById("cfg-max").value);
+  const startingBalance=Number(document.getElementById("cfg-start").value);
+  const allowNegativeBalance=document.getElementById("cfg-neg").value==="true";
+  const transactionLimit=Number(document.getElementById("cfg-txlimit").value);
+  const reasonMaxLength=Number(document.getElementById("cfg-reasonlen").value);
+  try{
+    const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"save-config",defaultDecayPercent,maxDkpAmount,startingBalance,allowNegativeBalance,transactionLimit,reasonMaxLength})});
+    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+    const d=await r.json();
+    dkpConfig=d.config;dkpDecayPercent=dkpConfig.defaultDecayPercent;
+    const el=document.getElementById("cfg-saved");if(el){el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2000)}
+    toast("Einstellungen gespeichert");
+  }catch(e){
+    if(e.message==="Nicht angemeldet"||e.message==="Sitzung ungültig"){
+      currentUser=null;localStorage.removeItem("raid-auth");renderAuthBar();renderDkp();
+      toast("Sitzung abgelaufen — bitte erneut anmelden");
+    }else{toast("Fehler: "+e.message)}
+  }
+};
+
+// ── Role management ──
+window.dkpAddRole=async function(){
+  const username=dkpRoleAddUser.trim();
+  if(!username){toast("Benutzername eingeben");return}
+  try{
+    const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"manage-roles",username,role:dkpRoleAddRole})});
+    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+    const d=await r.json();dkpConfig=d.config;dkpRoleAddUser="";
+    toast(`${username} als ${dkpRoleAddRole==="admin"?"Admin":"Offizier"} hinzugefügt`);
+    renderDkp();
+  }catch(e){handleDkpError(e)}
+};
+window.dkpChangeRole=async function(username,newRole){
+  try{
+    const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"manage-roles",username,role:newRole})});
+    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+    const d=await r.json();dkpConfig=d.config;
+    toast(`${username} ist jetzt ${newRole==="admin"?"Admin":"Offizier"}`);
+    renderDkp();
+  }catch(e){handleDkpError(e)}
+};
+window.dkpRemoveRole=async function(username){
+  showModal("Rolle entfernen",`Wirklich <strong>${h(username)}</strong> als DKP-Verwalter entfernen?`,async()=>{
+    try{
+      const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"manage-roles",username,remove:true})});
+      if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+      const d=await r.json();dkpConfig=d.config;
+      toast(`${username} entfernt`);renderDkp();
+    }catch(e){handleDkpError(e)}
+  });
+};
+
+// ── Sorting ──
+window.dkpSortBy=function(col){
+  if(dkpSortCol===col){dkpSortDir=dkpSortDir==="asc"?"desc":"asc"}
+  else{dkpSortCol=col;dkpSortDir=col==="balance"?"desc":"asc"}
+  renderDkp();
+};
+
+// ── Player detail ──
+window.showDkpPlayerDetail=async function(playerName){
+  dkpPlayerDetail=playerName;
+  dkpPlayerTx=[];
+  renderDkp();
+  try{
+    const r=await fetch(DKP_API+"?player="+encodeURIComponent(playerName),{headers:authHeader()});
+    if(r.ok){const d=await r.json();dkpPlayerTx=d.transactions||[]}
+  }catch(e){console.error(e)}
+  if(dkpPlayerDetail===playerName)renderDkp();
+};
+
+// ── CSV Export ──
+window.exportDkpCsv=function(){
+  function csvVal(str){str=String(str);if(str.includes('"')||str.includes(',')||str.includes('\n'))return'"'+str.replace(/"/g,'""')+'"';return str}
+
+  // Standings CSV
+  let csv="Rang,Spieler,Klasse,DKP,Zuletzt aktualisiert\n";
+  const sorted=dkpSortedBalances();
+  sorted.forEach((b,i)=>{
+    const date=b.lastUpdated?new Date(b.lastUpdated).toLocaleDateString("de-DE"):"";
+    csv+=[i+1,csvVal(b.playerName),csvVal(b.className||""),b.balance,date].join(",")+"\n";
+  });
+  csv+="\n\nTransaktionen\nDatum,Spieler,Typ,Betrag,Grund,Von\n";
+  dkpTransactions.forEach(tx=>{
+    const date=new Date(tx.timestamp).toLocaleString("de-DE");
+    const type=tx.type==="earn"?"Verdient":tx.type==="spend"?"Beute":"Verfall";
+    csv+=[csvVal(date),csvVal(tx.playerName),type,tx.amount,csvVal(tx.reason),csvVal(tx.createdBy||"")].join(",")+"\n";
+  });
+
+  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download="dkp-export-"+new Date().toISOString().slice(0,10)+".csv";
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+};
+
+// ── Undo ──
+window.doDkpUndo=function(){
+  if(!dkpTransactions.length)return;
+  const last=dkpTransactions[0];
+  const typeLabel=last.type==="earn"?"Verdient":last.type==="spend"?"Beute":"Verfall";
+  const amtStr=last.amount>0?"+"+last.amount:String(last.amount);
+  showModal("Letzte Transaktion rückgängig machen",
+    `<strong>${typeLabel}</strong>: ${h(last.playerName)} ${amtStr} DKP — „${h(last.reason)}"<br><br>Diese Aktion macht die Transaktion rückgängig und stellt den vorherigen DKP-Stand wieder her.`,
+    async()=>{
+      try{
+        const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"undo",transactionId:last.id})});
+        if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+        toast("Transaktion rückgängig gemacht");
+        await loadDkp();renderDkp();
+      }catch(e){handleDkpError(e)}
+    });
+};
+
+function handleDkpError(e){
+  if(e.message==="Nicht angemeldet"||e.message==="Sitzung ungültig"){
+    currentUser=null;localStorage.removeItem("raid-auth");renderAuthBar();renderDkp();
+    toast("Sitzung abgelaufen — bitte erneut anmelden");
+  }else{toast("Fehler: "+e.message)}
+}
+
+window.dkpTogglePlayer=function(name){
+  const idx=dkpAwardPlayers.findIndex(p=>p.name===name);
+  if(idx>=0){dkpAwardPlayers.splice(idx,1)}
+  else{
+    const e=entries.find(x=>x.charName===name);
+    dkpAwardPlayers.push({name,className:e?.className||""});
+  }
+  renderDkp();
+};
+window.dkpSelectAll=function(){
+  if(dkpAwardPlayers.length===entries.length){dkpAwardPlayers=[]}
+  else{dkpAwardPlayers=entries.map(e=>({name:e.charName,className:e.className}))}
+  renderDkp();
+};
+
+window.doDkpAward=async function(){
+  if(!dkpAwardPlayers.length||!dkpAwardAmount||!dkpAwardReason)return;
+  try{
+    const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"award",players:dkpAwardPlayers,amount:Number(dkpAwardAmount),reason:dkpAwardReason})});
+    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+    toast(`${dkpAwardPlayers.length}× ${dkpAwardAmount} DKP vergeben`);
+    dkpAwardPlayers=[];dkpAwardAmount="";dkpAwardReason="";
+    dkpView="overview";
+    await loadDkp();renderDkp();
+  }catch(e){handleDkpError(e)}
+};
+
+window.doDkpSpend=async function(){
+  if(!dkpSpendPlayer||!dkpSpendAmount)return;
+  try{
+    const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"spend",playerName:dkpSpendPlayer,amount:Number(dkpSpendAmount),itemName:dkpSpendItem})});
+    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+    toast(`${dkpSpendAmount} DKP für ${dkpSpendItem||"Loot"} verbucht`);
+    dkpSpendPlayer="";dkpSpendAmount="";dkpSpendItem="";
+    dkpView="overview";
+    await loadDkp();renderDkp();
+  }catch(e){handleDkpError(e)}
+};
+
+window.doDkpDecay=async function(){
+  showModal("Verfall anwenden",`Wirklich <strong>${dkpDecayPercent}%</strong> Verfall auf alle DKP-Stände anwenden?`,async()=>{
+    try{
+      const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"decay",percent:dkpDecayPercent})});
+      if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+      toast(`${dkpDecayPercent}% Verfall angewendet`);
+      dkpView="overview";
+      await loadDkp();renderDkp();
+    }catch(e){handleDkpError(e)}
+  });
 };
 
 // ══════════════════════════════

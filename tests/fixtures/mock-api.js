@@ -92,6 +92,23 @@ export async function setupMockApi(page, initialEntries = []) {
     await route.continue();
   });
 
+  await page.route('**/api/dkp**', async (route) => {
+    const method = route.request().method();
+    if (method === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ balances: [], transactions: [], config: { roles: {}, defaultDecayPercent: 15, maxDkpAmount: 10000, allowNegativeBalance: true, startingBalance: 0, transactionLimit: 50, reasonMaxLength: 200 } }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true }),
+    });
+  });
+
   await page.route('**/api/raids**', async (route) => {
     const method = route.request().method();
     if (method === 'GET') {
