@@ -669,7 +669,7 @@ async function load(){
   // Also load DKP
   try{
     const dr=await fetch(DKP_API,{headers:authHeader()});
-    if(dr.ok){const dd=await dr.json();dkpBalances=dd.balances||[];dkpTransactions=dd.transactions||[];}
+    if(dr.ok){const dd=await dr.json();dkpBalances=dd.balances||[];dkpTransactions=dd.transactions||[];if(dd.config){dkpConfig=dd.config;dkpDecayPercent=dkpConfig.defaultDecayPercent||15}}
   }catch(e){console.error(e)}
   updateAll();
 }
