@@ -48,9 +48,9 @@ test.describe('Layout checks', () => {
     expect(overflow).toBe(false);
   });
 
-  test('all 4 tabs are visible and clickable', async ({ page }) => {
+  test('all 6 tabs are visible and clickable', async ({ page }) => {
     const tabs = page.locator('.tab');
-    await expect(tabs).toHaveCount(4);
+    await expect(tabs).toHaveCount(6);
     for (const tab of await tabs.all()) {
       await expect(tab).toBeVisible();
       await expect(tab).toBeEnabled();
