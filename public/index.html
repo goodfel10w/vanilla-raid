@@ -1650,13 +1650,17 @@ async function loadDkp(){
   }catch(e){console.error(e)}
 }
 
+const DKP_ADMIN="admin";
+function isDkpAdmin(){return currentUser&&currentUser.username.toLowerCase()===DKP_ADMIN}
+
 function renderDkp(){
   const el=document.getElementById("v-dkp");
+  const admin=isDkpAdmin();
 
   // Sub-view toggle
   let html=`<div class="dkp-actions-bar">
     <button class="ht-btn${dkpView==="overview"?" active":""}" onclick="dkpView='overview';renderDkp()">Übersicht</button>
-    ${currentUser?`<button class="ht-btn${dkpView==="award"?" active":""}" onclick="dkpView='award';renderDkp()">Vergeben</button>
+    ${admin?`<button class="ht-btn${dkpView==="award"?" active":""}" onclick="dkpView='award';renderDkp()">Vergeben</button>
     <button class="ht-btn${dkpView==="spend"?" active":""}" onclick="dkpView='spend';renderDkp()">Beute</button>
     <button class="ht-btn${dkpView==="decay"?" active":""}" onclick="dkpView='decay';renderDkp()">Verfall</button>`:""}
   </div>`;

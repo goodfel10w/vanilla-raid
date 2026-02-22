@@ -2,6 +2,8 @@ import { getStore } from "@netlify/blobs";
 import { randomUUID } from "crypto";
 import { validateSession } from "./shared/auth-utils.mjs";
 
+const DKP_ADMIN = "admin";
+
 export default async (req, context) => {
   const balanceStore = getStore({ name: "dkp-balances", consistency: "strong" });
   const txStore = getStore({ name: "dkp-transactions", consistency: "strong" });
@@ -38,6 +40,11 @@ export default async (req, context) => {
       const user = await validateSession(req);
       if (!user) {
         return new Response(JSON.stringify({ error: "Nicht angemeldet" }), { status: 401, headers });
+      }
+
+      // Only the DKP admin may modify DKP
+      if (user.username.toLowerCase() !== DKP_ADMIN) {
+        return new Response(JSON.stringify({ error: "Nur der DKP-Admin darf Änderungen vornehmen" }), { status: 403, headers });
       }
 
       const body = await req.json();
