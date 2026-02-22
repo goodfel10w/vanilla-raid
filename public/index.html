@@ -161,7 +161,8 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .heat-toggle{display:flex;gap:0;justify-content:center;margin-bottom:18px}
 .ht-btn{padding:8px 20px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.2);color:var(--tx3);cursor:pointer;font:600 13px 'Nunito Sans',sans-serif;transition:all .15s}
 .ht-btn:first-child{border-radius:6px 0 0 6px}
-.ht-btn:last-child{border-radius:0 6px 6px 0;border-left:none}
+.ht-btn+.ht-btn{border-left:none}
+.ht-btn:last-child{border-radius:0 6px 6px 0}
 .ht-btn.active{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg);border-color:var(--gold-d)}
 
 /* Top slots */
@@ -638,6 +639,48 @@ function avForWindow3h(d,label){
   });
 }
 
+// 4h raid-window mode: sliding 4-hour windows (16 quarter-slots each)
+function heatData4h(){
+  const hd={};
+  DAYS.forEach(d=>{
+    for(let h=12;h<=20;h++){
+      const endH=h+4;
+      const label=String(h).padStart(2,'0')+":00\u2013"+String(endH===24?0:endH).padStart(2,'0')+":00";
+      const k=d+"_"+label;
+      const qs=[];
+      for(let wh=h;wh<endH;wh++)for(const m of[0,15,30,45])qs.push(d+"_"+String(wh).padStart(2,'0')+":"+String(m).padStart(2,'0'));
+      let yes=0,tent=0;
+      entries.forEach(e=>{
+        const vals=qs.map(q=>e.availability?.[q]);
+        if(!vals.every(v=>v==="yes"||v===true||v==="tentative"))return;
+        if(vals.every(v=>v==="yes"||v===true))yes++;else tent++;
+      });
+      hd[k]={yes,tent,total:yes+tent};
+    }
+  });
+  return hd;
+}
+function windowLabels4h(){
+  const labels=[];
+  for(let h=12;h<=20;h++){
+    const endH=h+4;
+    labels.push(String(h).padStart(2,'0')+":00\u2013"+String(endH===24?0:endH).padStart(2,'0')+":00");
+  }
+  return labels;
+}
+function avForWindow4h(d,label){
+  const parts=label.split('\u2013');
+  const startH=parseInt(parts[0]);
+  let endH=parseInt(parts[1]);
+  if(endH===0)endH=24;
+  const qs=[];
+  for(let wh=startH;wh<endH;wh++)for(const m of[0,15,30,45])qs.push(d+"_"+String(wh).padStart(2,'0')+":"+String(m).padStart(2,'0'));
+  return entries.filter(e=>qs.every(q=>e.availability?.[q])).map(e=>{
+    const allYes=qs.every(q=>{const v=e.availability[q];return v==="yes"||v===true});
+    return{...e,_availType:allYes?"yes":"tentative"};
+  });
+}
+
 function isRaidReady(players){
   let t=0,hl=0,dp=0;
   players.forEach(p=>{
@@ -897,8 +940,8 @@ function renderRoster(){
 // ══════════════════════════════
 function renderHeatmap(){
   const el=document.getElementById("v-heatmap");
-  const is3h=heatMode==="3h";
-  const hd=is3h?heatData3h():heatData();
+  const is3h=heatMode==="3h",is4h=heatMode==="4h",isWindow=is3h||is4h;
+  const hd=is4h?heatData4h():is3h?heatData3h():heatData();
   const mx=Math.max(1,...Object.values(hd).map(v=>v.total));
 
   function makeCell(k,players,dat){
@@ -923,23 +966,27 @@ function renderHeatmap(){
     const k=d+"_"+label;
     return makeCell(k,avForWindow3h(d,label),hd[k]||{yes:0,tent:0,total:0});
   }
+  function cell4h(d,label){
+    const k=d+"_"+label;
+    return makeCell(k,avForWindow4h(d,label),hd[k]||{yes:0,tent:0,total:0});
+  }
 
-  const cols=is3h?windowLabels3h():HOUR_LABELS;
+  const cols=is4h?windowLabels4h():is3h?windowLabels3h():HOUR_LABELS;
   let wdRows="",weRows="";
-  WD.forEach(d=>{wdRows+=`<tr><td class="dl">${d}</td>${cols.map(c=>is3h?cell3h(d,c):cell1h(d,c)).join("")}</tr>`});
-  WE.forEach(d=>{weRows+=`<tr><td class="dl">${d}</td>${cols.map(c=>is3h?cell3h(d,c):cell1h(d,c)).join("")}</tr>`});
+  WD.forEach(d=>{wdRows+=`<tr><td class="dl">${d}</td>${cols.map(c=>is4h?cell4h(d,c):is3h?cell3h(d,c):cell1h(d,c)).join("")}</tr>`});
+  WE.forEach(d=>{weRows+=`<tr><td class="dl">${d}</td>${cols.map(c=>is4h?cell4h(d,c):is3h?cell3h(d,c):cell1h(d,c)).join("")}</tr>`});
 
   const sorted=Object.entries(hd).sort((a,b)=>b[1].total-a[1].total).filter(([,v])=>v.total>0).slice(0,5);
   let topHtml="";
   if(sorted.length){
     topHtml=`<div class="center" style="margin-top:20px">
-      <div class="sec-l" style="margin-bottom:10px">Top ${Math.min(5,sorted.length)} Raidzeiten${is3h?" (3h)":""}</div>
+      <div class="sec-l" style="margin-bottom:10px">Top ${Math.min(5,sorted.length)} Raidzeiten${isWindow?` (${is4h?"4h":"3h"})`:""}</div>
       <div class="top-slots">${sorted.map(([k,dat],i)=>{
         const sep=k.indexOf("_"),d=k.substring(0,sep),s=k.substring(sep+1);
-        const players=is3h?avForWindow3h(d,s):avForSlot(d,s);
+        const players=is4h?avForWindow4h(d,s):is3h?avForWindow3h(d,s):avForSlot(d,s);
         const rr=isRaidReady(players);
         return`<div class="tslot" style="background:${i===0?"rgba(201,168,76,.12)":"rgba(255,255,255,.03)"};border:1px solid ${i===0?"rgba(201,168,76,.3)":"var(--bdr)"}">
-          <div class="ts-t" style="color:${i===0?"var(--gold)":"#9a92a8"}">#${i+1} ${DS[d]||d} ${is3h?s:s+":00"}</div>
+          <div class="ts-t" style="color:${i===0?"var(--gold)":"#9a92a8"}">#${i+1} ${DS[d]||d} ${isWindow?s:s+":00"}</div>
           <div class="ts-c">${dat.total} Raider${dat.tent>0?` (${dat.tent} vielleicht)`:""}</div>
           ${rr.ready?'<div class="badge-rr" style="margin-top:4px">Raid-Ready!</div>':""}
         </div>`;
@@ -950,9 +997,10 @@ function renderHeatmap(){
   el.innerHTML=`
     <div class="heat-toggle">
       <button class="ht-btn${heatMode==="1h"?" active":""}" onclick="setHeatMode('1h')">1h Stunden</button>
-      <button class="ht-btn${heatMode==="3h"?" active":""}" onclick="setHeatMode('3h')">3h Raid-Fenster</button>
+      <button class="ht-btn${heatMode==="3h"?" active":""}" onclick="setHeatMode('3h')">3h Fenster</button>
+      <button class="ht-btn${heatMode==="4h"?" active":""}" onclick="setHeatMode('4h')">4h Raid</button>
     </div>
-    <p class="center" style="font-size:13px;color:var(--tx3);margin-bottom:16px">Heller = mehr Raider \u00B7 Hover f\u00FCr Details \u00B7 Gr\u00FCner Rand = Raid-Ready${is3h?" \u00B7 3h = alle Viertelstunden im Fenster verf\u00FCgbar":""}</p>
+    <p class="center" style="font-size:13px;color:var(--tx3);margin-bottom:16px">Heller = mehr Raider \u00B7 Hover f\u00FCr Details \u00B7 Gr\u00FCner Rand = Raid-Ready${isWindow?` \u00B7 ${is4h?"4h":"3h"} = alle Viertelstunden im Fenster verf\u00FCgbar`:""}</p>
     <div class="card" style="overflow-x:auto">
       <div class="sec-l">Unter der Woche</div>
       <table class="htable"><thead><tr><th></th>${cols.map(s=>`<th>${s}</th>`).join("")}</tr></thead><tbody>${wdRows}</tbody></table>
