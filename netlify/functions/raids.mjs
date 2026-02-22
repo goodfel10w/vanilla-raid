@@ -1,6 +1,7 @@
 import { getStore } from "@netlify/blobs";
 import { randomUUID } from "crypto";
 import { validateSession } from "./shared/auth-utils.mjs";
+import { buildRaidEmbed } from "./discord.mjs";
 
 const VALID_INSTANCES = [
   "Karazhan", "Gruuls Unterschlupf", "Magtheridons Kammer",
@@ -74,6 +75,7 @@ export default async (req) => {
           timestamp: new Date().toISOString(),
         });
         await store.setJSON(raidId, raid);
+        autoUpdateDiscord(raidId, raid);
         return new Response(JSON.stringify(raid), { status: 200, headers });
       }
 
@@ -90,6 +92,7 @@ export default async (req) => {
         if (!raid.signups) raid.signups = [];
         raid.signups = raid.signups.filter(s => s.userId !== user.userId);
         await store.setJSON(raidId, raid);
+        autoUpdateDiscord(raidId, raid);
         return new Response(JSON.stringify(raid), { status: 200, headers });
       }
 
@@ -146,6 +149,7 @@ export default async (req) => {
       };
 
       await store.setJSON(id, raid);
+      if (body.id) autoUpdateDiscord(id, raid);
       return new Response(JSON.stringify(raid), { status: 200, headers });
     }
 
@@ -165,6 +169,11 @@ export default async (req) => {
         return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
       }
       await store.delete(id);
+      // Clean up Discord message mapping
+      try {
+        const discordStore = getStore({ name: "discord-messages", consistency: "strong" });
+        await discordStore.delete(id);
+      } catch (_) { /* non-fatal */ }
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }
 
@@ -174,6 +183,35 @@ export default async (req) => {
     return new Response(JSON.stringify({ error: "Interner Serverfehler" }), { status: 500, headers });
   }
 };
+
+// Fire-and-forget Discord embed update when a raid changes
+async function autoUpdateDiscord(raidId, raid) {
+  try {
+    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    if (!webhookUrl) return;
+
+    const discordStore = getStore({ name: "discord-messages", consistency: "strong" });
+    const mapping = await discordStore.get(raidId, { type: "json" });
+    if (!mapping?.messageId) return;
+
+    const siteUrl = process.env.URL || process.env.DEPLOY_PRIME_URL || "";
+    const embed = buildRaidEmbed(raid, siteUrl);
+    const res = await fetch(`${webhookUrl}/messages/${mapping.messageId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ embeds: [embed] }),
+    });
+
+    if (res.status === 404) {
+      await discordStore.delete(raidId);
+    } else if (res.ok) {
+      mapping.updatedAt = new Date().toISOString();
+      await discordStore.setJSON(raidId, mapping);
+    }
+  } catch (err) {
+    console.error("Auto-update Discord failed (non-fatal):", err);
+  }
+}
 
 export const config = {
   path: "/api/raids",
