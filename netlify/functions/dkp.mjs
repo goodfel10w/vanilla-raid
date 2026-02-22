@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { validateSession } from "./shared/auth-utils.mjs";
 
 const DEFAULT_CONFIG = {
-  roles: {},               // { "username": "admin"|"officer" }
+  roles: { "zandyra": "admin" },
   defaultDecayPercent: 15,
   maxDkpAmount: 10000,
   allowNegativeBalance: true,
@@ -25,6 +25,12 @@ async function loadConfig(configStore) {
     await configStore.setJSON(CONFIG_KEY, cfg);
   }
   delete cfg.adminUsername; // never expose legacy field
+
+  // Bootstrap: ensure default admin exists when roles are empty
+  if (!cfg.roles || Object.keys(cfg.roles).length === 0) {
+    cfg.roles = { ...DEFAULT_CONFIG.roles };
+    await configStore.setJSON(CONFIG_KEY, cfg);
+  }
 
   return cfg;
 }
