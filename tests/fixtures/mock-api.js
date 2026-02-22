@@ -98,7 +98,7 @@ export async function setupMockApi(page, initialEntries = []) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ balances: [], transactions: [] }),
+        body: JSON.stringify({ balances: [], transactions: [], config: { roles: {}, defaultDecayPercent: 15, maxDkpAmount: 10000, allowNegativeBalance: true, startingBalance: 0, transactionLimit: 50, reasonMaxLength: 200 } }),
       });
       return;
     }
