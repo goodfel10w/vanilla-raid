@@ -1751,6 +1751,29 @@ function getDkpRole(){
 function isDkpAdmin(){return getDkpRole()==="admin"}
 function isDkpOfficer(){const r=getDkpRole();return r==="admin"||r==="officer"}
 
+function syncDkpAwardUi(){
+  const btn=document.getElementById("dkp-award-btn");
+  if(btn){
+    if(dkpAwardPlayers.length&&dkpAwardAmount&&dkpAwardReason)btn.removeAttribute("disabled");
+    else btn.setAttribute("disabled","");
+  }
+  const prev=document.getElementById("dkp-award-preview");
+  if(prev){
+    if(dkpAwardPlayers.length&&dkpAwardAmount){
+      prev.innerHTML=dkpAwardPlayers.length+' Spieler × '+h(dkpAwardAmount)+' DKP = <strong style="color:var(--grn)">'+dkpAwardPlayers.length*Number(dkpAwardAmount)+' DKP</strong> gesamt';
+      prev.style.display="";
+    }else{prev.style.display="none"}
+  }
+}
+
+function syncDkpSpendUi(){
+  const btn=document.getElementById("dkp-spend-btn");
+  if(btn){
+    if(dkpSpendPlayer&&dkpSpendAmount)btn.removeAttribute("disabled");
+    else btn.setAttribute("disabled","");
+  }
+}
+
 function dkpSortedBalances(){
   const list=[...dkpBalances];
   const dir=dkpSortDir==="asc"?1:-1;
@@ -1927,15 +1950,15 @@ function renderDkpAward(){
     </div>
     <div class="fld">
       <span class="lbl">DKP-Betrag</span>
-      <input type="number" id="dkp-award-amount" value="${h(dkpAwardAmount)}" placeholder="z.B. 10" min="1" max="${dkpConfig.maxDkpAmount}" oninput="dkpAwardAmount=this.value">
+      <input type="number" id="dkp-award-amount" value="${h(dkpAwardAmount)}" placeholder="z.B. 10" min="1" max="${dkpConfig.maxDkpAmount}" oninput="dkpAwardAmount=this.value;syncDkpAwardUi()">
     </div>
     <div class="fld">
       <span class="lbl">Grund</span>
-      <input type="text" id="dkp-award-reason" value="${h(dkpAwardReason)}" placeholder="z.B. Gruul Kill, Pünktlichkeitsbonus" maxlength="${dkpConfig.reasonMaxLength||200}" oninput="dkpAwardReason=this.value">
+      <input type="text" id="dkp-award-reason" value="${h(dkpAwardReason)}" placeholder="z.B. Gruul Kill, Pünktlichkeitsbonus" maxlength="${dkpConfig.reasonMaxLength||200}" oninput="dkpAwardReason=this.value;syncDkpAwardUi()">
     </div>
-    ${dkpAwardPlayers.length&&dkpAwardAmount?`<div style="font-size:12px;color:var(--tx3);margin-bottom:12px">${dkpAwardPlayers.length} Spieler × ${h(dkpAwardAmount)} DKP = <strong style="color:var(--grn)">${dkpAwardPlayers.length*Number(dkpAwardAmount)} DKP</strong> gesamt</div>`:""}
+    <div id="dkp-award-preview" style="font-size:12px;color:var(--tx3);margin-bottom:12px;${dkpAwardPlayers.length&&dkpAwardAmount?"":"display:none"}">${dkpAwardPlayers.length&&dkpAwardAmount?`${dkpAwardPlayers.length} Spieler × ${h(dkpAwardAmount)} DKP = <strong style="color:var(--grn)">${dkpAwardPlayers.length*Number(dkpAwardAmount)} DKP</strong> gesamt`:""}</div>
     <div class="brow">
-      <button class="btn-p" ${dkpAwardPlayers.length&&dkpAwardAmount&&dkpAwardReason?"":"disabled"} onclick="doDkpAward()">Vergeben</button>
+      <button class="btn-p" id="dkp-award-btn" ${dkpAwardPlayers.length&&dkpAwardAmount&&dkpAwardReason?"":"disabled"} onclick="doDkpAward()">Vergeben</button>
     </div>
   </div>`;
   return html;
@@ -1948,14 +1971,14 @@ function renderDkpSpend(){
     <div class="card-t">Beute verteilen (DKP ausgeben)</div>
     <div class="fld">
       <span class="lbl">Spieler</span>
-      <select id="dkp-spend-player" style="display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer" onchange="dkpSpendPlayer=this.value">
+      <select id="dkp-spend-player" style="display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer" onchange="dkpSpendPlayer=this.value;syncDkpSpendUi()">
         <option value="">— Spieler wählen —</option>
         ${playersWithDkp.map(b=>`<option value="${h(b.playerName)}"${dkpSpendPlayer===b.playerName?" selected":""}>${h(b.playerName)} (${b.balance} DKP)</option>`).join("")}
       </select>
     </div>
     <div class="fld">
       <span class="lbl">DKP-Kosten</span>
-      <input type="number" id="dkp-spend-amount" value="${h(dkpSpendAmount)}" placeholder="z.B. 25" min="1" max="${dkpConfig.maxDkpAmount}" oninput="dkpSpendAmount=this.value">
+      <input type="number" id="dkp-spend-amount" value="${h(dkpSpendAmount)}" placeholder="z.B. 25" min="1" max="${dkpConfig.maxDkpAmount}" oninput="dkpSpendAmount=this.value;syncDkpSpendUi()">
     </div>
     <div class="fld">
       <span class="lbl">Gegenstand</span>
@@ -1963,7 +1986,7 @@ function renderDkpSpend(){
       <span class="lbl-s" style="margin-top:4px">[Item Name] in Klammern = Wowhead-Link mit Icon</span>
     </div>
     <div class="brow">
-      <button class="btn-p" ${dkpSpendPlayer&&dkpSpendAmount?"":"disabled"} onclick="doDkpSpend()">Beute verbuchen</button>
+      <button class="btn-p" id="dkp-spend-btn" ${dkpSpendPlayer&&dkpSpendAmount?"":"disabled"} onclick="doDkpSpend()">Beute verbuchen</button>
     </div>
   </div>`;
   return html;
