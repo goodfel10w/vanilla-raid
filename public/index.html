@@ -426,7 +426,14 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
 
 /* Hidden */
 .hidden{display:none!important}
+
+/* Item links */
+.item-link{color:#a335ee;text-decoration:none;font-style:normal;cursor:pointer;transition:color .15s;white-space:nowrap}
+.item-link:hover{color:#c577f5;text-decoration:underline}
+.item-link::before{content:"";display:inline-block;width:15px;height:15px;margin-right:3px;vertical-align:-2px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='1' y='1' width='14' height='14' rx='2' fill='%231a1a2e' stroke='%23a335ee' stroke-width='1.5'/%3E%3Cpath d='M5 4h6v2H5zM4 7h8v2H4zM5 10h6v2H5z' fill='%23a335ee' opacity='.5'/%3E%3C/svg%3E") no-repeat center/contain}
 </style>
+<script>const whTooltips={colorLinks:true,iconizeLinks:true,renameLinks:true};</script>
+<script src="https://wow.zamimg.com/widgets/power.js"></script>
 </head>
 <body>
 <div class="glow g1"></div>
@@ -765,6 +772,16 @@ function updateAll(){
 // ── Helpers ──
 function cc(n){return CLS.find(c=>c.n===n)?.c||"#ccc"}
 function h(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
+
+// Item linking: converts [Item Name] to Wowhead TBC search links with icon
+function linkItems(text){
+  if(!text)return"";
+  const escaped=h(text);
+  return escaped.replace(/\[([^\]]+)\]/g,function(_,name){
+    const q=encodeURIComponent(name.replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&#39;/g,"'"));
+    return'<a class="item-link" href="https://www.wowhead.com/tbc/search?q='+q+'" target="_blank" rel="noopener">'+name+'</a>';
+  });
+}
 
 // Heatmap: aggregate per hour (player counts as available if ALL 4 quarters are marked)
 function heatData(){
@@ -1765,6 +1782,7 @@ function renderDkp(){
   else{html+=renderDkpOverview()}
 
   el.innerHTML=html;
+  if(typeof $WowheadPower!=="undefined")$WowheadPower.refreshLinks();
 }
 
 function renderDkpOverview(){
@@ -1836,7 +1854,7 @@ function renderDkpTxList(txList){
     return`<div class="dkp-tx">
       <span class="dkp-tx-type ${typeCls}">${typeLabel}</span>
       <span class="dkp-tx-name" style="color:${clr}">${h(tx.playerName)}</span>
-      <span class="dkp-tx-reason">${h(tx.reason)}</span>
+      <span class="dkp-tx-reason">${tx.type==="spend"?linkItems(tx.reason):h(tx.reason)}</span>
       <span class="dkp-tx-amount ${amtCls}">${amtStr}</span>
       <span class="dkp-tx-meta">${h(tx.createdBy||"")} · ${dateStr}</span>
     </div>`;
@@ -1941,7 +1959,8 @@ function renderDkpSpend(){
     </div>
     <div class="fld">
       <span class="lbl">Gegenstand</span>
-      <input type="text" id="dkp-spend-item" value="${h(dkpSpendItem)}" placeholder="z.B. Dragonspine Trophy" maxlength="${dkpConfig.reasonMaxLength||200}" oninput="dkpSpendItem=this.value">
+      <input type="text" id="dkp-spend-item" value="${h(dkpSpendItem)}" placeholder="z.B. [Dragonspine Trophy]" maxlength="${dkpConfig.reasonMaxLength||200}" oninput="dkpSpendItem=this.value">
+      <span class="lbl-s" style="margin-top:4px">[Item Name] in Klammern = Wowhead-Link mit Icon</span>
     </div>
     <div class="brow">
       <button class="btn-p" ${dkpSpendPlayer&&dkpSpendAmount?"":"disabled"} onclick="doDkpSpend()">Beute verbuchen</button>
@@ -2156,7 +2175,7 @@ window.doDkpUndo=function(){
   const typeLabel=last.type==="earn"?"Verdient":last.type==="spend"?"Beute":"Verfall";
   const amtStr=last.amount>0?"+"+last.amount:String(last.amount);
   showModal("Letzte Transaktion rückgängig machen",
-    `<strong>${typeLabel}</strong>: ${h(last.playerName)} ${amtStr} DKP — „${h(last.reason)}"<br><br>Diese Aktion macht die Transaktion rückgängig und stellt den vorherigen DKP-Stand wieder her.`,
+    `<strong>${typeLabel}</strong>: ${h(last.playerName)} ${amtStr} DKP — „${last.type==="spend"?linkItems(last.reason):h(last.reason)}"<br><br>Diese Aktion macht die Transaktion rückgängig und stellt den vorherigen DKP-Stand wieder her.`,
     async()=>{
       try{
         const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"undo",transactionId:last.id})});
