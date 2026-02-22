@@ -891,6 +891,14 @@ function renderRoster(){
     html+=`<div style="margin-bottom:16px"><button class="btn-export" onclick="exportCSV()">\u{1F4BE} CSV Export</button></div>`;
   }
 
+  if(currentUser&&entries.length&&!entries.some(e=>e.userId===currentUser.userId)){
+    const unclaimed=entries.filter(e=>!e.userId);
+    if(unclaimed.length){
+      html+=`<div class="card" style="border:1px solid rgba(201,168,76,.3);padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--tx3)">
+        \u{1F4CC} Du hast noch keinen Charakter mit deinem Account verkn\u00FCpft. Klicke bei deinem Eintrag auf <strong style="color:var(--tx)">Bearbeiten</strong> und speichere ihn \u2014 dann geh\u00F6rt er dir.</div>`;
+    }
+  }
+
   if(!entries.length){html+=`<div class="empty">Noch keine Eintr\u00E4ge. Sei der Erste!</div>`;el.innerHTML=html;return}
 
   html+=`<div class="sort-bar">Sortieren: <select class="sort-sel" onchange="rosterSort=this.value;renderRoster()">
