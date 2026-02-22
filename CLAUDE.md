@@ -30,7 +30,7 @@ npx playwright test -g "edit pre-fills"                        # Run tests match
 npx playwright test tests/functional/form.spec.js --project=mobile  # Single file + viewport
 ```
 
-**Test architecture:** Tests use `page.route()` to intercept `/api/entries` — no real backend needed. The `setupMockApi(page, initialEntries)` fixture in `tests/fixtures/mock-api.js` provides an in-memory CRUD store. Sample entries are in `tests/fixtures/test-data.js`.
+**Test architecture:** Tests use `page.route()` to intercept `/api/entries` and `/api/auth` — no real backend needed. The `setupMockApi(page, initialEntries)` fixture in `tests/fixtures/mock-api.js` provides an in-memory CRUD store and mock auth endpoints. Sample entries are in `tests/fixtures/test-data.js`. All tests that need auth seed `localStorage` with `page.addInitScript()` before `page.goto()`.
 
 **Projects:** `desktop` (1280×720), `tablet` (768×1024), `mobile` (375×667) run layout/functional tests. A separate `responsive` project runs viewport-switching tests at 375/641/768/1280px (including the 640px CSS breakpoint edge).
 
@@ -45,10 +45,12 @@ npx playwright test tests/functional/form.spec.js --project=mobile  # Single fil
 
 ## Architecture
 
-**Two-file application:**
+**Application files:**
 
 - `public/index.html` — Complete single-page application with embedded CSS and JS. Contains the form, roster, heatmap, and analytics views. All rendering is function-based (`renderForm`, `renderRoster`, `renderHeatmap`, `renderAnalytics`) with global state variables.
 - `netlify/functions/entries.mjs` — REST API handler for CRUD operations on raid entries. Routes: `GET /api/entries`, `POST /api/entries`, `DELETE /api/entries?id=<id>`.
+- `netlify/functions/auth.mjs` — Auth API handler for registration, login, logout, session validation. Route: `POST /api/auth`.
+- `netlify/functions/shared/auth-utils.mjs` — Shared `validateSession(req)` helper used by both entries and auth endpoints.
 
 **Frontend rendering pattern:** Each view has a `render*()` function that rebuilds `innerHTML` from global state. Tab switching toggles `.hidden` class on `#v-form`, `#v-roster`, `#v-heatmap`, `#v-analytics`. The form calls `syncInputs()` before re-render to preserve user input from live DOM elements — but `renderForm(true)` skips this sync (used by `startEdit` to avoid overwriting pre-filled values).
 
@@ -56,11 +58,30 @@ npx playwright test tests/functional/form.spec.js --project=mobile  # Single fil
 
 ## Data Model
 
-Entries have: `id` (UUID), `charName`, `className` (German WoW class names), `roles` (Tank/Heiler/DPS array), `availability` (map of `"{Day}_{TimeSlot}"` → `"yes"|"tentative"`), `notes`, `timestamp`.
+Entries have: `id` (UUID), `charName`, `className` (German WoW class names), `roles` (Tank/Heiler/DPS array), `availability` (map of `"{Day}_{TimeSlot}"` → `"yes"|"tentative"`), `notes`, `userId` (owner's UUID), `timestamp`.
 
 Valid classes: Druide, Hexenmeister, Jäger, Krieger, Magier, Paladin, Priester, Schamane, Schurke.
 
 Days are German (Montag–Sonntag). Time slots: weekday evenings (`EVE`: 18–20, 20–22, 22–00) plus weekend afternoons (`WEX`: 14–16, 16–18).
+
+## Authentication
+
+Simple username/password auth with Bearer token sessions. Reading (GET) is public; creating, editing, and deleting entries requires login.
+
+**Netlify Blob stores:**
+- `"users"` — Key: `username.toLowerCase()`, Value: `{ id, username, passwordHash, createdAt }`
+- `"sessions"` — Key: UUID token, Value: `{ userId, username, createdAt, expiresAt }`
+
+**Auth flow:** `POST /api/auth` with `{ action: "register"|"login"|"logout"|"validate", ... }`. Sessions last 7 days. Passwords hashed with bcryptjs (10 rounds).
+
+**Ownership rules:**
+- Users can only edit/delete their own entries (`entry.userId === currentUser.userId`)
+- Legacy entries without `userId` can be edited/deleted by any logged-in user (and get the editor's `userId` on save)
+- Edit/delete buttons are only rendered for entries the current user owns (or legacy entries)
+
+**Frontend auth state:** `currentUser` global (`{ token, username, userId }` or `null`). Persisted in `localStorage` key `"raid-auth"`. Validated on page load via `/api/auth` `validate` action.
+
+**Test auth seeding:** Tests use `page.addInitScript()` to set `localStorage` with mock auth data before page load. The mock API intercepts `/api/auth` and returns success for validate/login/register.
 
 ## Key Conventions
 
@@ -82,6 +103,9 @@ Days are German (Montag–Sonntag). Time slots: weekday evenings (`EVE`: 18–20
 - Analytics: `.bar-row`, `.bar-track`, `.bar-fill`, `.role-an-item`
 - Modal: `.modal-bg`, `.modal-cancel`, `.modal-confirm`
 - Toast: `#toast.show`
+- Auth bar: `#auth-bar`, `.auth-user`, `.btn-logout`
+- Auth overlay: `#auth-overlay`, `.auth-overlay`, `.auth-box`, `.auth-tab`, `.auth-input`, `#auth-user`, `#auth-pass`, `#auth-pass2`, `#auth-err`, `.auth-close`
+- Auth hint (form, logged out): `.auth-hint`
 
 ## Customization Points
 

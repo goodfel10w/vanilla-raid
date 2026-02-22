@@ -6,6 +6,11 @@ test.describe('Analytics', () => {
   test.describe('with entries', () => {
     test.beforeEach(async ({ page }) => {
       await setupMockApi(page, [SAMPLE_ENTRY, SAMPLE_ENTRY_2]);
+      await page.addInitScript(() => {
+        localStorage.setItem('raid-auth', JSON.stringify({
+          token: 'mock-token', username: 'Testuser', userId: 'mock-user-1'
+        }));
+      });
       await page.goto('/');
       await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
       await page.click('[data-v="analytics"]');
@@ -73,6 +78,11 @@ test.describe('Analytics', () => {
   test.describe('empty state', () => {
     test('shows empty message when no entries', async ({ page }) => {
       await setupMockApi(page, []);
+      await page.addInitScript(() => {
+        localStorage.setItem('raid-auth', JSON.stringify({
+          token: 'mock-token', username: 'Testuser', userId: 'mock-user-1'
+        }));
+      });
       await page.goto('/');
       await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
       await page.click('[data-v="analytics"]');

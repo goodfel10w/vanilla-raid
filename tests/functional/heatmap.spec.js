@@ -5,6 +5,11 @@ import { SAMPLE_ENTRY, SAMPLE_ENTRY_2 } from '../fixtures/test-data.js';
 test.describe('Heatmap', () => {
   test.beforeEach(async ({ page }) => {
     await setupMockApi(page, [SAMPLE_ENTRY, SAMPLE_ENTRY_2]);
+    await page.addInitScript(() => {
+      localStorage.setItem('raid-auth', JSON.stringify({
+        token: 'mock-token', username: 'Testuser', userId: 'mock-user-1'
+      }));
+    });
     await page.goto('/');
     await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
     await page.click('[data-v="heatmap"]');
@@ -23,34 +28,34 @@ test.describe('Heatmap', () => {
   });
 
   test('cells show non-zero counts for slots with availability', async ({ page }) => {
-    // Both entries available on Montag 18:00-20:00 → cell should show 2
+    // Both entries available on Montag 18:00 hour → cell should show 2
     const cellTexts = await page.locator('.hcell').allInnerTexts();
     const hasNonZero = cellTexts.some(t => /[1-9]/.test(t));
     expect(hasNonZero).toBe(true);
   });
 
-  test('2h mode is active by default', async ({ page }) => {
+  test('1h mode is active by default', async ({ page }) => {
     await expect(page.locator('.ht-btn').first()).toHaveClass(/active/);
     await expect(page.locator('.ht-btn').last()).not.toHaveClass(/active/);
   });
 
-  test('toggle to 4h changes headers and back', async ({ page }) => {
+  test('toggle to 3h changes headers and back', async ({ page }) => {
     const firstTable = page.locator('.htable').first();
     const getHeaders = () => firstTable.locator('thead th').allTextContents();
 
-    const headers2h = await getHeaders();
+    const headers1h = await getHeaders();
 
-    // Switch to 4h
-    await page.locator('.ht-btn', { hasText: '4h' }).click();
+    // Switch to 3h
+    await page.locator('.ht-btn', { hasText: '3h' }).click();
     await expect(page.locator('.ht-btn').last()).toHaveClass(/active/);
-    const headers4h = await getHeaders();
-    expect(headers4h).not.toEqual(headers2h);
+    const headers3h = await getHeaders();
+    expect(headers3h).not.toEqual(headers1h);
 
-    // Switch back to 2h
-    await page.locator('.ht-btn', { hasText: '2h' }).click();
+    // Switch back to 1h
+    await page.locator('.ht-btn', { hasText: '1h' }).click();
     await expect(page.locator('.ht-btn').first()).toHaveClass(/active/);
     const headersBack = await getHeaders();
-    expect(headersBack).toEqual(headers2h);
+    expect(headersBack).toEqual(headers1h);
   });
 
   test('tooltip appears on cell hover', async ({ page }) => {
@@ -66,12 +71,12 @@ test.describe('Heatmap', () => {
       }
     }
     expect(targetCell).not.toBeNull();
-    const tooltip = targetCell.locator('.tooltip');
+    const tooltip = page.locator('#htooltip');
     // Tooltip hidden initially
-    await expect(tooltip).toBeHidden();
+    await expect(tooltip).not.toHaveClass(/show/);
     // Hover shows tooltip
     await targetCell.hover();
-    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toHaveClass(/show/);
   });
 
   test('heatmap shows section labels', async ({ page }) => {

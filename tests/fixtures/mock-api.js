@@ -1,5 +1,40 @@
+const MOCK_USER = { token: 'mock-token', username: 'Testuser', userId: 'mock-user-1' };
+
 export async function setupMockApi(page, initialEntries = []) {
   const store = initialEntries.map(e => ({ ...e }));
+
+  await page.route('**/api/auth', async (route) => {
+    const body = route.request().postDataJSON();
+
+    if (body.action === 'validate') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ username: MOCK_USER.username, userId: MOCK_USER.userId }),
+      });
+      return;
+    }
+
+    if (body.action === 'login' || body.action === 'register') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(MOCK_USER),
+      });
+      return;
+    }
+
+    if (body.action === 'logout') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true }),
+      });
+      return;
+    }
+
+    await route.continue();
+  });
 
   await page.route('**/api/entries**', async (route) => {
     const method = route.request().method();
@@ -25,6 +60,7 @@ export async function setupMockApi(page, initialEntries = []) {
         roles: body.roles || [],
         availability: body.availability || {},
         notes: body.notes || '',
+        userId: MOCK_USER.userId,
         timestamp: new Date().toISOString(),
       };
       if (existingIdx >= 0) {

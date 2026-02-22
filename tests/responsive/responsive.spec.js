@@ -14,6 +14,11 @@ for (const vp of viewports) {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await setupMockApi(page, [SAMPLE_ENTRY, SAMPLE_ENTRY_2]);
+      await page.addInitScript(() => {
+        localStorage.setItem('raid-auth', JSON.stringify({
+          token: 'mock-token', username: 'Testuser', userId: 'mock-user-1'
+        }));
+      });
       await page.goto('/');
       await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
     });
@@ -49,6 +54,7 @@ for (const vp of viewports) {
 
     test('delete modal displays and dismisses', async ({ page }) => {
       await page.click('[data-v="roster"]');
+      // Only own entries show delete button
       await page.locator('[data-del]').first().click();
       await expect(page.locator('.modal-bg')).toBeVisible();
       await expect(page.locator('.modal')).toBeVisible();

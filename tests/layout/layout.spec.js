@@ -5,6 +5,11 @@ import { SAMPLE_ENTRY, SAMPLE_ENTRY_2 } from '../fixtures/test-data.js';
 test.describe('Layout checks', () => {
   test.beforeEach(async ({ page }) => {
     await setupMockApi(page, [SAMPLE_ENTRY, SAMPLE_ENTRY_2]);
+    await page.addInitScript(() => {
+      localStorage.setItem('raid-auth', JSON.stringify({
+        token: 'mock-token', username: 'Testuser', userId: 'mock-user-1'
+      }));
+    });
     await page.goto('/');
     await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
   });

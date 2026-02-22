@@ -1,17 +1,41 @@
 import { getStore } from "@netlify/blobs";
 import { randomUUID } from "crypto";
+import { validateSession } from "./shared/auth-utils.mjs";
 
 const VALID_CLASSES = ["Druide","Hexenmeister","Jäger","Krieger","Magier","Paladin","Priester","Schamane","Schurke"];
 const VALID_ROLES = ["Tank","Heiler","DPS"];
-const DAYS_WD = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
-const DAYS_WE = ["Samstag","Sonntag"];
-const EVE = ["18:00–20:00","20:00–22:00","22:00–00:00"];
-const WEX = ["14:00–16:00","16:00–18:00"];
+const DAYS = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
+
+// 15-min slots from 12:00 to 23:45 (same for all days)
+const SLOTS = [];
+for (let hh = 12; hh < 24; hh++) {
+  for (let mm = 0; mm < 60; mm += 15) {
+    SLOTS.push(String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0'));
+  }
+}
 
 const VALID_AVAIL_KEYS = new Set();
-for (const d of [...DAYS_WD, ...DAYS_WE]) {
-  const slots = DAYS_WE.includes(d) ? [...WEX, ...EVE] : EVE;
-  for (const s of slots) VALID_AVAIL_KEYS.add(d + "_" + s);
+for (const d of DAYS) {
+  for (const s of SLOTS) VALID_AVAIL_KEYS.add(d + "_" + s);
+}
+
+// Legacy range keys (for migration of existing data on POST)
+function migrateLegacyKey(key) {
+  const sep = key.indexOf('_');
+  if (sep < 0) return [];
+  const day = key.substring(0, sep);
+  const slot = key.substring(sep + 1);
+  if (!slot.includes('–')) return [key]; // already new format
+  const [startStr, endStr] = slot.split('–');
+  const [sh, sm] = startStr.split(':').map(Number);
+  let [eh, em] = endStr.split(':').map(Number);
+  if (eh === 0 && em === 0) eh = 24;
+  const keys = [];
+  for (let t = sh * 60 + sm; t < eh * 60 + em; t += 15) {
+    const tk = String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
+    keys.push(day + '_' + tk);
+  }
+  return keys;
 }
 
 export default async (req, context) => {
@@ -37,6 +61,10 @@ export default async (req, context) => {
 
     // POST — create or update entry
     if (req.method === "POST") {
+      const user = await validateSession(req);
+      if (!user) {
+        return new Response(JSON.stringify({ error: "Nicht angemeldet" }), { status: 401, headers });
+      }
       const body = await req.json();
       const { charName, className, roles, availability, notes } = body;
 
@@ -60,14 +88,18 @@ export default async (req, context) => {
         return new Response(JSON.stringify({ error: "Anmerkungen zu lang" }), { status: 400, headers });
       }
 
-      // Sanitize availability: accept "yes", "tentative"; normalize legacy true → "yes"
+      // Sanitize availability: accept "yes", "tentative"; normalize legacy true → "yes"; migrate legacy range keys
       const VALID_AVAIL_VALUES = new Set(["yes", "tentative"]);
       const cleanAvail = {};
       if (availability && typeof availability === "object" && !Array.isArray(availability)) {
         for (const [k, v] of Object.entries(availability)) {
-          if (!VALID_AVAIL_KEYS.has(k)) continue;
-          if (v === true) { cleanAvail[k] = "yes"; }
-          else if (VALID_AVAIL_VALUES.has(v)) { cleanAvail[k] = v; }
+          const val = v === true ? "yes" : v;
+          if (!VALID_AVAIL_VALUES.has(val)) continue;
+          // Migrate legacy range keys or validate new format keys
+          const expandedKeys = migrateLegacyKey(k);
+          for (const ek of expandedKeys) {
+            if (VALID_AVAIL_KEYS.has(ek)) cleanAvail[ek] = val;
+          }
         }
       }
 
@@ -76,6 +108,10 @@ export default async (req, context) => {
       if (body.id && typeof body.id === "string") {
         const existing = await store.get(body.id, { type: "json" });
         if (existing) {
+          // Ownership check: deny if entry belongs to another user (legacy entries without userId are open)
+          if (existing.userId && existing.userId !== user.userId) {
+            return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
+          }
           id = body.id;
         } else {
           return new Response(JSON.stringify({ error: "Eintrag nicht gefunden" }), { status: 404, headers });
@@ -91,6 +127,7 @@ export default async (req, context) => {
         roles,
         availability: cleanAvail,
         notes: (notes || "").trim().slice(0, 500),
+        userId: user.userId,
         timestamp: new Date().toISOString(),
       };
 
@@ -100,10 +137,18 @@ export default async (req, context) => {
 
     // DELETE — remove entry
     if (req.method === "DELETE") {
+      const user = await validateSession(req);
+      if (!user) {
+        return new Response(JSON.stringify({ error: "Nicht angemeldet" }), { status: 401, headers });
+      }
       const url = new URL(req.url);
       const id = url.searchParams.get("id");
       if (!id) {
         return new Response(JSON.stringify({ error: "ID fehlt" }), { status: 400, headers });
+      }
+      const existing = await store.get(id, { type: "json" });
+      if (existing && existing.userId && existing.userId !== user.userId) {
+        return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
       }
       await store.delete(id);
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
@@ -117,5 +162,5 @@ export default async (req, context) => {
 };
 
 export const config = {
-  path: "/api/*",
+  path: "/api/entries",
 };
