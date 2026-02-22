@@ -324,6 +324,38 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .rt-btn:last-child{border-radius:0 6px 6px 0}
 .rt-btn.active{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg);border-color:var(--gold-d)}
 
+/* DKP */
+.dkp-standings{width:100%;border-collapse:separate;border-spacing:0 4px}
+.dkp-standings th{font-size:11px;color:var(--tx4);text-transform:uppercase;letter-spacing:1px;padding:6px 10px;text-align:left;font-weight:500}
+.dkp-standings td{padding:10px;background:var(--card);font-size:14px}
+.dkp-standings tr td:first-child{border-radius:8px 0 0 8px}
+.dkp-standings tr td:last-child{border-radius:0 8px 8px 0}
+.dkp-bal{font-weight:700;font-size:16px;font-variant-numeric:tabular-nums}
+.dkp-pos{color:var(--grn)}.dkp-neg{color:var(--dps)}.dkp-zero{color:var(--tx4)}
+.dkp-rank{font-size:12px;color:var(--tx4);font-weight:600;min-width:28px;text-align:center}
+.dkp-actions-bar{display:flex;gap:0;justify-content:center;margin:18px 0}
+.dkp-tx{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px}
+.dkp-tx:last-child{border-bottom:none}
+.dkp-tx-type{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}
+.dkp-tx-earn{background:var(--grn-bg);color:var(--grn)}
+.dkp-tx-spend{background:rgba(229,115,115,.15);color:var(--dps)}
+.dkp-tx-decay{background:var(--ylw-bg);color:var(--ylw)}
+.dkp-tx-name{font-weight:600;min-width:90px}
+.dkp-tx-reason{flex:1;color:var(--tx3);font-style:italic}
+.dkp-tx-amount{font-weight:700;min-width:60px;text-align:right;font-variant-numeric:tabular-nums}
+.dkp-tx-meta{font-size:11px;color:var(--tx4);min-width:100px;text-align:right}
+.dkp-form{max-width:500px;margin:0 auto}
+.dkp-form .fld{margin-bottom:14px}
+.dkp-pchips{display:flex;flex-wrap:wrap;gap:6px}
+.dkp-pchip{padding:6px 12px;border-radius:6px;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;border:2px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx3);transition:all .15s;user-select:none;min-height:36px;display:inline-flex;align-items:center}
+.dkp-pchip.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08)}
+.dkp-pchip:hover{border-color:rgba(255,255,255,.12)}
+.dkp-selectall{font-size:12px;color:var(--gold);cursor:pointer;margin-left:8px}
+.dkp-selectall:hover{text-decoration:underline}
+input[type=number]{display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;transition:border-color .2s}
+input[type=number]:focus{border-color:rgba(201,168,76,.3)}
+.dkp-decay-preview{font-size:12px;color:var(--tx3);margin-top:6px;padding:8px 12px;background:rgba(0,0,0,.2);border-radius:6px}
+
 /* Hidden */
 .hidden{display:none!important}
 </style>
@@ -350,6 +382,7 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
     <button class="tab" data-v="roster" role="tab" aria-selected="false" aria-controls="v-roster" id="tab-roster">Aufstellung</button>
     <button class="tab" data-v="heatmap" role="tab" aria-selected="false" aria-controls="v-heatmap" id="tab-heatmap">Heatmap</button>
     <button class="tab" data-v="analytics" role="tab" aria-selected="false" aria-controls="v-analytics" id="tab-analytics">Auswertung</button>
+    <button class="tab" data-v="dkp" role="tab" aria-selected="false" aria-controls="v-dkp" id="tab-dkp">DKP</button>
   </div>
 
   <!-- VIEWS -->
@@ -358,6 +391,7 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
   <div id="v-roster" class="hidden" role="tabpanel" aria-labelledby="tab-roster"></div>
   <div id="v-heatmap" class="hidden" role="tabpanel" aria-labelledby="tab-heatmap"></div>
   <div id="v-analytics" class="hidden" role="tabpanel" aria-labelledby="tab-analytics"></div>
+  <div id="v-dkp" class="hidden" role="tabpanel" aria-labelledby="tab-dkp"></div>
 </div>
 <div id="auth-overlay"></div>
 <div class="toast" id="toast"></div>
@@ -437,6 +471,13 @@ const TBC_RAIDS=[
 const RAID_API="/api/raids";
 let raids=[], raidView="list", raidEditId=null;
 let raidForm={instance:"",date:"",time:"20:00",maxPlayers:25,notes:""};
+
+// DKP state
+const DKP_API="/api/dkp";
+let dkpBalances=[], dkpTransactions=[], dkpView="overview";
+let dkpAwardPlayers=[], dkpAwardAmount="", dkpAwardReason="";
+let dkpSpendPlayer="", dkpSpendAmount="", dkpSpendItem="";
+let dkpDecayPercent=15;
 
 // ── Auth API ──
 async function authApi(action,data){
@@ -559,6 +600,11 @@ async function load(){
     const rr=await fetch(RAID_API,{headers:authHeader()});
     if(rr.ok){const rd=await rr.json();raids=Array.isArray(rd)?rd:[];}
   }catch(e){console.error(e)}
+  // Also load DKP
+  try{
+    const dr=await fetch(DKP_API,{headers:authHeader()});
+    if(dr.ok){const dd=await dr.json();dkpBalances=dd.balances||[];dkpTransactions=dd.transactions||[];}
+  }catch(e){console.error(e)}
   updateAll();
 }
 async function save(data){
@@ -609,7 +655,7 @@ document.getElementById("tabs").addEventListener("click",e=>{
     t.classList.toggle("on",isOn);
     t.setAttribute("aria-selected",isOn?"true":"false");
   });
-  ["form","raids","roster","heatmap","analytics"].forEach(v=>{
+  ["form","raids","roster","heatmap","analytics","dkp"].forEach(v=>{
     document.getElementById("v-"+v).classList.toggle("hidden",v!==view);
   });
   document.getElementById('htooltip')?.classList.remove('show','arrow-down','arrow-up');
@@ -618,6 +664,7 @@ document.getElementById("tabs").addEventListener("click",e=>{
   if(view==="roster")renderRoster();
   if(view==="heatmap")renderHeatmap();
   if(view==="analytics")renderAnalytics();
+  if(view==="dkp")renderDkp();
 });
 
 function switchTab(v){
@@ -640,6 +687,7 @@ function updateAll(){
   if(view==="roster")renderRoster();
   if(view==="heatmap")renderHeatmap();
   if(view==="analytics")renderAnalytics();
+  if(view==="dkp")renderDkp();
 }
 
 // ── Helpers ──
@@ -1588,6 +1636,242 @@ window.unsignRaid=async function(raidId){
     await loadRaids();
     renderRaids();
   }catch(e){toast("Fehler: "+e.message)}
+};
+
+// ══════════════════════════════
+//  DKP
+// ══════════════════════════════
+async function loadDkp(){
+  try{
+    const r=await fetch(DKP_API,{headers:authHeader()});
+    if(!r.ok)throw new Error("Laden fehlgeschlagen");
+    const d=await r.json();
+    dkpBalances=d.balances||[];dkpTransactions=d.transactions||[];
+  }catch(e){console.error(e)}
+}
+
+function renderDkp(){
+  const el=document.getElementById("v-dkp");
+
+  // Sub-view toggle
+  let html=`<div class="dkp-actions-bar">
+    <button class="ht-btn${dkpView==="overview"?" active":""}" onclick="dkpView='overview';renderDkp()">Übersicht</button>
+    ${currentUser?`<button class="ht-btn${dkpView==="award"?" active":""}" onclick="dkpView='award';renderDkp()">Vergeben</button>
+    <button class="ht-btn${dkpView==="spend"?" active":""}" onclick="dkpView='spend';renderDkp()">Beute</button>
+    <button class="ht-btn${dkpView==="decay"?" active":""}" onclick="dkpView='decay';renderDkp()">Verfall</button>`:""}
+  </div>`;
+
+  if(dkpView==="award"){
+    html+=renderDkpAward();
+  }else if(dkpView==="spend"){
+    html+=renderDkpSpend();
+  }else if(dkpView==="decay"){
+    html+=renderDkpDecay();
+  }else{
+    html+=renderDkpOverview();
+  }
+
+  el.innerHTML=html;
+}
+
+function renderDkpOverview(){
+  let html="";
+
+  // Standings table
+  html+=`<div class="card"><div class="card-t">DKP-Übersicht</div>`;
+  if(!dkpBalances.length){
+    html+=`<div class="empty">Noch keine DKP-Einträge. Vergib DKP über den "Vergeben"-Tab.</div>`;
+  }else{
+    html+=`<div style="overflow-x:auto"><table class="dkp-standings">
+      <thead><tr><th>#</th><th>Spieler</th><th>Klasse</th><th style="text-align:right">DKP</th></tr></thead>
+      <tbody>${dkpBalances.map((b,i)=>{
+        const balCls=b.balance>0?"dkp-pos":b.balance<0?"dkp-neg":"dkp-zero";
+        const clr=cc(b.className);
+        return`<tr>
+          <td class="dkp-rank">${i+1}</td>
+          <td style="font-weight:600;color:${clr}">${h(b.playerName)}</td>
+          <td style="font-size:12px;color:var(--tx3)">${b.className?h(b.className):"—"}</td>
+          <td style="text-align:right"><span class="dkp-bal ${balCls}">${b.balance>0?"+":""}${b.balance}</span></td>
+        </tr>`;
+      }).join("")}</tbody>
+    </table></div>`;
+  }
+  html+=`</div>`;
+
+  // Recent transactions
+  if(dkpTransactions.length){
+    html+=`<div class="card"><div class="card-t">Letzte Transaktionen</div>`;
+    html+=dkpTransactions.slice(0,20).map(tx=>{
+      const typeCls=tx.type==="earn"?"dkp-tx-earn":tx.type==="spend"?"dkp-tx-spend":"dkp-tx-decay";
+      const typeLabel=tx.type==="earn"?"Verdient":tx.type==="spend"?"Beute":"Verfall";
+      const amtCls=tx.amount>0?"dkp-pos":tx.amount<0?"dkp-neg":"dkp-zero";
+      const amtStr=tx.amount>0?"+"+tx.amount:String(tx.amount);
+      const clr=cc(dkpBalances.find(b=>b.playerName===tx.playerName)?.className);
+      const date=new Date(tx.timestamp);
+      const dateStr=String(date.getDate()).padStart(2,"0")+"."+String(date.getMonth()+1).padStart(2,"0")+". "+String(date.getHours()).padStart(2,"0")+":"+String(date.getMinutes()).padStart(2,"0");
+      return`<div class="dkp-tx">
+        <span class="dkp-tx-type ${typeCls}">${typeLabel}</span>
+        <span class="dkp-tx-name" style="color:${clr}">${h(tx.playerName)}</span>
+        <span class="dkp-tx-reason">${h(tx.reason)}</span>
+        <span class="dkp-tx-amount ${amtCls}">${amtStr}</span>
+        <span class="dkp-tx-meta">${h(tx.createdBy||"")} · ${dateStr}</span>
+      </div>`;
+    }).join("");
+    html+=`</div>`;
+  }
+
+  return html;
+}
+
+function renderDkpAward(){
+  // Player chips from existing roster entries
+  const players=entries.map(e=>({name:e.charName,className:e.className}));
+
+  let html=`<div class="card dkp-form" style="padding:28px">
+    <div class="card-t">DKP vergeben</div>
+    <div class="fld">
+      <span class="lbl">Spieler auswählen <span class="dkp-selectall" onclick="dkpSelectAll()">Alle</span></span>
+      <div class="dkp-pchips">
+        ${players.length?players.map(p=>{
+          const on=dkpAwardPlayers.some(a=>a.name===p.name);
+          return`<div class="dkp-pchip${on?" active":""}" style="${on?`color:${cc(p.className)};border-color:${cc(p.className)}`:""}" onclick="dkpTogglePlayer('${h(p.name).replace(/'/g,"\\'")}')">${h(p.name)}</div>`;
+        }).join(""):`<div style="font-size:12px;color:var(--tx4)">Keine Spieler im Kader. Erst Einträge erstellen.</div>`}
+      </div>
+    </div>
+    <div class="fld">
+      <span class="lbl">DKP-Betrag</span>
+      <input type="number" id="dkp-award-amount" value="${h(dkpAwardAmount)}" placeholder="z.B. 10" min="1" max="10000" oninput="dkpAwardAmount=this.value">
+    </div>
+    <div class="fld">
+      <span class="lbl">Grund</span>
+      <input type="text" id="dkp-award-reason" value="${h(dkpAwardReason)}" placeholder="z.B. Gruul Kill, Pünktlichkeitsbonus" oninput="dkpAwardReason=this.value">
+    </div>
+    ${dkpAwardPlayers.length&&dkpAwardAmount?`<div style="font-size:12px;color:var(--tx3);margin-bottom:12px">${dkpAwardPlayers.length} Spieler × ${h(dkpAwardAmount)} DKP = <strong style="color:var(--grn)">${dkpAwardPlayers.length*Number(dkpAwardAmount)} DKP</strong> gesamt</div>`:""}
+    <div class="brow">
+      <button class="btn-p" ${dkpAwardPlayers.length&&dkpAwardAmount&&dkpAwardReason?"":"disabled"} onclick="doDkpAward()">Vergeben</button>
+    </div>
+  </div>`;
+  return html;
+}
+
+function renderDkpSpend(){
+  // Only players with DKP balance
+  const playersWithDkp=dkpBalances.filter(b=>true);
+
+  let html=`<div class="card dkp-form" style="padding:28px">
+    <div class="card-t">Beute verteilen (DKP ausgeben)</div>
+    <div class="fld">
+      <span class="lbl">Spieler</span>
+      <select id="dkp-spend-player" style="display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer" onchange="dkpSpendPlayer=this.value">
+        <option value="">— Spieler wählen —</option>
+        ${playersWithDkp.map(b=>`<option value="${h(b.playerName)}"${dkpSpendPlayer===b.playerName?" selected":""}>${h(b.playerName)} (${b.balance} DKP)</option>`).join("")}
+      </select>
+    </div>
+    <div class="fld">
+      <span class="lbl">DKP-Kosten</span>
+      <input type="number" id="dkp-spend-amount" value="${h(dkpSpendAmount)}" placeholder="z.B. 25" min="1" max="10000" oninput="dkpSpendAmount=this.value">
+    </div>
+    <div class="fld">
+      <span class="lbl">Gegenstand</span>
+      <input type="text" id="dkp-spend-item" value="${h(dkpSpendItem)}" placeholder="z.B. Dragonspine Trophy" oninput="dkpSpendItem=this.value">
+    </div>
+    <div class="brow">
+      <button class="btn-p" ${dkpSpendPlayer&&dkpSpendAmount?"":"disabled"} onclick="doDkpSpend()">Beute verbuchen</button>
+    </div>
+  </div>`;
+  return html;
+}
+
+function renderDkpDecay(){
+  const totalDkp=dkpBalances.reduce((s,b)=>s+Math.max(0,b.balance),0);
+  const decayTotal=Math.round(totalDkp*dkpDecayPercent/100);
+
+  let html=`<div class="card dkp-form" style="padding:28px">
+    <div class="card-t">Wöchentlicher Verfall</div>
+    <p style="font-size:13px;color:var(--tx3);margin-bottom:16px">Reduziert alle positiven DKP-Stände um einen Prozentsatz. Empfohlen: 10–20% pro Woche.</p>
+    <div class="fld">
+      <span class="lbl">Verfall-Prozent</span>
+      <input type="number" id="dkp-decay-pct" value="${dkpDecayPercent}" placeholder="z.B. 15" min="1" max="100" oninput="dkpDecayPercent=Number(this.value)||15;renderDkp()">
+    </div>
+    ${dkpBalances.length?`<div class="dkp-decay-preview">
+      <strong>Vorschau:</strong> ${dkpDecayPercent}% von ${totalDkp} DKP = <span style="color:var(--ylw)">−${decayTotal} DKP</span> gesamt
+      ${dkpBalances.filter(b=>b.balance>0).slice(0,5).map(b=>{
+        const loss=Math.round(b.balance*dkpDecayPercent/100);
+        return`<br>${h(b.playerName)}: ${b.balance} → ${b.balance-loss} (−${loss})`;
+      }).join("")}
+      ${dkpBalances.filter(b=>b.balance>0).length>5?`<br><span style="color:var(--tx4)">... und ${dkpBalances.filter(b=>b.balance>0).length-5} weitere</span>`:""}
+    </div>`:""}
+    <div class="brow" style="margin-top:16px">
+      <button class="btn-p" ${dkpBalances.length?"":"disabled"} onclick="doDkpDecay()" style="background:linear-gradient(135deg,var(--ylw),#c9a020)">Verfall anwenden</button>
+    </div>
+  </div>`;
+  return html;
+}
+
+window.dkpTogglePlayer=function(name){
+  const idx=dkpAwardPlayers.findIndex(p=>p.name===name);
+  if(idx>=0){dkpAwardPlayers.splice(idx,1)}
+  else{
+    const e=entries.find(x=>x.charName===name);
+    dkpAwardPlayers.push({name,className:e?.className||""});
+  }
+  renderDkp();
+};
+window.dkpSelectAll=function(){
+  if(dkpAwardPlayers.length===entries.length){dkpAwardPlayers=[]}
+  else{dkpAwardPlayers=entries.map(e=>({name:e.charName,className:e.className}))}
+  renderDkp();
+};
+
+window.doDkpAward=async function(){
+  if(!dkpAwardPlayers.length||!dkpAwardAmount||!dkpAwardReason)return;
+  try{
+    const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"award",players:dkpAwardPlayers,amount:Number(dkpAwardAmount),reason:dkpAwardReason})});
+    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+    toast(`${dkpAwardPlayers.length}× ${dkpAwardAmount} DKP vergeben ✓`);
+    dkpAwardPlayers=[];dkpAwardAmount="";dkpAwardReason="";
+    dkpView="overview";
+    await loadDkp();renderDkp();
+  }catch(e){
+    if(e.message==="Nicht angemeldet"||e.message==="Sitzung ungültig"){
+      currentUser=null;localStorage.removeItem("raid-auth");renderAuthBar();renderDkp();
+      toast("Sitzung abgelaufen — bitte erneut anmelden");
+    }else{toast("Fehler: "+e.message)}
+  }
+};
+
+window.doDkpSpend=async function(){
+  if(!dkpSpendPlayer||!dkpSpendAmount)return;
+  try{
+    const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"spend",playerName:dkpSpendPlayer,amount:Number(dkpSpendAmount),itemName:dkpSpendItem})});
+    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+    toast(`${dkpSpendAmount} DKP für ${dkpSpendItem||"Loot"} verbucht ✓`);
+    dkpSpendPlayer="";dkpSpendAmount="";dkpSpendItem="";
+    dkpView="overview";
+    await loadDkp();renderDkp();
+  }catch(e){
+    if(e.message==="Nicht angemeldet"||e.message==="Sitzung ungültig"){
+      currentUser=null;localStorage.removeItem("raid-auth");renderAuthBar();renderDkp();
+      toast("Sitzung abgelaufen — bitte erneut anmelden");
+    }else{toast("Fehler: "+e.message)}
+  }
+};
+
+window.doDkpDecay=async function(){
+  showModal("Verfall anwenden",`Wirklich <strong>${dkpDecayPercent}%</strong> Verfall auf alle DKP-Stände anwenden? Diese Aktion kann nicht rückgängig gemacht werden.`,async()=>{
+    try{
+      const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"decay",percent:dkpDecayPercent})});
+      if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+      toast(`${dkpDecayPercent}% Verfall angewendet ✓`);
+      dkpView="overview";
+      await loadDkp();renderDkp();
+    }catch(e){
+      if(e.message==="Nicht angemeldet"||e.message==="Sitzung ungültig"){
+        currentUser=null;localStorage.removeItem("raid-auth");renderAuthBar();renderDkp();
+        toast("Sitzung abgelaufen — bitte erneut anmelden");
+      }else{toast("Fehler: "+e.message)}
+    }
+  });
 };
 
 // ══════════════════════════════

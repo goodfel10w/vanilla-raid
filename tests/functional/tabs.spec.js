@@ -20,6 +20,7 @@ test.describe('Tab navigation', () => {
     await expect(page.locator('#v-roster')).toBeHidden();
     await expect(page.locator('#v-heatmap')).toBeHidden();
     await expect(page.locator('#v-analytics')).toBeHidden();
+    await expect(page.locator('#v-dkp')).toBeHidden();
     await expect(page.locator('[data-v="form"]')).toHaveClass(/\bon\b/);
   });
 
@@ -53,8 +54,8 @@ test.describe('Tab navigation', () => {
     await expect(page.locator('#v-roster')).toBeHidden();
   });
 
-  test('cycle through all 5 tabs', async ({ page }) => {
-    const views = ['form', 'raids', 'roster', 'heatmap', 'analytics'];
+  test('cycle through all 6 tabs', async ({ page }) => {
+    const views = ['form', 'raids', 'roster', 'heatmap', 'analytics', 'dkp'];
     for (const v of views) {
       await page.click(`[data-v="${v}"]`);
       await expect(page.locator(`#v-${v}`)).toBeVisible();

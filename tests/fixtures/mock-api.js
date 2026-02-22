@@ -92,6 +92,23 @@ export async function setupMockApi(page, initialEntries = []) {
     await route.continue();
   });
 
+  await page.route('**/api/dkp**', async (route) => {
+    const method = route.request().method();
+    if (method === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ balances: [], transactions: [] }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true }),
+    });
+  });
+
   await page.route('**/api/raids**', async (route) => {
     const method = route.request().method();
     if (method === 'GET') {
