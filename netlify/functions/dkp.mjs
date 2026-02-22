@@ -2,11 +2,29 @@ import { getStore } from "@netlify/blobs";
 import { randomUUID } from "crypto";
 import { validateSession } from "./shared/auth-utils.mjs";
 
-const DKP_ADMIN = "admin";
+const DEFAULT_CONFIG = {
+  adminUsername: "admin",
+  defaultDecayPercent: 15,
+  maxDkpAmount: 10000,
+  allowNegativeBalance: true,
+  startingBalance: 0,
+};
+
+const CONFIG_KEY = "dkp-settings";
+
+async function loadConfig(configStore) {
+  const stored = await configStore.get(CONFIG_KEY, { type: "json" });
+  return { ...DEFAULT_CONFIG, ...(stored || {}) };
+}
+
+function isAdmin(username, cfg) {
+  return username.toLowerCase() === cfg.adminUsername.toLowerCase();
+}
 
 export default async (req, context) => {
   const balanceStore = getStore({ name: "dkp-balances", consistency: "strong" });
   const txStore = getStore({ name: "dkp-transactions", consistency: "strong" });
+  const configStore = getStore({ name: "dkp-config", consistency: "strong" });
   const headers = { "Content-Type": "application/json" };
 
   if (req.method === "OPTIONS") {
@@ -14,7 +32,9 @@ export default async (req, context) => {
   }
 
   try {
-    // GET — list all balances and recent transactions
+    const cfg = await loadConfig(configStore);
+
+    // GET — list all balances, recent transactions, and config
     if (req.method === "GET") {
       const { blobs: balBlobs } = await balanceStore.list();
       const balances = [];
@@ -32,7 +52,7 @@ export default async (req, context) => {
       }
       transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-      return new Response(JSON.stringify({ balances, transactions: transactions.slice(0, 50) }), { status: 200, headers });
+      return new Response(JSON.stringify({ balances, transactions: transactions.slice(0, 50), config: cfg }), { status: 200, headers });
     }
 
     // POST — various DKP actions
@@ -42,13 +62,43 @@ export default async (req, context) => {
         return new Response(JSON.stringify({ error: "Nicht angemeldet" }), { status: 401, headers });
       }
 
-      // Only the DKP admin may modify DKP
-      if (user.username.toLowerCase() !== DKP_ADMIN) {
-        return new Response(JSON.stringify({ error: "Nur der DKP-Admin darf Änderungen vornehmen" }), { status: 403, headers });
-      }
-
       const body = await req.json();
       const { action } = body;
+
+      // Save config — admin only
+      if (action === "save-config") {
+        if (!isAdmin(user.username, cfg)) {
+          return new Response(JSON.stringify({ error: "Nur der DKP-Admin darf Einstellungen ändern" }), { status: 403, headers });
+        }
+
+        const newCfg = { ...cfg };
+        if (typeof body.adminUsername === "string" && body.adminUsername.trim().length > 0) {
+          newCfg.adminUsername = body.adminUsername.trim();
+        }
+        if (body.defaultDecayPercent !== undefined) {
+          const v = Number(body.defaultDecayPercent);
+          if (v >= 1 && v <= 100) newCfg.defaultDecayPercent = v;
+        }
+        if (body.maxDkpAmount !== undefined) {
+          const v = Number(body.maxDkpAmount);
+          if (v >= 1 && v <= 100000) newCfg.maxDkpAmount = v;
+        }
+        if (body.allowNegativeBalance !== undefined) {
+          newCfg.allowNegativeBalance = !!body.allowNegativeBalance;
+        }
+        if (body.startingBalance !== undefined) {
+          const v = Number(body.startingBalance);
+          if (v >= 0 && v <= 100000) newCfg.startingBalance = v;
+        }
+
+        await configStore.setJSON(CONFIG_KEY, newCfg);
+        return new Response(JSON.stringify({ ok: true, config: newCfg }), { status: 200, headers });
+      }
+
+      // All other actions require admin
+      if (!isAdmin(user.username, cfg)) {
+        return new Response(JSON.stringify({ error: "Nur der DKP-Admin darf Änderungen vornehmen" }), { status: 403, headers });
+      }
 
       // Award DKP to players
       if (action === "award") {
@@ -57,8 +107,8 @@ export default async (req, context) => {
           return new Response(JSON.stringify({ error: "Mindestens ein Spieler erforderlich" }), { status: 400, headers });
         }
         const parsedAmount = Number(amount);
-        if (!parsedAmount || parsedAmount <= 0 || parsedAmount > 10000) {
-          return new Response(JSON.stringify({ error: "Betrag muss zwischen 1 und 10.000 liegen" }), { status: 400, headers });
+        if (!parsedAmount || parsedAmount <= 0 || parsedAmount > cfg.maxDkpAmount) {
+          return new Response(JSON.stringify({ error: `Betrag muss zwischen 1 und ${cfg.maxDkpAmount.toLocaleString("de-DE")} liegen` }), { status: 400, headers });
         }
         if (typeof reason !== "string" || reason.trim().length === 0 || reason.length > 200) {
           return new Response(JSON.stringify({ error: "Grund erforderlich (max. 200 Zeichen)" }), { status: 400, headers });
@@ -73,7 +123,7 @@ export default async (req, context) => {
         const results = [];
         for (const p of players) {
           const key = p.name.trim().toLowerCase();
-          const existing = await balanceStore.get(key, { type: "json" }) || { playerName: p.name.trim(), className: p.className || "", balance: 0 };
+          const existing = await balanceStore.get(key, { type: "json" }) || { playerName: p.name.trim(), className: p.className || "", balance: cfg.startingBalance };
           existing.playerName = p.name.trim();
           if (p.className) existing.className = p.className;
           existing.balance += parsedAmount;
@@ -103,14 +153,18 @@ export default async (req, context) => {
           return new Response(JSON.stringify({ error: "Spieler erforderlich" }), { status: 400, headers });
         }
         const parsedAmount = Number(amount);
-        if (!parsedAmount || parsedAmount <= 0 || parsedAmount > 10000) {
-          return new Response(JSON.stringify({ error: "Betrag muss zwischen 1 und 10.000 liegen" }), { status: 400, headers });
+        if (!parsedAmount || parsedAmount <= 0 || parsedAmount > cfg.maxDkpAmount) {
+          return new Response(JSON.stringify({ error: `Betrag muss zwischen 1 und ${cfg.maxDkpAmount.toLocaleString("de-DE")} liegen` }), { status: 400, headers });
         }
 
         const key = playerName.trim().toLowerCase();
         const existing = await balanceStore.get(key, { type: "json" });
         if (!existing) {
           return new Response(JSON.stringify({ error: "Spieler nicht im DKP-System gefunden" }), { status: 404, headers });
+        }
+
+        if (!cfg.allowNegativeBalance && existing.balance - parsedAmount < 0) {
+          return new Response(JSON.stringify({ error: `Nicht genug DKP (${existing.balance} vorhanden, ${parsedAmount} benötigt)` }), { status: 400, headers });
         }
 
         existing.balance -= parsedAmount;
