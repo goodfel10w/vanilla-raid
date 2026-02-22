@@ -272,6 +272,58 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
   .toast.show{transform:translateX(0) translateY(0)}
 }
 
+/* Raids */
+.raid-list{display:flex;flex-direction:column;gap:10px}
+.raid-card{background:var(--card);border-radius:12px;border:1px solid var(--bdr);padding:18px 20px;animation:fadeIn .3s ease}
+.raid-card.past{opacity:.5}
+.raid-hdr{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.raid-inst{font-family:'Cinzel',serif;font-weight:700;font-size:17px;color:var(--gold)}
+.raid-tier{font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(201,168,76,.12);color:var(--gold-d);font-weight:700;letter-spacing:1px}
+.raid-meta{display:flex;gap:14px;font-size:13px;color:var(--tx2);margin-bottom:10px;flex-wrap:wrap}
+.raid-meta span{display:inline-flex;align-items:center;gap:4px}
+.raid-bar{height:8px;border-radius:4px;background:rgba(255,255,255,.04);overflow:hidden;margin-bottom:8px}
+.raid-bar-fill{height:100%;border-radius:4px;transition:width .4s;background:linear-gradient(90deg,var(--gold-d),var(--gold))}
+.raid-bar-fill.full{background:linear-gradient(90deg,var(--grn),#81c784)}
+.raid-bar-fill.over{background:linear-gradient(90deg,var(--dps),#ef5350)}
+.raid-roles{display:flex;gap:8px;font-size:12px;font-weight:600;margin-bottom:10px;flex-wrap:wrap}
+.raid-roles span{padding:3px 10px;border-radius:4px}
+.raid-signups{margin-top:10px}
+.raid-signups-t{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--tx3);margin-bottom:6px}
+.raid-signup-row{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.raid-signup-row:last-child{border-bottom:none}
+.raid-signup-name{font-weight:600}
+.raid-signup-role{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600}
+.raid-signup-status{font-size:11px;color:var(--tx3);margin-left:auto}
+.raid-signup-status.tent{color:var(--ylw)}
+.raid-signup-status.dec{color:var(--dps)}
+.raid-actions{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.raid-actions button{font:600 12px 'Nunito Sans',sans-serif;padding:7px 16px;border-radius:6px;border:none;cursor:pointer;transition:all .2s}
+.btn-signup{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg)}
+.btn-signup:hover{filter:brightness(1.1)}
+.btn-signup:disabled{background:rgba(255,255,255,.05);color:#4a4458;cursor:not-allowed}
+.btn-unsignup{background:none;border:1px solid rgba(255,255,255,.1)!important;color:var(--tx3)}
+.btn-unsignup:hover{border-color:var(--dps)!important;color:var(--dps)}
+.btn-raid-edit{background:none;border:1px solid rgba(255,255,255,.1)!important;color:var(--tx3)}
+.btn-raid-edit:hover{color:var(--gold);border-color:rgba(201,168,76,.4)!important}
+.btn-raid-del{background:none;border:1px solid rgba(255,255,255,.06)!important;color:#c06060}
+.btn-raid-del:hover{color:var(--dps);border-color:rgba(229,115,115,.4)!important}
+.raid-form{max-width:500px;margin:0 auto 20px}
+.raid-form .fld{margin-bottom:14px}
+.raid-form select{display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;transition:border-color .2s;appearance:none;-webkit-appearance:none;cursor:pointer}
+.raid-form select:focus{border-color:rgba(201,168,76,.3)}
+.raid-form input[type=date],.raid-form input[type=time]{display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;transition:border-color .2s}
+.raid-form input[type=date]:focus,.raid-form input[type=time]:focus{border-color:rgba(201,168,76,.3)}
+.raid-form input[type=date]::-webkit-calendar-picker-indicator,.raid-form input[type=time]::-webkit-calendar-picker-indicator{filter:invert(.7)}
+.raid-signup-form{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.raid-signup-form select{padding:6px 10px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:6px;color:var(--tx);font:13px 'Nunito Sans',sans-serif;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer}
+.raid-signup-form select:focus{border-color:rgba(201,168,76,.3)}
+.raid-tab-toggle{display:flex;gap:0;justify-content:center;margin-bottom:18px}
+.rt-btn{padding:8px 20px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.2);color:var(--tx3);cursor:pointer;font:600 13px 'Nunito Sans',sans-serif;transition:all .15s}
+.rt-btn:first-child{border-radius:6px 0 0 6px}
+.rt-btn+.rt-btn{border-left:none}
+.rt-btn:last-child{border-radius:0 6px 6px 0}
+.rt-btn.active{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg);border-color:var(--gold-d)}
+
 /* Hidden */
 .hidden{display:none!important}
 </style>
@@ -294,6 +346,7 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
   <!-- Tabs -->
   <div class="tabs" id="tabs" role="tablist">
     <button class="tab on" data-v="form" role="tab" aria-selected="true" aria-controls="v-form" id="tab-form">Eintragen</button>
+    <button class="tab" data-v="raids" role="tab" aria-selected="false" aria-controls="v-raids" id="tab-raids">Raids</button>
     <button class="tab" data-v="roster" role="tab" aria-selected="false" aria-controls="v-roster" id="tab-roster">Aufstellung</button>
     <button class="tab" data-v="heatmap" role="tab" aria-selected="false" aria-controls="v-heatmap" id="tab-heatmap">Heatmap</button>
     <button class="tab" data-v="analytics" role="tab" aria-selected="false" aria-controls="v-analytics" id="tab-analytics">Auswertung</button>
@@ -301,6 +354,7 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 
   <!-- VIEWS -->
   <div id="v-form" role="tabpanel" aria-labelledby="tab-form"></div>
+  <div id="v-raids" class="hidden" role="tabpanel" aria-labelledby="tab-raids"></div>
   <div id="v-roster" class="hidden" role="tabpanel" aria-labelledby="tab-roster"></div>
   <div id="v-heatmap" class="hidden" role="tabpanel" aria-labelledby="tab-heatmap"></div>
   <div id="v-analytics" class="hidden" role="tabpanel" aria-labelledby="tab-analytics"></div>
@@ -367,6 +421,22 @@ const RR_TANK=2, RR_HEAL=5, RR_DPS=18;
 let entries=[], view="form", editId=null, heatMode="1h", rosterSort="name";
 let form={name:"",cls:"",roles:[],avail:{},notes:""};
 let currentUser=null; // { token, username, userId }
+
+// Raids state
+const TBC_RAIDS=[
+  {n:"Karazhan",max:10,tier:"T4"},
+  {n:"Gruuls Unterschlupf",max:25,tier:"T4"},
+  {n:"Magtheridons Kammer",max:25,tier:"T4"},
+  {n:"Höhle des Schlangenschreins",max:25,tier:"T5"},
+  {n:"Festung der Stürme",max:25,tier:"T5"},
+  {n:"Hyjalgipfel",max:25,tier:"T6"},
+  {n:"Schwarzer Tempel",max:25,tier:"T6"},
+  {n:"Zul'Aman",max:10,tier:"ZA"},
+  {n:"Sonnenbrunnenplateau",max:25,tier:"T6.5"},
+];
+const RAID_API="/api/raids";
+let raids=[], raidView="list", raidEditId=null;
+let raidForm={instance:"",date:"",time:"20:00",maxPlayers:25,notes:""};
 
 // ── Auth API ──
 async function authApi(action,data){
@@ -484,6 +554,11 @@ async function load(){
       }
     });
   }catch(e){console.error(e);entries=[]}
+  // Also load raids
+  try{
+    const rr=await fetch(RAID_API,{headers:authHeader()});
+    if(rr.ok){const rd=await rr.json();raids=Array.isArray(rd)?rd:[];}
+  }catch(e){console.error(e)}
   updateAll();
 }
 async function save(data){
@@ -534,11 +609,12 @@ document.getElementById("tabs").addEventListener("click",e=>{
     t.classList.toggle("on",isOn);
     t.setAttribute("aria-selected",isOn?"true":"false");
   });
-  ["form","roster","heatmap","analytics"].forEach(v=>{
+  ["form","raids","roster","heatmap","analytics"].forEach(v=>{
     document.getElementById("v-"+v).classList.toggle("hidden",v!==view);
   });
   document.getElementById('htooltip')?.classList.remove('show','arrow-down','arrow-up');
   if(view==="form")renderForm();
+  if(view==="raids")renderRaids();
   if(view==="roster")renderRoster();
   if(view==="heatmap")renderHeatmap();
   if(view==="analytics")renderAnalytics();
@@ -552,7 +628,7 @@ function switchTab(v){
     t.setAttribute("aria-selected",isOn?"true":"false");
     if(isOn && v==="form") t.textContent=editId?"Bearbeiten":"Eintragen";
   });
-  ["form","roster","heatmap","analytics"].forEach(x=>{
+  ["form","raids","roster","heatmap","analytics"].forEach(x=>{
     document.getElementById("v-"+x).classList.toggle("hidden",x!==v);
   });
 }
@@ -560,6 +636,7 @@ function switchTab(v){
 function updateAll(){
   document.getElementById("counter").textContent=entries.length+" Raider eingetragen";
   if(view==="form")renderForm();
+  if(view==="raids")renderRaids();
   if(view==="roster")renderRoster();
   if(view==="heatmap")renderHeatmap();
   if(view==="analytics")renderAnalytics();
@@ -1133,6 +1210,385 @@ function renderAnalytics(){
 
   el.innerHTML=roleHtml+clsHtml+bestHtml+playerHtml;
 }
+
+// ══════════════════════════════
+//  RAIDS
+// ══════════════════════════════
+const DAY_NAMES_SHORT=["So","Mo","Di","Mi","Do","Fr","Sa"];
+function fmtDate(ds){
+  const d=new Date(ds+"T00:00:00");
+  const dn=DAY_NAMES_SHORT[d.getDay()];
+  return dn+", "+String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."+d.getFullYear();
+}
+function isRaidPast(raid){
+  const now=new Date();
+  const rd=new Date(raid.date+"T"+raid.time+":00");
+  return rd<now;
+}
+function todayStr(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+
+async function loadRaids(){
+  try{
+    const r=await fetch(RAID_API,{headers:authHeader()});
+    if(!r.ok)throw new Error("Laden fehlgeschlagen");
+    const data=await r.json();
+    raids=Array.isArray(data)?data:[];
+  }catch(e){console.error(e);raids=[]}
+}
+
+async function saveRaid(data){
+  const r=await fetch(RAID_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify(data)});
+  if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Speichern fehlgeschlagen")}
+  return r.json();
+}
+
+async function delRaid(id){
+  const r=await fetch(RAID_API+"?id="+encodeURIComponent(id),{method:"DELETE",headers:authHeader()});
+  if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Löschen fehlgeschlagen")}
+}
+
+function renderRaids(){
+  const el=document.getElementById("v-raids");
+
+  if(raidView==="create"||raidView==="edit"){
+    renderRaidForm(el);
+    return;
+  }
+
+  // Sort: upcoming first, then past
+  const upcoming=raids.filter(r=>!isRaidPast(r));
+  const past=raids.filter(r=>isRaidPast(r));
+
+  let html=`<div class="raid-tab-toggle">
+    <button class="rt-btn active" onclick="raidView='list';renderRaids()">Übersicht</button>
+    ${currentUser?`<button class="rt-btn" onclick="raidView='create';raidEditId=null;raidForm={instance:'',date:'',time:'20:00',maxPlayers:25,notes:''};renderRaids()">+ Raid erstellen</button>`:""}
+  </div>`;
+
+  if(!currentUser){
+    html+=`<div class="auth-hint">Melde dich an, um Raids zu erstellen oder dich anzumelden.<br><button onclick="renderAuthOverlay(true)">Anmelden</button></div>`;
+  }
+
+  if(!raids.length){
+    html+=`<div class="empty">Noch keine Raids geplant.</div>`;
+    el.innerHTML=html;
+    return;
+  }
+
+  if(upcoming.length){
+    html+=`<div class="sec-l" style="margin-bottom:10px">Kommende Raids (${upcoming.length})</div>`;
+    html+=`<div class="raid-list">${upcoming.map(r=>renderRaidCard(r,false)).join("")}</div>`;
+  }
+  if(past.length){
+    html+=`<div class="sec-l" style="margin:20px 0 10px">Vergangene Raids (${past.length})</div>`;
+    html+=`<div class="raid-list">${past.map(r=>renderRaidCard(r,true)).join("")}</div>`;
+  }
+
+  el.innerHTML=html;
+}
+
+function renderRaidCard(raid,isPast){
+  const signups=(raid.signups||[]).filter(s=>s.status!=="declined");
+  const declined=(raid.signups||[]).filter(s=>s.status==="declined");
+  const total=signups.length;
+  const pct=Math.min(100,Math.round(total/raid.maxPlayers*100));
+  const barCls=total>raid.maxPlayers?"over":total===raid.maxPlayers?"full":"";
+
+  let t=0,hl=0,dp=0;
+  signups.forEach(s=>{
+    if(s.role==="Tank")t++;
+    if(s.role==="Heiler")hl++;
+    if(s.role==="DPS")dp++;
+  });
+
+  const inst=TBC_RAIDS.find(i=>i.n===raid.instance)||{n:raid.instance,tier:"?"};
+  const mySignup=(raid.signups||[]).find(s=>s.userId===currentUser?.userId);
+  const isOwner=currentUser&&raid.createdBy===currentUser.userId;
+
+  // Signup rows grouped by role
+  let signupHtml="";
+  if(signups.length){
+    signupHtml+=`<div class="raid-signups">`;
+    ROLES.forEach(role=>{
+      const rs=signups.filter(s=>s.role===role);
+      if(!rs.length)return;
+      signupHtml+=`<div class="raid-signups-t" style="color:${RC[role]};margin-top:8px">${RI[role]} ${role} (${rs.length})</div>`;
+      rs.forEach(s=>{
+        const isTent=s.status==="tentative";
+        signupHtml+=`<div class="raid-signup-row">
+          <span class="raid-signup-name" style="color:${s.className?cc(s.className):"var(--tx)"}">${h(s.charName)}</span>
+          ${s.className?`<span style="font-size:11px;color:var(--tx4)">${h(s.className)}</span>`:""}
+          ${isTent?`<span class="raid-signup-status tent">Vielleicht</span>`:""}
+          ${s.note?`<span style="font-size:11px;color:var(--tx4);font-style:italic">${h(s.note)}</span>`:""}
+        </div>`;
+      });
+    });
+    if(declined.length){
+      signupHtml+=`<div class="raid-signups-t" style="color:var(--dps);margin-top:8px">Abgesagt (${declined.length})</div>`;
+      declined.forEach(s=>{
+        signupHtml+=`<div class="raid-signup-row">
+          <span class="raid-signup-name" style="color:var(--tx4);text-decoration:line-through">${h(s.charName)}</span>
+          ${s.note?`<span style="font-size:11px;color:var(--tx4);font-style:italic">${h(s.note)}</span>`:""}
+        </div>`;
+      });
+    }
+    signupHtml+=`</div>`;
+  }
+
+  // Signup form for current user
+  let signupForm="";
+  if(currentUser&&!isPast){
+    // Get user's characters from entries
+    const myChars=entries.filter(e=>e.userId===currentUser.userId);
+    if(mySignup){
+      const statusLbl=mySignup.status==="accepted"?"Angemeldet":mySignup.status==="tentative"?"Vielleicht":"Abgesagt";
+      const statusColor=mySignup.status==="accepted"?"var(--grn)":mySignup.status==="tentative"?"var(--ylw)":"var(--dps)";
+      signupForm=`<div style="font-size:12px;color:${statusColor};margin-top:8px">Du bist als <strong>${h(mySignup.charName)}</strong> (${mySignup.role}) ${statusLbl.toLowerCase()}</div>`;
+    }
+  }
+
+  // Action buttons
+  let actions="";
+  if(currentUser&&!isPast){
+    actions+=`<div class="raid-actions">`;
+    if(!mySignup){
+      actions+=`<button class="btn-signup" onclick="showSignupForm('${raid.id}')">Anmelden</button>`;
+    }else{
+      if(mySignup.status!=="declined"){
+        actions+=`<button class="btn-unsignup" onclick="unsignRaid('${raid.id}')">Abmelden</button>`;
+      }
+      actions+=`<button class="btn-raid-edit" onclick="showSignupForm('${raid.id}')">Ändern</button>`;
+    }
+    if(isOwner){
+      actions+=`<button class="btn-raid-edit" onclick="editRaid('${raid.id}')">Bearbeiten</button>`;
+      actions+=`<button class="btn-raid-del" onclick="confirmDelRaid('${raid.id}')">Löschen</button>`;
+    }
+    actions+=`</div>`;
+  }
+
+  return`<div class="raid-card${isPast?" past":""}" id="raid-${raid.id}">
+    <div class="raid-hdr">
+      <span class="raid-inst">${h(raid.instance)}</span>
+      <span class="raid-tier">${h(inst.tier)}</span>
+    </div>
+    <div class="raid-meta">
+      <span>\u{1F4C5} ${fmtDate(raid.date)}</span>
+      <span>\u{1F552} ${raid.time} Uhr</span>
+      <span>\u{1F465} ${total}/${raid.maxPlayers}</span>
+      <span style="font-size:11px;color:var(--tx4)">von ${h(raid.createdByName)}</span>
+    </div>
+    <div class="raid-bar"><div class="raid-bar-fill ${barCls}" style="width:${pct}%"></div></div>
+    <div class="raid-roles">
+      <span style="background:rgba(91,155,213,.12);color:var(--tank)">\u{1F6E1}\uFE0F ${t} Tank</span>
+      <span style="background:rgba(102,187,106,.12);color:var(--heal)">\u{1F49A} ${hl} Heiler</span>
+      <span style="background:rgba(229,115,115,.12);color:var(--dps)">\u2694\uFE0F ${dp} DPS</span>
+    </div>
+    ${raid.notes?`<div style="font-size:12px;color:var(--tx3);font-style:italic;margin-bottom:6px">\u201E${h(raid.notes)}\u201C</div>`:""}
+    ${signupHtml}
+    ${signupForm}
+    <div id="signup-form-${raid.id}"></div>
+    ${actions}
+  </div>`;
+}
+
+function renderRaidForm(el){
+  const isEdit=raidView==="edit";
+  const inst=TBC_RAIDS.find(i=>i.n===raidForm.instance);
+
+  el.innerHTML=`<div class="raid-tab-toggle">
+    <button class="rt-btn" onclick="raidView='list';raidEditId=null;renderRaids()">Übersicht</button>
+    <button class="rt-btn active">${isEdit?"Raid bearbeiten":"Raid erstellen"}</button>
+  </div>
+  <div class="card raid-form" style="padding:28px">
+    <div class="fld">
+      <span class="lbl">Instanz</span>
+      <select id="rf-inst" onchange="raidForm.instance=this.value;autoMaxPlayers();renderRaids()">
+        <option value="">— Instanz wählen —</option>
+        ${TBC_RAIDS.map(i=>`<option value="${h(i.n)}"${raidForm.instance===i.n?" selected":""}>${h(i.n)} (${i.max} Spieler, ${i.tier})</option>`).join("")}
+      </select>
+    </div>
+    <div class="fld">
+      <span class="lbl">Datum</span>
+      <input type="date" id="rf-date" value="${raidForm.date}" min="${todayStr()}" onchange="raidForm.date=this.value">
+    </div>
+    <div class="fld">
+      <span class="lbl">Uhrzeit</span>
+      <input type="time" id="rf-time" value="${raidForm.time}" onchange="raidForm.time=this.value">
+    </div>
+    <div class="fld">
+      <span class="lbl">Max. Spieler</span>
+      <input type="text" id="rf-max" value="${raidForm.maxPlayers}" oninput="raidForm.maxPlayers=parseInt(this.value)||25">
+    </div>
+    <div class="fld">
+      <span class="lbl">Anmerkungen (optional)</span>
+      <input type="text" id="rf-notes" value="${h(raidForm.notes)}" placeholder="z.B. Consumables mitbringen" oninput="raidForm.notes=this.value">
+    </div>
+    <div class="brow">
+      <button class="btn-p" id="rf-submit" ${raidForm.instance&&raidForm.date&&raidForm.time?"":"disabled"} onclick="submitRaid()">${isEdit?"Aktualisieren":"Erstellen"}</button>
+      <button class="btn-s" onclick="raidView='list';raidEditId=null;renderRaids()">Abbrechen</button>
+    </div>
+  </div>`;
+}
+
+window.autoMaxPlayers=function(){
+  const inst=TBC_RAIDS.find(i=>i.n===raidForm.instance);
+  if(inst){
+    raidForm.maxPlayers=inst.max;
+  }
+};
+
+window.submitRaid=async function(){
+  const btn=document.getElementById("rf-submit");
+  btn.disabled=true;btn.textContent="Speichern...";
+  try{
+    await saveRaid({
+      id:raidEditId||undefined,
+      instance:raidForm.instance,
+      date:raidForm.date,
+      time:raidForm.time,
+      maxPlayers:raidForm.maxPlayers,
+      notes:raidForm.notes,
+    });
+    toast(raidEditId?"Raid aktualisiert \u2713":"Raid erstellt \u2713");
+    raidView="list";raidEditId=null;
+    await loadRaids();
+    renderRaids();
+  }catch(e){
+    if(e.message==="Nicht angemeldet"||e.message==="Sitzung ungültig"){
+      currentUser=null;localStorage.removeItem("raid-auth");renderAuthBar();renderRaids();
+      toast("Sitzung abgelaufen — bitte erneut anmelden");
+    }else{toast("Fehler: "+e.message)}
+    btn.disabled=false;btn.textContent=raidEditId?"Aktualisieren":"Erstellen";
+  }
+};
+
+window.editRaid=function(id){
+  const raid=raids.find(r=>r.id===id);
+  if(!raid)return;
+  raidEditId=id;
+  raidForm={instance:raid.instance,date:raid.date,time:raid.time,maxPlayers:raid.maxPlayers,notes:raid.notes||""};
+  raidView="edit";
+  renderRaids();
+};
+
+window.confirmDelRaid=function(id){
+  const raid=raids.find(r=>r.id===id);
+  const name=raid?raid.instance:"diesen Raid";
+  showModal("Raid löschen",`Soll der Raid <strong>${h(name)}</strong> wirklich gelöscht werden?`,async()=>{
+    try{await delRaid(id);toast("Raid gelöscht");await loadRaids();renderRaids()}catch(err){
+      if(err.message==="Nicht angemeldet"||err.message==="Sitzung ungültig"){
+        currentUser=null;localStorage.removeItem("raid-auth");renderAuthBar();renderRaids();
+        toast("Sitzung abgelaufen — bitte erneut anmelden");
+      }else{toast("Fehler: "+err.message)}
+    }
+  });
+};
+
+window.showSignupForm=function(raidId){
+  const el=document.getElementById("signup-form-"+raidId);
+  if(!el)return;
+  const raid=raids.find(r=>r.id===raidId);
+  const mySignup=(raid?.signups||[]).find(s=>s.userId===currentUser?.userId);
+  const myChars=entries.filter(e=>e.userId===currentUser?.userId);
+
+  const preChar=mySignup?.charName||"";
+  const preClass=mySignup?.className||"";
+  const preRole=mySignup?.role||"";
+  const preStatus=mySignup?.status||"accepted";
+  const preNote=mySignup?.note||"";
+
+  let charOptions="";
+  if(myChars.length){
+    charOptions=myChars.map(c=>`<option value="${h(c.charName)}" data-cls="${h(c.className)}"${c.charName===preChar?" selected":""}>${h(c.charName)} (${h(c.className)})</option>`).join("");
+  }
+
+  el.innerHTML=`<div class="card" style="margin-top:10px;padding:14px 16px">
+    <div class="sec-l" style="margin-bottom:8px">Anmeldung</div>
+    <div class="raid-signup-form">
+      ${myChars.length?`<select id="su-char-${raidId}" onchange="suCharChanged('${raidId}')">
+        <option value="">— Charakter —</option>
+        ${charOptions}
+      </select>`:`<input type="text" id="su-charname-${raidId}" value="${h(preChar)}" placeholder="Charaktername" style="padding:6px 10px;width:120px;font-size:13px">`}
+      ${!myChars.length?`<select id="su-class-${raidId}" style="font-size:13px">
+        <option value="">— Klasse —</option>
+        ${CLS.map(c=>`<option value="${h(c.n)}"${c.n===preClass?" selected":""}>${h(c.n)}</option>`).join("")}
+      </select>`:`<input type="hidden" id="su-class-${raidId}" value="${h(myChars.length&&!preClass?myChars[0].className:preClass)}">`}
+      <select id="su-role-${raidId}" style="font-size:13px">
+        ${ROLES.map(r=>`<option value="${r}"${r===preRole?" selected":""}>${RI[r]} ${r}</option>`).join("")}
+      </select>
+      <select id="su-status-${raidId}" style="font-size:13px">
+        <option value="accepted"${preStatus==="accepted"?" selected":""}>Dabei</option>
+        <option value="tentative"${preStatus==="tentative"?" selected":""}>Vielleicht</option>
+        <option value="declined"${preStatus==="declined"?" selected":""}>Absage</option>
+      </select>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+      <input type="text" id="su-note-${raidId}" value="${h(preNote)}" placeholder="Anmerkung (optional)" style="flex:1;padding:6px 10px;font-size:12px">
+      <button class="btn-signup" style="padding:6px 14px" onclick="doSignup('${raidId}')">Bestätigen</button>
+      <button class="btn-s" style="padding:6px 14px;font-size:12px" onclick="document.getElementById('signup-form-${raidId}').innerHTML=''">Abbrechen</button>
+    </div>
+  </div>`;
+
+  // Pre-select first char's class if available
+  if(myChars.length&&!preChar){
+    const sel=document.getElementById("su-char-"+raidId);
+    if(sel&&sel.value){
+      const ch=myChars.find(c=>c.charName===sel.value);
+      if(ch)document.getElementById("su-class-"+raidId).value=ch.className;
+    }
+  }
+};
+
+window.suCharChanged=function(raidId){
+  const sel=document.getElementById("su-char-"+raidId);
+  if(!sel)return;
+  const ch=entries.find(e=>e.charName===sel.value&&e.userId===currentUser?.userId);
+  if(ch){
+    const clsEl=document.getElementById("su-class-"+raidId);
+    if(clsEl)clsEl.value=ch.className;
+  }
+};
+
+window.doSignup=async function(raidId){
+  const myChars=entries.filter(e=>e.userId===currentUser?.userId);
+  let charName,className;
+  if(myChars.length){
+    const sel=document.getElementById("su-char-"+raidId);
+    charName=sel?sel.value:"";
+    className=document.getElementById("su-class-"+raidId)?.value||"";
+    // If char not selected, use first
+    if(!charName&&myChars.length){charName=myChars[0].charName;className=myChars[0].className}
+  }else{
+    charName=document.getElementById("su-charname-"+raidId)?.value.trim()||"";
+    className=document.getElementById("su-class-"+raidId)?.value||"";
+  }
+  const role=document.getElementById("su-role-"+raidId)?.value||"DPS";
+  const status=document.getElementById("su-status-"+raidId)?.value||"accepted";
+  const note=document.getElementById("su-note-"+raidId)?.value?.trim()||"";
+
+  if(!charName){toast("Bitte Charakter angeben");return}
+
+  try{
+    await saveRaid({action:"signup",raidId,charName,className,role,status,note});
+    const statusLbl=status==="accepted"?"Angemeldet":status==="tentative"?"Vielleicht":"Abgesagt";
+    toast(statusLbl+" \u2713");
+    await loadRaids();
+    renderRaids();
+  }catch(e){
+    if(e.message==="Nicht angemeldet"||e.message==="Sitzung ungültig"){
+      currentUser=null;localStorage.removeItem("raid-auth");renderAuthBar();renderRaids();
+      toast("Sitzung abgelaufen — bitte erneut anmelden");
+    }else{toast("Fehler: "+e.message)}
+  }
+};
+
+window.unsignRaid=async function(raidId){
+  try{
+    await saveRaid({action:"unsignup",raidId});
+    toast("Abgemeldet");
+    await loadRaids();
+    renderRaids();
+  }catch(e){toast("Fehler: "+e.message)}
+};
 
 // ══════════════════════════════
 //  CSV EXPORT

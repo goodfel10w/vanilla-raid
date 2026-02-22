@@ -68,7 +68,7 @@ for (const vp of viewports) {
 
     test('all tabs remain visible', async ({ page }) => {
       const tabs = page.locator('.tab');
-      await expect(tabs).toHaveCount(4);
+      await expect(tabs).toHaveCount(5);
       for (const tab of await tabs.all()) {
         await expect(tab).toBeVisible();
       }
