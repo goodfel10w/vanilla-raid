@@ -370,6 +370,12 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .dkp-pchip:hover{border-color:rgba(255,255,255,.12)}
 .dkp-selectall{font-size:12px;color:var(--gold);cursor:pointer;margin-left:8px}
 .dkp-selectall:hover{text-decoration:underline}
+.dkp-raid-picker{margin-bottom:16px}
+.dkp-raid-picker select{display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer;transition:border-color .2s}
+.dkp-raid-picker select:focus{border-color:rgba(201,168,76,.3)}
+.dkp-raid-hint{font-size:12px;color:var(--tx4);margin-top:6px}
+.btn-raid-dkp{background:none;border:1px solid rgba(201,168,76,.4)!important;color:var(--gold)}
+.btn-raid-dkp:hover{background:rgba(201,168,76,.1);border-color:var(--gold)!important}
 input[type=number]{display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;transition:border-color .2s}
 input[type=number]:focus{border-color:rgba(201,168,76,.3)}
 .dkp-decay-preview{font-size:12px;color:var(--tx3);margin-top:6px;padding:8px 12px;background:rgba(0,0,0,.2);border-radius:6px}
@@ -537,7 +543,7 @@ let raidForm={instance:"",date:"",time:"20:00",maxPlayers:25,notes:""};
 // DKP state
 const DKP_API="/api/dkp";
 let dkpBalances=[], dkpTransactions=[], dkpView="overview";
-let dkpAwardPlayers=[], dkpAwardAmount="", dkpAwardReason="";
+let dkpAwardPlayers=[], dkpAwardAmount="", dkpAwardReason="", dkpAwardRaidId="";
 let dkpSpendPlayer="", dkpSpendAmount="", dkpSpendItem="";
 let dkpDecayPercent=15;
 let dkpConfig={roles:{},defaultDecayPercent:15,maxDkpAmount:10000,allowNegativeBalance:true,startingBalance:0,transactionLimit:50,reasonMaxLength:200};
@@ -741,7 +747,7 @@ function switchTab(v){
     t.setAttribute("aria-selected",isOn?"true":"false");
     if(isOn && v==="form") t.textContent=editId?"Bearbeiten":"Eintragen";
   });
-  ["form","raids","roster","heatmap","analytics"].forEach(x=>{
+  ["form","raids","roster","heatmap","analytics","dkp"].forEach(x=>{
     document.getElementById("v-"+x).classList.toggle("hidden",x!==v);
   });
 }
@@ -1479,6 +1485,9 @@ function renderRaidCard(raid,isPast){
     }
     actions+=`</div>`;
   }
+  if(currentUser&&isPast&&isDkpOfficer()&&signups.length){
+    actions+=`<div class="raid-actions"><button class="btn-raid-dkp" onclick="dkpAwardFromRaid('${raid.id}')">DKP vergeben</button></div>`;
+  }
 
   return`<div class="raid-card${isPast?" past":""}" id="raid-${raid.id}">
     <div class="raid-hdr">
@@ -1872,9 +1881,23 @@ function renderDkpPlayerDetail(){
 
 function renderDkpAward(){
   const players=entries.map(e=>({name:e.charName,className:e.className}));
+  const pastRaids=raids.filter(r=>isRaidPast(r)).sort((a,b)=>(b.date+"T"+b.time).localeCompare(a.date+"T"+a.time));
 
   let html=`<div class="card dkp-form" style="padding:28px">
     <div class="card-t">DKP vergeben</div>
+    ${pastRaids.length?`<div class="dkp-raid-picker">
+      <div class="fld">
+        <span class="lbl">Aus Raid übernehmen</span>
+        <select onchange="dkpSelectRaid(this.value)">
+          <option value="">— Manuell auswählen —</option>
+          ${pastRaids.map(r=>{
+            const signups=(r.signups||[]).filter(s=>s.status!=="declined");
+            return`<option value="${r.id}"${dkpAwardRaidId===r.id?" selected":""}>${h(r.instance)} — ${fmtDate(r.date)} ${r.time} (${signups.length} Spieler)</option>`;
+          }).join("")}
+        </select>
+        ${dkpAwardRaidId?`<div class="dkp-raid-hint">Spieler und Grund aus Raid übernommen. Du kannst Spieler manuell an-/abwählen.</div>`:""}
+      </div>
+    </div>`:""}
     <div class="fld">
       <span class="lbl">Spieler auswählen <span class="dkp-selectall" onclick="dkpSelectAll()">Alle</span></span>
       <div class="dkp-pchips">
@@ -2163,6 +2186,31 @@ window.dkpTogglePlayer=function(name){
 window.dkpSelectAll=function(){
   if(dkpAwardPlayers.length===entries.length){dkpAwardPlayers=[]}
   else{dkpAwardPlayers=entries.map(e=>({name:e.charName,className:e.className}))}
+  dkpAwardRaidId="";
+  renderDkp();
+};
+
+window.dkpSelectRaid=function(raidId){
+  dkpAwardRaidId=raidId;
+  if(!raidId){dkpAwardPlayers=[];dkpAwardReason="";renderDkp();return}
+  const raid=raids.find(r=>r.id===raidId);
+  if(!raid){renderDkp();return}
+  const signups=(raid.signups||[]).filter(s=>s.status!=="declined");
+  dkpAwardPlayers=signups.map(s=>({name:s.charName,className:s.className||""}));
+  dkpAwardReason=raid.instance+" — "+fmtDate(raid.date);
+  renderDkp();
+};
+
+window.dkpAwardFromRaid=function(raidId){
+  dkpAwardRaidId=raidId;
+  const raid=raids.find(r=>r.id===raidId);
+  if(!raid)return;
+  const signups=(raid.signups||[]).filter(s=>s.status!=="declined");
+  dkpAwardPlayers=signups.map(s=>({name:s.charName,className:s.className||""}));
+  dkpAwardReason=raid.instance+" — "+fmtDate(raid.date);
+  dkpAwardAmount="";
+  dkpView="award";
+  switchTab("dkp");
   renderDkp();
 };
 
@@ -2172,7 +2220,7 @@ window.doDkpAward=async function(){
     const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"award",players:dkpAwardPlayers,amount:Number(dkpAwardAmount),reason:dkpAwardReason})});
     if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
     toast(`${dkpAwardPlayers.length}× ${dkpAwardAmount} DKP vergeben`);
-    dkpAwardPlayers=[];dkpAwardAmount="";dkpAwardReason="";
+    dkpAwardPlayers=[];dkpAwardAmount="";dkpAwardReason="";dkpAwardRaidId="";
     dkpView="overview";
     await loadDkp();renderDkp();
   }catch(e){handleDkpError(e)}
