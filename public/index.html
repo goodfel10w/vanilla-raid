@@ -707,12 +707,13 @@ async function loadBnetCharacters(){
   }
 }
 async function initAuth(){
-  // Handle Battle.net OAuth callback token in URL
-  const params=new URLSearchParams(window.location.search);
-  const bnetToken=params.get("bnet_token");
-  const authError=params.get("auth_error");
+  // Handle Battle.net OAuth callback token in URL fragment (preferred) or query param (legacy)
+  const hashParams=new URLSearchParams(window.location.hash.slice(1));
+  const queryParams=new URLSearchParams(window.location.search);
+  const bnetToken=hashParams.get("bnet_token")||queryParams.get("bnet_token");
+  const authError=queryParams.get("auth_error");
   if(bnetToken){
-    // Clean URL
+    // Clean URL — remove both hash and query params
     window.history.replaceState({},"",window.location.pathname);
     currentUser={token:bnetToken,username:"...",userId:""};
     localStorage.setItem("raid-auth",JSON.stringify(currentUser));
@@ -803,17 +804,19 @@ function toast(msg){
 }
 
 // ── Modal ──
+// title: plain text (escaped internally), msg: trusted HTML from call sites
 function showModal(title,msg,onConfirm){
   const bg=document.createElement("div");
   bg.className="modal-bg";
   bg.innerHTML=`<div class="modal">
-    <div class="modal-title">${title}</div>
+    <div class="modal-title"></div>
     <div class="modal-msg">${msg}</div>
     <div class="modal-btns">
       <button class="modal-cancel">Abbrechen</button>
       <button class="modal-confirm">Bestätigen</button>
     </div>
   </div>`;
+  bg.querySelector(".modal-title").textContent=title;
   document.body.appendChild(bg);
   const cancelBtn=bg.querySelector(".modal-cancel");
   const confirmBtn=bg.querySelector(".modal-confirm");
@@ -871,7 +874,7 @@ function updateAll(){
 
 // ── Helpers ──
 function cc(n){return CLS.find(c=>c.n===n)?.c||"#ccc"}
-function h(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
+function h(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
 
 // Item linking: converts [Item Name] to Wowhead TBC search links with icon
 function linkItems(text){

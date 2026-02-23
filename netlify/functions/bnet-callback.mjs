@@ -1,5 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import { randomUUID } from "crypto";
+import { encryptToken } from "./shared/auth-utils.mjs";
 
 const SESSION_DAYS = 7;
 const BNET_REGION = process.env.BNET_REGION || "eu";
@@ -142,7 +143,7 @@ export default async (req) => {
       username: battleTag,
       bnetId,
       battleTag,
-      bnetAccessToken: accessToken,
+      bnetAccessToken: encryptToken(accessToken),
       characters,
       createdAt: existingUser?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -160,10 +161,11 @@ export default async (req) => {
       expiresAt,
     });
 
-    // Redirect back to app with session token in URL fragment
-    // Using fragment (#) so the token isn't sent to the server on subsequent requests
+    // Redirect back to app with session token in URL fragment (#)
+    // Fragment is NOT sent to the server on subsequent requests, not logged in access logs,
+    // and not included in Referer headers — unlike query parameters (?).
     return Response.redirect(
-      `${origin}/?bnet_token=${encodeURIComponent(sessionToken)}`,
+      `${origin}/#bnet_token=${encodeURIComponent(sessionToken)}`,
       302
     );
   } catch (err) {

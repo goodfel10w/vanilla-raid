@@ -194,7 +194,10 @@ export default async (req, context) => {
         return new Response(JSON.stringify({ error: "ID fehlt" }), { status: 400, headers });
       }
       const existing = await store.get(id, { type: "json" });
-      if (existing && existing.userId && existing.userId !== user.userId && !user.isAdmin) {
+      if (!existing) {
+        return new Response(JSON.stringify({ error: "Eintrag nicht gefunden" }), { status: 404, headers });
+      }
+      if (existing.userId && existing.userId !== user.userId && !user.isAdmin) {
         return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
       }
       await store.delete(id);
