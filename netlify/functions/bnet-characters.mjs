@@ -2,6 +2,8 @@ import { getStore } from "@netlify/blobs";
 import { validateSession } from "./shared/auth-utils.mjs";
 
 const BNET_REGION = process.env.BNET_REGION || "eu";
+const BNET_REALM = process.env.BNET_REALM || "thunderstrike";
+const BNET_FACTION = process.env.BNET_FACTION || "ALLIANCE";
 const API_BASE = `https://${BNET_REGION}.api.blizzard.com`;
 
 // English WoW class ID → German class name (TBC classes only)
@@ -55,8 +57,9 @@ export default async (req) => {
     }
 
     // Fetch fresh character data from Battle.net API
+    // Use profile-classic namespace for TBC Classic realms (e.g. Thunderstrike)
     const charsRes = await fetch(
-      `${API_BASE}/profile/user/wow?namespace=profile-${BNET_REGION}&locale=de_DE`,
+      `${API_BASE}/profile/user/wow?namespace=profile-classic-${BNET_REGION}&locale=de_DE`,
       { headers: { Authorization: `Bearer ${user.bnetAccessToken}` } }
     );
 
@@ -72,11 +75,17 @@ export default async (req) => {
     const characters = [];
     for (const account of charsData.wow_accounts || []) {
       for (const char of account.characters || []) {
+        // Filter by faction (Alliance) and realm (Thunderstrike)
+        const faction = char.faction?.type;
+        const realmSlug = char.realm?.slug || "";
+        if (BNET_FACTION && faction !== BNET_FACTION) continue;
+        if (BNET_REALM && realmSlug !== BNET_REALM) continue;
+
         const germanClass = CLASS_MAP[char.playable_class?.id];
         if (germanClass) {
           characters.push({
             name: char.name,
-            realm: char.realm?.name || char.realm?.slug || "",
+            realm: char.realm?.name || realmSlug,
             className: germanClass,
             level: char.level || 0,
           });

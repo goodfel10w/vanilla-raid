@@ -1,9 +1,9 @@
 const MOCK_USER = { token: 'mock-token', username: 'Testuser', userId: 'mock-user-1' };
 
 const MOCK_BNET_CHARACTERS = [
-  { name: 'Thrallmächtig', realm: 'Firemaw', className: 'Schamane', level: 70 },
-  { name: 'Arthaslull', realm: 'Firemaw', className: 'Paladin', level: 70 },
-  { name: 'Dottqueen', realm: 'Firemaw', className: 'Hexenmeister', level: 65 },
+  { name: 'Thrallmächtig', realm: 'Thunderstrike', className: 'Schamane', level: 70 },
+  { name: 'Arthaslull', realm: 'Thunderstrike', className: 'Paladin', level: 70 },
+  { name: 'Dottqueen', realm: 'Thunderstrike', className: 'Hexenmeister', level: 65 },
 ];
 
 export async function setupMockApi(page, initialEntries = []) {
