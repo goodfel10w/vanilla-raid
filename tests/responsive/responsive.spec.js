@@ -39,7 +39,8 @@ for (const vp of viewports) {
     test('form submit works', async ({ page }) => {
       await page.fill('#f-name', 'ResponsiveTest');
       await page.locator('.chip', { hasText: 'Magier' }).click();
-      await page.locator('.rchip', { hasText: 'DPS' }).click();
+      // Magier specs: Arcane, Fire, Frost — select one
+      await page.locator('.rchip', { hasText: 'Frost' }).click();
       await page.click('#f-submit');
       await expect(page.locator('#v-roster')).toBeVisible();
       await expect(page.locator('.e-name', { hasText: 'ResponsiveTest' })).toBeVisible();

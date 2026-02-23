@@ -55,22 +55,27 @@ input[type=text]{
 }
 input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 
+/* WoW icons */
+.wow-ico{width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:4px;flex-shrink:0}
+.wow-ico-sm{width:16px;height:16px;border-radius:3px;vertical-align:middle;margin-right:3px;flex-shrink:0}
+.wow-ico-lg{width:28px;height:28px;border-radius:5px;vertical-align:middle;margin-right:6px;flex-shrink:0}
+
 /* Class chips */
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{
   padding:6px 13px;border-radius:6px;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;
   border:2px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx3);transition:all .15s;user-select:none;
-  min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+  min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:4px;
 }
 .chip:hover{border-color:rgba(255,255,255,.12)}
 
-/* Role chips */
-.rchips{display:flex;gap:8px}
+/* Spec chips */
+.rchips{display:flex;flex-wrap:wrap;gap:8px}
 .rchip{
-  padding:10px 0;border-radius:8px;cursor:pointer;font:600 14px 'Nunito Sans',sans-serif;
+  padding:8px 12px;border-radius:8px;cursor:pointer;font:600 13px 'Nunito Sans',sans-serif;
   border:2px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx3);
-  transition:all .15s;flex:1;text-align:center;user-select:none;
-  min-height:44px;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;user-select:none;
+  min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;
 }
 
 /* Timeline grid */
@@ -476,14 +481,52 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
 
 <script>
 // ── Constants ──
+const WOW_ICONS="https://cdn.jsdelivr.net/gh/orourkek/Wow-Icons@master/images";
 const CLS=[
-  {n:"Druide",c:"#FF7C0A"},{n:"Hexenmeister",c:"#8788EE"},{n:"Jäger",c:"#AAD372"},
-  {n:"Krieger",c:"#C69B6D"},{n:"Magier",c:"#3FC7EB"},{n:"Paladin",c:"#F48CBA"},
-  {n:"Priester",c:"#FFFFFF"},{n:"Schamane",c:"#0070DD"},{n:"Schurke",c:"#FFF468"},
+  {n:"Druide",c:"#FF7C0A",i:"druid"},{n:"Hexenmeister",c:"#8788EE",i:"warlock"},{n:"Jäger",c:"#AAD372",i:"hunter"},
+  {n:"Krieger",c:"#C69B6D",i:"warrior"},{n:"Magier",c:"#3FC7EB",i:"mage"},{n:"Paladin",c:"#F48CBA",i:"paladin"},
+  {n:"Priester",c:"#FFFFFF",i:"priest"},{n:"Schamane",c:"#0070DD",i:"shaman"},{n:"Schurke",c:"#FFF468",i:"rogue"},
 ];
+function clsIcon(cls){const c=CLS.find(x=>x.n===cls);return c?`${WOW_ICONS}/class/64/${c.i}.png`:""}
 const ROLES=["Tank","Heiler","DPS"];
 const RI={Tank:"\u{1F6E1}\uFE0F",Heiler:"\u{1F49A}",DPS:"\u2694\uFE0F"};
 const RC={Tank:"#5b9bd5",Heiler:"#66bb6a",DPS:"#e57373"};
+// Class-specific specs: each spec maps to a role + icon path
+const CLASS_SPECS={
+  "Druide":[{n:"Balance",r:"DPS",i:"druid/balance"},{n:"Feral Tank",r:"Tank",i:"druid/feral"},{n:"Feral DPS",r:"DPS",i:"druid/feral"},{n:"Resto",r:"Heiler",i:"druid/restoration"}],
+  "Hexenmeister":[{n:"Affliction",r:"DPS",i:"warlock/affliction"},{n:"Demonologie",r:"DPS",i:"warlock/demonology"},{n:"Destruction",r:"DPS",i:"warlock/destruction"}],
+  "Jäger":[{n:"Beast Mastery",r:"DPS",i:"hunter/beastmastery"},{n:"Marksmanship",r:"DPS",i:"hunter/marksman"},{n:"Survival",r:"DPS",i:"hunter/survival"}],
+  "Krieger":[{n:"Prot",r:"Tank",i:"warrior/protection"},{n:"Arms",r:"DPS",i:"warrior/arms"},{n:"Fury",r:"DPS",i:"warrior/fury"}],
+  "Magier":[{n:"Arcane",r:"DPS",i:"mage/arcane"},{n:"Fire",r:"DPS",i:"mage/fire"},{n:"Frost",r:"DPS",i:"mage/frost"}],
+  "Paladin":[{n:"Holy",r:"Heiler",i:"paladin/holy"},{n:"Prot",r:"Tank",i:"paladin/protection"},{n:"Retri",r:"DPS",i:"paladin/retribution"}],
+  "Priester":[{n:"Disc",r:"Heiler",i:"priest/discipline"},{n:"Holy",r:"Heiler",i:"priest/holy"},{n:"Shadow",r:"DPS",i:"priest/shadow"}],
+  "Schamane":[{n:"Elemental",r:"DPS",i:"shaman/elemental"},{n:"Enhancement",r:"DPS",i:"shaman/enhancement"},{n:"Resto",r:"Heiler",i:"shaman/restoration"}],
+  "Schurke":[{n:"Assassination",r:"DPS",i:"rogue/assassination"},{n:"Combat",r:"DPS",i:"rogue/combat"},{n:"Subtlety",r:"DPS",i:"rogue/subtlety"}],
+};
+function specIcon(cls,specName){const sp=(CLASS_SPECS[cls]||[]).find(s=>s.n===specName);return sp?`${WOW_ICONS}/spec/${sp.i}.png`:""}
+function specsToRoles(cls,specs){
+  const cspecs=CLASS_SPECS[cls]||[];
+  const rs=new Set();
+  (specs||[]).forEach(s=>{const sp=cspecs.find(c=>c.n===s);if(sp)rs.add(sp.r)});
+  return ROLES.filter(r=>rs.has(r));
+}
+function specRole(cls,specName){
+  const cspecs=CLASS_SPECS[cls]||[];
+  const sp=cspecs.find(c=>c.n===specName);
+  return sp?sp.r:"DPS";
+}
+// Infer specs from roles for legacy entries without specs field
+function inferSpecs(cls,roles){
+  const cspecs=CLASS_SPECS[cls]||[];
+  if(!roles||!roles.length)return[];
+  const out=[];
+  roles.forEach(r=>{
+    const matching=cspecs.filter(s=>s.r===r);
+    // If only one spec for this role, auto-select it
+    if(matching.length===1)out.push(matching[0].n);
+  });
+  return out;
+}
 const WD=["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
 const WE=["Samstag","Sonntag"];
 const DAYS=[...WD,...WE];
@@ -530,7 +573,7 @@ const RR_TANK=2, RR_HEAL=5, RR_DPS=18;
 
 // ── State ──
 let entries=[], view="form", editId=null, heatMode="1h", rosterSort="name";
-let form={name:"",cls:"",roles:[],avail:{},notes:""};
+let form={name:"",cls:"",specs:[],roles:[],avail:{},notes:""};
 let currentUser=null; // { token, username, userId }
 
 // Raids state
@@ -948,7 +991,8 @@ function renderForm(skipSync){
     el.innerHTML=`<div class="auth-hint">Bitte melde dich an, um einen Eintrag zu erstellen.<br><button class="btn-bnet" onclick="doBnetLogin()">${BNET_ICON} Mit Battle.net anmelden</button></div>`;
     return;
   }
-  const canSave=form.name.trim()&&form.cls&&form.roles.length>0;
+  form.roles=specsToRoles(form.cls,form.specs);
+  const canSave=form.name.trim()&&form.cls&&form.specs.length>0;
 
   // Character picker from Battle.net
   let charPickerHtml="";
@@ -987,15 +1031,16 @@ function renderForm(skipSync){
       </div>
       <div class="fld">
         <span class="lbl">Klasse</span>
-        <div class="chips" role="radiogroup" aria-label="Klasse">${CLS.map(c=>`<div class="chip${form.cls===c.n?" active":""}" role="radio" aria-checked="${form.cls===c.n}" style="${form.cls===c.n?`border-color:${c.c};color:${c.c};background:${c.c}18`:""}" onclick="pickCls('${c.n}')" tabindex="0" onkeydown="if(event.key===' '||event.key==='Enter'){pickCls('${c.n}');event.preventDefault()}">${c.n}</div>`).join("")}</div>
+        <div class="chips" role="radiogroup" aria-label="Klasse">${CLS.map(c=>`<div class="chip${form.cls===c.n?" active":""}" role="radio" aria-checked="${form.cls===c.n}" style="${form.cls===c.n?`border-color:${c.c};color:${c.c};background:${c.c}18`:""}" onclick="pickCls('${c.n}')" tabindex="0" onkeydown="if(event.key===' '||event.key==='Enter'){pickCls('${c.n}');event.preventDefault()}"><img class="wow-ico" src="${WOW_ICONS}/class/64/${c.i}.png" alt="" loading="lazy">${c.n}</div>`).join("")}</div>
       </div>
       <div class="fld">
-        <span class="lbl">Rolle(n)</span>
-        <span class="lbl-s">Mehrfachauswahl m\u00F6glich</span>
-        <div class="rchips" role="group" aria-label="Rollen">${ROLES.map(r=>{
-          const on=form.roles.includes(r);
-          return`<div class="rchip${on?" active":""}" role="checkbox" aria-checked="${on}" style="${on?`border-color:${RC[r]};color:${RC[r]};background:${RC[r]}18`:""}" onclick="toggleRole('${r}')" tabindex="0" onkeydown="if(event.key===' '||event.key==='Enter'){toggleRole('${r}');event.preventDefault()}">${RI[r]} ${r}</div>`;
-        }).join("")}</div>
+        <span class="lbl">Spezialisierung(en)</span>
+        <span class="lbl-s">W\u00E4hle alle Specs, die du spielen kannst</span>
+        ${form.cls?`<div class="rchips" role="group" aria-label="Specs">${(CLASS_SPECS[form.cls]||[]).map(sp=>{
+          const on=form.specs.includes(sp.n);
+          const col=RC[sp.r];
+          return`<div class="rchip${on?" active":""}" role="checkbox" aria-checked="${on}" style="${on?`border-color:${col};color:${col};background:${col}18`:""}" onclick="toggleSpec('${sp.n}')" tabindex="0" onkeydown="if(event.key===' '||event.key==='Enter'){toggleSpec('${sp.n}');event.preventDefault()}"><img class="wow-ico" src="${WOW_ICONS}/spec/${sp.i}.png" alt="" loading="lazy">${sp.n}<span style="font-size:10px;opacity:.7">${sp.r}</span></div>`;
+        }).join("")}</div>`:`<div style="font-size:12px;color:var(--tx4)">W\u00E4hle zuerst eine Klasse</div>`}
       </div>
       <div class="fld">
         <span class="lbl">Verf\u00FCgbarkeit</span>
@@ -1011,7 +1056,7 @@ function renderForm(skipSync){
         <span class="lbl">Anmerkungen (optional)</span>
         <input type="text" id="f-notes" value="${h(form.notes)}" placeholder="z.B. Erste Woche im Monat nicht verf\u00FCgbar" oninput="form.notes=this.value">
       </div>
-      ${!canSave?`<div style="font-size:12px;color:#e57373;margin-bottom:8px">Bitte ausf\u00FCllen: ${[!form.name.trim()&&"Charaktername",!form.cls&&"Klasse",!form.roles.length&&"Rolle"].filter(Boolean).join(", ")}</div>`:""}
+      ${!canSave?`<div style="font-size:12px;color:#e57373;margin-bottom:8px">Bitte ausf\u00FCllen: ${[!form.name.trim()&&"Charaktername",!form.cls&&"Klasse",!form.specs.length&&"Spezialisierung"].filter(Boolean).join(", ")}</div>`:""}
       <div class="brow">
         <button class="btn-p" id="f-submit" ${canSave?"":"disabled"} onclick="submitForm()">${editId?"Aktualisieren":"Eintragen"}</button>
         ${editId?`<button class="btn-s" onclick="cancelEdit()">Abbrechen</button>`:""}
@@ -1019,19 +1064,20 @@ function renderForm(skipSync){
     </div>`;
 }
 
-window.pickCls=function(n){form.cls=n;renderForm()};
+window.pickCls=function(n){form.cls=n;form.specs=[];form.roles=[];renderForm()};
 window.pickBnetChar=function(idx){
-  if(idx===""){form.name="";form.cls="";form.roles=[];renderForm(true);return}
+  if(idx===""){form.name="";form.cls="";form.specs=[];form.roles=[];renderForm(true);return}
   const c=bnetCharacters[parseInt(idx)];
   if(!c)return;
   form.name=c.name;
   form.cls=c.className;
-  form.roles=[];
+  form.specs=[];form.roles=[];
   renderForm(true);
 };
-window.toggleRole=function(r){
-  if(form.roles.includes(r))form.roles=form.roles.filter(x=>x!==r);
-  else form.roles=[...form.roles,r];
+window.toggleSpec=function(s){
+  if(form.specs.includes(s))form.specs=form.specs.filter(x=>x!==s);
+  else form.specs=[...form.specs,s];
+  form.roles=specsToRoles(form.cls,form.specs);
   renderForm();
 };
 // Drag-to-paint for timeline cells
@@ -1086,15 +1132,15 @@ function applyPaint(k,cell){
 })();
 window.updBtn=function(){
   const b=document.getElementById("f-submit");
-  if(b)b.disabled=!(form.name.trim()&&form.cls&&form.roles.length>0);
+  if(b)b.disabled=!(form.name.trim()&&form.cls&&form.specs.length>0);
 };
 window.submitForm=async function(){
   const btn=document.getElementById("f-submit");
   btn.disabled=true;btn.textContent="Speichern...";
   try{
-    await save({id:editId||undefined,charName:form.name,className:form.cls,roles:form.roles,availability:form.avail,notes:form.notes});
+    await save({id:editId||undefined,charName:form.name,className:form.cls,specs:form.specs,roles:specsToRoles(form.cls,form.specs),availability:form.avail,notes:form.notes});
     toast(editId?"Eintrag aktualisiert \u2713":"Eintrag gespeichert \u2713");
-    editId=null;form={name:"",cls:"",roles:[],avail:{},notes:""};
+    editId=null;form={name:"",cls:"",specs:[],roles:[],avail:{},notes:""};
     document.querySelector('[data-v="form"]').textContent="Eintragen";
     await load();
     switchTab("roster");renderRoster();
@@ -1109,14 +1155,16 @@ window.submitForm=async function(){
   }
 };
 window.cancelEdit=function(){
-  editId=null;form={name:"",cls:"",roles:[],avail:{},notes:""};
+  editId=null;form={name:"",cls:"",specs:[],roles:[],avail:{},notes:""};
   document.querySelector('[data-v="form"]').textContent="Eintragen";
   renderForm();
 };
 window.startEdit=function(id){
   const e=entries.find(x=>x.id===id);if(!e)return;
   editId=id;
-  form={name:e.charName,cls:e.className,roles:e.roles||[e.role].filter(Boolean),avail:migrateLegacyAvail(e.availability),notes:e.notes||""};
+  const oldRoles=e.roles||[e.role].filter(Boolean);
+  const specs=e.specs&&e.specs.length?e.specs:inferSpecs(e.className,oldRoles);
+  form={name:e.charName,cls:e.className,specs:specs,roles:specsToRoles(e.className,specs),avail:migrateLegacyAvail(e.availability),notes:e.notes||""};
   document.querySelector('[data-v="form"]').textContent="Bearbeiten";
   switchTab("form");renderForm(true);
 };
@@ -1193,9 +1241,9 @@ function renderRoster(){
     }));
     html+=`<div class="entry">
       <div class="e-info">
-        <div class="e-name" style="color:${cc(e.className)}">${h(e.charName)}</div>
+        <div class="e-name" style="color:${cc(e.className)}"><img class="wow-ico-sm" src="${clsIcon(e.className)}" alt="" loading="lazy">${h(e.charName)}</div>
         <div class="e-class">${h(e.className)}</div>
-        <div class="e-roles">${roles.map(r=>`<span class="rbadge" style="background:${RC[r]}18;color:${RC[r]}">${RI[r]} ${r}</span>`).join("")}</div>
+        <div class="e-roles">${e.specs&&e.specs.length?e.specs.map(s=>{const r=specRole(e.className,s);const ico=specIcon(e.className,s);return`<span class="rbadge" style="background:${RC[r]}18;color:${RC[r]}">${ico?`<img class="wow-ico-sm" src="${ico}" alt="">`:RI[r]} ${s}</span>`}).join(""):roles.map(r=>`<span class="rbadge" style="background:${RC[r]}18;color:${RC[r]}">${RI[r]} ${r}</span>`).join("")}</div>
       </div>
       <div class="e-slots">${slotTags.length?slotTags.join(""):`<span style="font-size:11px;color:var(--tx5)">Keine Zeiten</span>`}</div>
       ${e.notes?`<div class="e-notes">\u201E${h(e.notes)}\u201C</div>`:""}
@@ -1332,6 +1380,7 @@ function renderAnalytics(){
 
   // Roles
   const rc=ROLES.map(r=>({r,c:entries.filter(e=>(e.roles||[]).includes(r)).length}));
+  const multiSpec=entries.filter(e=>(e.specs||[]).length>1).length;
   const multi=entries.filter(e=>(e.roles||[]).length>1).length;
   const single=entries.length-multi;
 
@@ -1345,7 +1394,7 @@ function renderAnalytics(){
         <div style="font-size:10px;color:var(--tx4);margin-top:3px">${pct}%</div>
       </div>`;
     }).join("")}</div>
-    <div class="flex-info">${multi} Spieler mit Mehrfachrolle \u00B7 ${single} nur eine Rolle</div>
+    <div class="flex-info">${multiSpec||multi} Spieler mit Mehrfach-Spec \u00B7 ${entries.length-(multiSpec||multi)} nur ein Spec</div>
   </div>`;
 
   // Classes
@@ -1502,11 +1551,23 @@ function renderRaidCard(raid,isPast){
       signupHtml+=`<div class="raid-signups-t" style="color:${RC[role]};margin-top:8px">${RI[role]} ${role} (${rs.length})</div>`;
       rs.forEach(s=>{
         const isTent=s.status==="tentative";
+        const specBadges=(s.offeredSpecs||[]).map(sp=>{
+          const r=specRole(s.className,sp);
+          const ico=specIcon(s.className,sp);
+          const isAssigned=s.assignedSpec===sp;
+          return`<span style="font-size:10px;padding:1px 5px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;background:${RC[r]}${isAssigned?"30":"10"};color:${RC[r]};${isAssigned?"font-weight:600;border:1px solid "+RC[r]:""}">${ico?`<img style="width:14px;height:14px;border-radius:2px" src="${ico}" alt="">`:""} ${sp}</span>`;
+        }).join(" ");
         signupHtml+=`<div class="raid-signup-row">
-          <span class="raid-signup-name" style="color:${s.className?cc(s.className):"var(--tx)"}">${h(s.charName)}</span>
+          <span class="raid-signup-name" style="color:${s.className?cc(s.className):"var(--tx)"}">${s.className?`<img class="wow-ico-sm" src="${clsIcon(s.className)}" alt="" loading="lazy">`:""} ${h(s.charName)}</span>
           ${s.className?`<span style="font-size:11px;color:var(--tx4)">${h(s.className)}</span>`:""}
+          ${specBadges?`<span>${specBadges}</span>`:""}
+          ${s.assignedSpec?`<span style="font-size:10px;color:var(--grn)">\u2713 ${h(s.assignedSpec)}</span>`:""}
           ${isTent?`<span class="raid-signup-status tent">Vielleicht</span>`:""}
           ${s.note?`<span style="font-size:11px;color:var(--tx4);font-style:italic">${h(s.note)}</span>`:""}
+          ${isOwner&&s.offeredSpecs&&s.offeredSpecs.length>1&&!isPast?`<select style="font-size:11px;padding:2px 4px;margin-left:4px" onchange="assignSpec('${raid.id}','${s.userId}',this.value)">
+            <option value="">— Spec zuweisen —</option>
+            ${s.offeredSpecs.map(sp=>`<option value="${h(sp)}"${s.assignedSpec===sp?" selected":""}>${sp} (${specRole(s.className,sp)})</option>`).join("")}
+          </select>`:""}
         </div>`;
       });
     });
@@ -1530,7 +1591,8 @@ function renderRaidCard(raid,isPast){
     if(mySignup){
       const statusLbl=mySignup.status==="accepted"?"Angemeldet":mySignup.status==="tentative"?"Vielleicht":"Abgesagt";
       const statusColor=mySignup.status==="accepted"?"var(--grn)":mySignup.status==="tentative"?"var(--ylw)":"var(--dps)";
-      signupForm=`<div style="font-size:12px;color:${statusColor};margin-top:8px">Du bist als <strong>${h(mySignup.charName)}</strong> (${mySignup.role}) ${statusLbl.toLowerCase()}</div>`;
+      const mySpecInfo=mySignup.assignedSpec?mySignup.assignedSpec:mySignup.offeredSpecs?mySignup.offeredSpecs.join(", "):mySignup.role;
+      signupForm=`<div style="font-size:12px;color:${statusColor};margin-top:8px">Du bist als <strong>${h(mySignup.charName)}</strong> (${h(mySpecInfo)}) ${statusLbl.toLowerCase()}${mySignup.assignedSpec?` \u2014 <span style="color:var(--grn)">Zugewiesen: ${h(mySignup.assignedSpec)}</span>`:""}</div>`;
     }
   }
 
@@ -1675,6 +1737,9 @@ window.confirmDelRaid=function(id){
   });
 };
 
+// Signup spec state per raid
+const _suSpecs={};
+
 window.showSignupForm=function(raidId){
   const el=document.getElementById("signup-form-"+raidId);
   if(!el)return;
@@ -1684,9 +1749,27 @@ window.showSignupForm=function(raidId){
 
   const preChar=mySignup?.charName||"";
   const preClass=mySignup?.className||"";
-  const preRole=mySignup?.role||"";
   const preStatus=mySignup?.status||"accepted";
   const preNote=mySignup?.note||"";
+
+  // Initialize offered specs from existing signup or character entry
+  let initSpecs=mySignup?.offeredSpecs||[];
+  if(!initSpecs.length&&preChar){
+    const ch=myChars.find(c=>c.charName===preChar);
+    if(ch&&ch.specs)initSpecs=[...ch.specs];
+  }
+  if(!initSpecs.length&&myChars.length&&!preChar){
+    const ch=myChars[0];
+    if(ch&&ch.specs)initSpecs=[...ch.specs];
+  }
+  _suSpecs[raidId]=initSpecs;
+
+  // Determine class for spec display
+  let cls=preClass;
+  if(!cls&&myChars.length){
+    const ch=preChar?myChars.find(c=>c.charName===preChar):myChars[0];
+    if(ch)cls=ch.className;
+  }
 
   let charOptions="";
   if(myChars.length){
@@ -1700,18 +1783,19 @@ window.showSignupForm=function(raidId){
         <option value="">— Charakter —</option>
         ${charOptions}
       </select>`:`<input type="text" id="su-charname-${raidId}" value="${h(preChar)}" placeholder="Charaktername" style="padding:6px 10px;width:120px;font-size:13px">`}
-      ${!myChars.length?`<select id="su-class-${raidId}" style="font-size:13px">
+      ${!myChars.length?`<select id="su-class-${raidId}" style="font-size:13px" onchange="suClassChanged('${raidId}')">
         <option value="">— Klasse —</option>
         ${CLS.map(c=>`<option value="${h(c.n)}"${c.n===preClass?" selected":""}>${h(c.n)}</option>`).join("")}
-      </select>`:`<input type="hidden" id="su-class-${raidId}" value="${h(myChars.length&&!preClass?myChars[0].className:preClass)}">`}
-      <select id="su-role-${raidId}" style="font-size:13px">
-        ${ROLES.map(r=>`<option value="${r}"${r===preRole?" selected":""}>${RI[r]} ${r}</option>`).join("")}
-      </select>
+      </select>`:`<input type="hidden" id="su-class-${raidId}" value="${h(cls)}">`}
       <select id="su-status-${raidId}" style="font-size:13px">
         <option value="accepted"${preStatus==="accepted"?" selected":""}>Dabei</option>
         <option value="tentative"${preStatus==="tentative"?" selected":""}>Vielleicht</option>
         <option value="declined"${preStatus==="declined"?" selected":""}>Absage</option>
       </select>
+    </div>
+    <div style="margin-top:8px">
+      <span style="font-size:12px;color:var(--tx3)">Angebotene Specs (Mehrfachauswahl):</span>
+      <div class="rchips" id="su-specs-${raidId}" style="margin-top:4px">${renderSuSpecs(raidId,cls)}</div>
     </div>
     <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
       <input type="text" id="su-note-${raidId}" value="${h(preNote)}" placeholder="Anmerkung (optional)" style="flex:1;padding:6px 10px;font-size:12px">
@@ -1725,9 +1809,31 @@ window.showSignupForm=function(raidId){
     const sel=document.getElementById("su-char-"+raidId);
     if(sel&&sel.value){
       const ch=myChars.find(c=>c.charName===sel.value);
-      if(ch)document.getElementById("su-class-"+raidId).value=ch.className;
+      if(ch){
+        document.getElementById("su-class-"+raidId).value=ch.className;
+        document.getElementById("su-specs-"+raidId).innerHTML=renderSuSpecs(raidId,ch.className);
+      }
     }
   }
+};
+
+function renderSuSpecs(raidId,cls){
+  const specs=CLASS_SPECS[cls]||[];
+  const sel=_suSpecs[raidId]||[];
+  if(!specs.length)return`<span style="font-size:12px;color:var(--tx4)">Klasse w\u00E4hlen</span>`;
+  return specs.map(sp=>{
+    const on=sel.includes(sp.n);
+    const col=RC[sp.r];
+    return`<div class="rchip${on?" active":""}" style="font-size:12px;padding:6px 8px;${on?`border-color:${col};color:${col};background:${col}18`:""}" onclick="toggleSuSpec('${raidId}','${sp.n}')"><img class="wow-ico-sm" src="${WOW_ICONS}/spec/${sp.i}.png" alt="" loading="lazy">${sp.n}</div>`;
+  }).join("");
+}
+
+window.toggleSuSpec=function(raidId,specName){
+  if(!_suSpecs[raidId])_suSpecs[raidId]=[];
+  if(_suSpecs[raidId].includes(specName))_suSpecs[raidId]=_suSpecs[raidId].filter(s=>s!==specName);
+  else _suSpecs[raidId].push(specName);
+  const cls=document.getElementById("su-class-"+raidId)?.value||"";
+  document.getElementById("su-specs-"+raidId).innerHTML=renderSuSpecs(raidId,cls);
 };
 
 window.suCharChanged=function(raidId){
@@ -1737,7 +1843,15 @@ window.suCharChanged=function(raidId){
   if(ch){
     const clsEl=document.getElementById("su-class-"+raidId);
     if(clsEl)clsEl.value=ch.className;
+    _suSpecs[raidId]=ch.specs?[...ch.specs]:[];
+    document.getElementById("su-specs-"+raidId).innerHTML=renderSuSpecs(raidId,ch.className);
   }
+};
+
+window.suClassChanged=function(raidId){
+  const cls=document.getElementById("su-class-"+raidId)?.value||"";
+  _suSpecs[raidId]=[];
+  document.getElementById("su-specs-"+raidId).innerHTML=renderSuSpecs(raidId,cls);
 };
 
 window.doSignup=async function(raidId){
@@ -1747,20 +1861,22 @@ window.doSignup=async function(raidId){
     const sel=document.getElementById("su-char-"+raidId);
     charName=sel?sel.value:"";
     className=document.getElementById("su-class-"+raidId)?.value||"";
-    // If char not selected, use first
     if(!charName&&myChars.length){charName=myChars[0].charName;className=myChars[0].className}
   }else{
     charName=document.getElementById("su-charname-"+raidId)?.value.trim()||"";
     className=document.getElementById("su-class-"+raidId)?.value||"";
   }
-  const role=document.getElementById("su-role-"+raidId)?.value||"DPS";
+  const offeredSpecs=_suSpecs[raidId]||[];
+  if(!offeredSpecs.length){toast("Bitte mindestens einen Spec w\u00E4hlen");return}
+  // Derive role from first offered spec
+  const role=specRole(className,offeredSpecs[0]);
   const status=document.getElementById("su-status-"+raidId)?.value||"accepted";
   const note=document.getElementById("su-note-"+raidId)?.value?.trim()||"";
 
   if(!charName){toast("Bitte Charakter angeben");return}
 
   try{
-    await saveRaid({action:"signup",raidId,charName,className,role,status,note});
+    await saveRaid({action:"signup",raidId,charName,className,offeredSpecs,role,status,note});
     const statusLbl=status==="accepted"?"Angemeldet":status==="tentative"?"Vielleicht":"Abgesagt";
     toast(statusLbl+" \u2713");
     await loadRaids();
@@ -1777,6 +1893,15 @@ window.unsignRaid=async function(raidId){
   try{
     await saveRaid({action:"unsignup",raidId});
     toast("Abgemeldet");
+    await loadRaids();
+    renderRaids();
+  }catch(e){toast("Fehler: "+e.message)}
+};
+
+window.assignSpec=async function(raidId,targetUserId,assignedSpec){
+  try{
+    await saveRaid({action:"assign-spec",raidId,targetUserId,assignedSpec:assignedSpec||null});
+    toast(assignedSpec?"Spec zugewiesen: "+assignedSpec:"Zuweisung entfernt");
     await loadRaids();
     renderRaids();
   }catch(e){toast("Fehler: "+e.message)}

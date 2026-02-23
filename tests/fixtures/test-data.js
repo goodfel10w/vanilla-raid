@@ -4,6 +4,7 @@ export const SAMPLE_ENTRY = {
   id: 'test-id-1',
   charName: 'Thrallm\u00e4chtig',
   className: 'Krieger',
+  specs: ['Prot'],
   roles: ['Tank'],
   availability: {
     'Montag_18:00': 'yes', 'Montag_18:15': 'yes', 'Montag_18:30': 'yes', 'Montag_18:45': 'yes',
@@ -22,6 +23,7 @@ export const SAMPLE_ENTRY_2 = {
   id: 'test-id-2',
   charName: 'Heiligschein',
   className: 'Priester',
+  specs: ['Holy', 'Shadow'],
   roles: ['Heiler', 'DPS'],
   availability: {
     'Montag_18:00': 'yes', 'Montag_18:15': 'yes', 'Montag_18:30': 'yes', 'Montag_18:45': 'yes',
@@ -42,6 +44,7 @@ export function makeStoredEntry(overrides = {}) {
     id: `generated-id-${_idCounter}`,
     charName: 'Testchar',
     className: 'Magier',
+    specs: ['Frost'],
     roles: ['DPS'],
     availability: {},
     notes: '',

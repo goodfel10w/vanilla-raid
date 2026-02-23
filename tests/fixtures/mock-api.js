@@ -81,6 +81,7 @@ export async function setupMockApi(page, initialEntries = []) {
         id: body.id || `mock-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         charName: body.charName,
         className: body.className,
+        specs: body.specs || [],
         roles: body.roles || [],
         availability: body.availability || {},
         notes: body.notes || '',

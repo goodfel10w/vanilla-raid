@@ -50,7 +50,8 @@ function buildRaidEmbed(raid, siteUrl) {
       const lines = rs.map(s => {
         const tent = s.status === "tentative" ? " *(Vielleicht)*" : "";
         const cls = s.className ? ` (${s.className})` : "";
-        return `> ${s.charName}${cls}${tent}`;
+        const specInfo = s.assignedSpec ? ` **[${s.assignedSpec}]**` : s.offeredSpecs && s.offeredSpecs.length ? ` [${s.offeredSpecs.join("/")}]` : "";
+        return `> ${s.charName}${cls}${specInfo}${tent}`;
       });
       fields.push({
         name: `${ROLE_EMOJI[role]} ${role} (${rs.length})`,
