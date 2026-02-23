@@ -57,8 +57,12 @@ test.describe('Layout checks', () => {
     }
   });
 
-  test('form has 9 class chips and 3 role chips', async ({ page }) => {
+  test('form has 9 class chips and spec chips appear after class selection', async ({ page }) => {
     await expect(page.locator('.chip')).toHaveCount(9);
+    // Spec chips only appear after selecting a class
+    await expect(page.locator('.rchip')).toHaveCount(0);
+    await page.locator('.chip', { hasText: 'Krieger' }).click();
+    // Krieger has 3 specs: Prot, Arms, Fury
     await expect(page.locator('.rchip')).toHaveCount(3);
   });
 
