@@ -707,12 +707,13 @@ async function loadBnetCharacters(){
   }
 }
 async function initAuth(){
-  // Handle Battle.net OAuth callback token in URL
-  const params=new URLSearchParams(window.location.search);
-  const bnetToken=params.get("bnet_token");
-  const authError=params.get("auth_error");
+  // Handle Battle.net OAuth callback token in URL fragment (preferred) or query param (legacy)
+  const hashParams=new URLSearchParams(window.location.hash.slice(1));
+  const queryParams=new URLSearchParams(window.location.search);
+  const bnetToken=hashParams.get("bnet_token")||queryParams.get("bnet_token");
+  const authError=queryParams.get("auth_error");
   if(bnetToken){
-    // Clean URL
+    // Clean URL — remove both hash and query params
     window.history.replaceState({},"",window.location.pathname);
     currentUser={token:bnetToken,username:"...",userId:""};
     localStorage.setItem("raid-auth",JSON.stringify(currentUser));
@@ -871,7 +872,7 @@ function updateAll(){
 
 // ── Helpers ──
 function cc(n){return CLS.find(c=>c.n===n)?.c||"#ccc"}
-function h(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
+function h(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
 
 // Item linking: converts [Item Name] to Wowhead TBC search links with icon
 function linkItems(text){

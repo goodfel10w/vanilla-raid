@@ -160,10 +160,11 @@ export default async (req) => {
       expiresAt,
     });
 
-    // Redirect back to app with session token in URL fragment
-    // Using fragment (#) so the token isn't sent to the server on subsequent requests
+    // Redirect back to app with session token in URL fragment (#)
+    // Fragment is NOT sent to the server on subsequent requests, not logged in access logs,
+    // and not included in Referer headers — unlike query parameters (?).
     return Response.redirect(
-      `${origin}/?bnet_token=${encodeURIComponent(sessionToken)}`,
+      `${origin}/#bnet_token=${encodeURIComponent(sessionToken)}`,
       302
     );
   } catch (err) {
