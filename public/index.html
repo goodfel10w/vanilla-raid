@@ -370,6 +370,12 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .dkp-pchip:hover{border-color:rgba(255,255,255,.12)}
 .dkp-selectall{font-size:12px;color:var(--gold);cursor:pointer;margin-left:8px}
 .dkp-selectall:hover{text-decoration:underline}
+.dkp-raid-picker{margin-bottom:16px}
+.dkp-raid-picker select{display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer;transition:border-color .2s}
+.dkp-raid-picker select:focus{border-color:rgba(201,168,76,.3)}
+.dkp-raid-hint{font-size:12px;color:var(--tx4);margin-top:6px}
+.btn-raid-dkp{background:none;border:1px solid rgba(201,168,76,.4)!important;color:var(--gold)}
+.btn-raid-dkp:hover{background:rgba(201,168,76,.1);border-color:var(--gold)!important}
 input[type=number]{display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;transition:border-color .2s}
 input[type=number]:focus{border-color:rgba(201,168,76,.3)}
 .dkp-decay-preview{font-size:12px;color:var(--tx3);margin-top:6px;padding:8px 12px;background:rgba(0,0,0,.2);border-radius:6px}
@@ -420,7 +426,14 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
 
 /* Hidden */
 .hidden{display:none!important}
+
+/* Item links */
+.item-link{color:#a335ee;text-decoration:none;font-style:normal;cursor:pointer;transition:color .15s;white-space:nowrap}
+.item-link:hover{color:#c577f5;text-decoration:underline}
+.item-link::before{content:"";display:inline-block;width:15px;height:15px;margin-right:3px;vertical-align:-2px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='1' y='1' width='14' height='14' rx='2' fill='%231a1a2e' stroke='%23a335ee' stroke-width='1.5'/%3E%3Cpath d='M5 4h6v2H5zM4 7h8v2H4zM5 10h6v2H5z' fill='%23a335ee' opacity='.5'/%3E%3C/svg%3E") no-repeat center/contain}
 </style>
+<script>const whTooltips={colorLinks:true,iconizeLinks:true,renameLinks:true};</script>
+<script src="https://wow.zamimg.com/widgets/power.js"></script>
 </head>
 <body>
 <div class="glow g1"></div>
@@ -537,7 +550,7 @@ let raidForm={instance:"",date:"",time:"20:00",maxPlayers:25,notes:""};
 // DKP state
 const DKP_API="/api/dkp";
 let dkpBalances=[], dkpTransactions=[], dkpView="overview";
-let dkpAwardPlayers=[], dkpAwardAmount="", dkpAwardReason="";
+let dkpAwardPlayers=[], dkpAwardAmount="", dkpAwardReason="", dkpAwardRaidId="";
 let dkpSpendPlayer="", dkpSpendAmount="", dkpSpendItem="";
 let dkpDecayPercent=15;
 let dkpConfig={roles:{},defaultDecayPercent:15,maxDkpAmount:10000,allowNegativeBalance:true,startingBalance:0,transactionLimit:50,reasonMaxLength:200};
@@ -741,7 +754,7 @@ function switchTab(v){
     t.setAttribute("aria-selected",isOn?"true":"false");
     if(isOn && v==="form") t.textContent=editId?"Bearbeiten":"Eintragen";
   });
-  ["form","raids","roster","heatmap","analytics"].forEach(x=>{
+  ["form","raids","roster","heatmap","analytics","dkp"].forEach(x=>{
     document.getElementById("v-"+x).classList.toggle("hidden",x!==v);
   });
 }
@@ -759,6 +772,16 @@ function updateAll(){
 // ── Helpers ──
 function cc(n){return CLS.find(c=>c.n===n)?.c||"#ccc"}
 function h(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
+
+// Item linking: converts [Item Name] to Wowhead TBC search links with icon
+function linkItems(text){
+  if(!text)return"";
+  const escaped=h(text);
+  return escaped.replace(/\[([^\]]+)\]/g,function(_,name){
+    const q=encodeURIComponent(name.replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&#39;/g,"'"));
+    return'<a class="item-link" href="https://www.wowhead.com/tbc/search?q='+q+'" target="_blank" rel="noopener">'+name+'</a>';
+  });
+}
 
 // Heatmap: aggregate per hour (player counts as available if ALL 4 quarters are marked)
 function heatData(){
@@ -1479,6 +1502,9 @@ function renderRaidCard(raid,isPast){
     }
     actions+=`</div>`;
   }
+  if(currentUser&&isPast&&isDkpOfficer()&&signups.length){
+    actions+=`<div class="raid-actions"><button class="btn-raid-dkp" onclick="dkpAwardFromRaid('${raid.id}')">DKP vergeben</button></div>`;
+  }
 
   return`<div class="raid-card${isPast?" past":""}" id="raid-${raid.id}">
     <div class="raid-hdr">
@@ -1725,6 +1751,29 @@ function getDkpRole(){
 function isDkpAdmin(){return getDkpRole()==="admin"}
 function isDkpOfficer(){const r=getDkpRole();return r==="admin"||r==="officer"}
 
+function syncDkpAwardUi(){
+  const btn=document.getElementById("dkp-award-btn");
+  if(btn){
+    if(dkpAwardPlayers.length&&dkpAwardAmount&&dkpAwardReason)btn.removeAttribute("disabled");
+    else btn.setAttribute("disabled","");
+  }
+  const prev=document.getElementById("dkp-award-preview");
+  if(prev){
+    if(dkpAwardPlayers.length&&dkpAwardAmount){
+      prev.innerHTML=dkpAwardPlayers.length+' Spieler × '+h(dkpAwardAmount)+' DKP = <strong style="color:var(--grn)">'+dkpAwardPlayers.length*Number(dkpAwardAmount)+' DKP</strong> gesamt';
+      prev.style.display="";
+    }else{prev.style.display="none"}
+  }
+}
+
+function syncDkpSpendUi(){
+  const btn=document.getElementById("dkp-spend-btn");
+  if(btn){
+    if(dkpSpendPlayer&&dkpSpendAmount)btn.removeAttribute("disabled");
+    else btn.setAttribute("disabled","");
+  }
+}
+
 function dkpSortedBalances(){
   const list=[...dkpBalances];
   const dir=dkpSortDir==="asc"?1:-1;
@@ -1756,6 +1805,7 @@ function renderDkp(){
   else{html+=renderDkpOverview()}
 
   el.innerHTML=html;
+  if(typeof $WowheadPower!=="undefined")$WowheadPower.refreshLinks();
 }
 
 function renderDkpOverview(){
@@ -1827,7 +1877,7 @@ function renderDkpTxList(txList){
     return`<div class="dkp-tx">
       <span class="dkp-tx-type ${typeCls}">${typeLabel}</span>
       <span class="dkp-tx-name" style="color:${clr}">${h(tx.playerName)}</span>
-      <span class="dkp-tx-reason">${h(tx.reason)}</span>
+      <span class="dkp-tx-reason">${tx.type==="spend"?linkItems(tx.reason):h(tx.reason)}</span>
       <span class="dkp-tx-amount ${amtCls}">${amtStr}</span>
       <span class="dkp-tx-meta">${h(tx.createdBy||"")} · ${dateStr}</span>
     </div>`;
@@ -1872,9 +1922,23 @@ function renderDkpPlayerDetail(){
 
 function renderDkpAward(){
   const players=entries.map(e=>({name:e.charName,className:e.className}));
+  const pastRaids=raids.filter(r=>isRaidPast(r)).sort((a,b)=>(b.date+"T"+b.time).localeCompare(a.date+"T"+a.time));
 
   let html=`<div class="card dkp-form" style="padding:28px">
     <div class="card-t">DKP vergeben</div>
+    ${pastRaids.length?`<div class="dkp-raid-picker">
+      <div class="fld">
+        <span class="lbl">Aus Raid übernehmen</span>
+        <select onchange="dkpSelectRaid(this.value)">
+          <option value="">— Manuell auswählen —</option>
+          ${pastRaids.map(r=>{
+            const signups=(r.signups||[]).filter(s=>s.status!=="declined");
+            return`<option value="${r.id}"${dkpAwardRaidId===r.id?" selected":""}>${h(r.instance)} — ${fmtDate(r.date)} ${r.time} (${signups.length} Spieler)</option>`;
+          }).join("")}
+        </select>
+        ${dkpAwardRaidId?`<div class="dkp-raid-hint">Spieler und Grund aus Raid übernommen. Du kannst Spieler manuell an-/abwählen.</div>`:""}
+      </div>
+    </div>`:""}
     <div class="fld">
       <span class="lbl">Spieler auswählen <span class="dkp-selectall" onclick="dkpSelectAll()">Alle</span></span>
       <div class="dkp-pchips">
@@ -1886,15 +1950,15 @@ function renderDkpAward(){
     </div>
     <div class="fld">
       <span class="lbl">DKP-Betrag</span>
-      <input type="number" id="dkp-award-amount" value="${h(dkpAwardAmount)}" placeholder="z.B. 10" min="1" max="${dkpConfig.maxDkpAmount}" oninput="dkpAwardAmount=this.value">
+      <input type="number" id="dkp-award-amount" value="${h(dkpAwardAmount)}" placeholder="z.B. 10" min="1" max="${dkpConfig.maxDkpAmount}" oninput="dkpAwardAmount=this.value;syncDkpAwardUi()">
     </div>
     <div class="fld">
       <span class="lbl">Grund</span>
-      <input type="text" id="dkp-award-reason" value="${h(dkpAwardReason)}" placeholder="z.B. Gruul Kill, Pünktlichkeitsbonus" maxlength="${dkpConfig.reasonMaxLength||200}" oninput="dkpAwardReason=this.value">
+      <input type="text" id="dkp-award-reason" value="${h(dkpAwardReason)}" placeholder="z.B. Gruul Kill, Pünktlichkeitsbonus" maxlength="${dkpConfig.reasonMaxLength||200}" oninput="dkpAwardReason=this.value;syncDkpAwardUi()">
     </div>
-    ${dkpAwardPlayers.length&&dkpAwardAmount?`<div style="font-size:12px;color:var(--tx3);margin-bottom:12px">${dkpAwardPlayers.length} Spieler × ${h(dkpAwardAmount)} DKP = <strong style="color:var(--grn)">${dkpAwardPlayers.length*Number(dkpAwardAmount)} DKP</strong> gesamt</div>`:""}
+    <div id="dkp-award-preview" style="font-size:12px;color:var(--tx3);margin-bottom:12px;${dkpAwardPlayers.length&&dkpAwardAmount?"":"display:none"}">${dkpAwardPlayers.length&&dkpAwardAmount?`${dkpAwardPlayers.length} Spieler × ${h(dkpAwardAmount)} DKP = <strong style="color:var(--grn)">${dkpAwardPlayers.length*Number(dkpAwardAmount)} DKP</strong> gesamt`:""}</div>
     <div class="brow">
-      <button class="btn-p" ${dkpAwardPlayers.length&&dkpAwardAmount&&dkpAwardReason?"":"disabled"} onclick="doDkpAward()">Vergeben</button>
+      <button class="btn-p" id="dkp-award-btn" ${dkpAwardPlayers.length&&dkpAwardAmount&&dkpAwardReason?"":"disabled"} onclick="doDkpAward()">Vergeben</button>
     </div>
   </div>`;
   return html;
@@ -1907,21 +1971,22 @@ function renderDkpSpend(){
     <div class="card-t">Beute verteilen (DKP ausgeben)</div>
     <div class="fld">
       <span class="lbl">Spieler</span>
-      <select id="dkp-spend-player" style="display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer" onchange="dkpSpendPlayer=this.value">
+      <select id="dkp-spend-player" style="display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer" onchange="dkpSpendPlayer=this.value;syncDkpSpendUi()">
         <option value="">— Spieler wählen —</option>
         ${playersWithDkp.map(b=>`<option value="${h(b.playerName)}"${dkpSpendPlayer===b.playerName?" selected":""}>${h(b.playerName)} (${b.balance} DKP)</option>`).join("")}
       </select>
     </div>
     <div class="fld">
       <span class="lbl">DKP-Kosten</span>
-      <input type="number" id="dkp-spend-amount" value="${h(dkpSpendAmount)}" placeholder="z.B. 25" min="1" max="${dkpConfig.maxDkpAmount}" oninput="dkpSpendAmount=this.value">
+      <input type="number" id="dkp-spend-amount" value="${h(dkpSpendAmount)}" placeholder="z.B. 25" min="1" max="${dkpConfig.maxDkpAmount}" oninput="dkpSpendAmount=this.value;syncDkpSpendUi()">
     </div>
     <div class="fld">
       <span class="lbl">Gegenstand</span>
-      <input type="text" id="dkp-spend-item" value="${h(dkpSpendItem)}" placeholder="z.B. Dragonspine Trophy" maxlength="${dkpConfig.reasonMaxLength||200}" oninput="dkpSpendItem=this.value">
+      <input type="text" id="dkp-spend-item" value="${h(dkpSpendItem)}" placeholder="z.B. [Dragonspine Trophy]" maxlength="${dkpConfig.reasonMaxLength||200}" oninput="dkpSpendItem=this.value">
+      <span class="lbl-s" style="margin-top:4px">[Item Name] in Klammern = Wowhead-Link mit Icon</span>
     </div>
     <div class="brow">
-      <button class="btn-p" ${dkpSpendPlayer&&dkpSpendAmount?"":"disabled"} onclick="doDkpSpend()">Beute verbuchen</button>
+      <button class="btn-p" id="dkp-spend-btn" ${dkpSpendPlayer&&dkpSpendAmount?"":"disabled"} onclick="doDkpSpend()">Beute verbuchen</button>
     </div>
   </div>`;
   return html;
@@ -2133,7 +2198,7 @@ window.doDkpUndo=function(){
   const typeLabel=last.type==="earn"?"Verdient":last.type==="spend"?"Beute":"Verfall";
   const amtStr=last.amount>0?"+"+last.amount:String(last.amount);
   showModal("Letzte Transaktion rückgängig machen",
-    `<strong>${typeLabel}</strong>: ${h(last.playerName)} ${amtStr} DKP — „${h(last.reason)}"<br><br>Diese Aktion macht die Transaktion rückgängig und stellt den vorherigen DKP-Stand wieder her.`,
+    `<strong>${typeLabel}</strong>: ${h(last.playerName)} ${amtStr} DKP — „${last.type==="spend"?linkItems(last.reason):h(last.reason)}"<br><br>Diese Aktion macht die Transaktion rückgängig und stellt den vorherigen DKP-Stand wieder her.`,
     async()=>{
       try{
         const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"undo",transactionId:last.id})});
@@ -2163,6 +2228,31 @@ window.dkpTogglePlayer=function(name){
 window.dkpSelectAll=function(){
   if(dkpAwardPlayers.length===entries.length){dkpAwardPlayers=[]}
   else{dkpAwardPlayers=entries.map(e=>({name:e.charName,className:e.className}))}
+  dkpAwardRaidId="";
+  renderDkp();
+};
+
+window.dkpSelectRaid=function(raidId){
+  dkpAwardRaidId=raidId;
+  if(!raidId){dkpAwardPlayers=[];dkpAwardReason="";renderDkp();return}
+  const raid=raids.find(r=>r.id===raidId);
+  if(!raid){renderDkp();return}
+  const signups=(raid.signups||[]).filter(s=>s.status!=="declined");
+  dkpAwardPlayers=signups.map(s=>({name:s.charName,className:s.className||""}));
+  dkpAwardReason=raid.instance+" — "+fmtDate(raid.date);
+  renderDkp();
+};
+
+window.dkpAwardFromRaid=function(raidId){
+  dkpAwardRaidId=raidId;
+  const raid=raids.find(r=>r.id===raidId);
+  if(!raid)return;
+  const signups=(raid.signups||[]).filter(s=>s.status!=="declined");
+  dkpAwardPlayers=signups.map(s=>({name:s.charName,className:s.className||""}));
+  dkpAwardReason=raid.instance+" — "+fmtDate(raid.date);
+  dkpAwardAmount="";
+  dkpView="award";
+  switchTab("dkp");
   renderDkp();
 };
 
@@ -2172,7 +2262,7 @@ window.doDkpAward=async function(){
     const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"award",players:dkpAwardPlayers,amount:Number(dkpAwardAmount),reason:dkpAwardReason})});
     if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
     toast(`${dkpAwardPlayers.length}× ${dkpAwardAmount} DKP vergeben`);
-    dkpAwardPlayers=[];dkpAwardAmount="";dkpAwardReason="";
+    dkpAwardPlayers=[];dkpAwardAmount="";dkpAwardReason="";dkpAwardRaidId="";
     dkpView="overview";
     await loadDkp();renderDkp();
   }catch(e){handleDkpError(e)}
