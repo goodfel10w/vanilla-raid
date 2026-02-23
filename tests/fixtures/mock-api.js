@@ -1,5 +1,11 @@
 const MOCK_USER = { token: 'mock-token', username: 'Testuser', userId: 'mock-user-1' };
 
+const MOCK_BNET_CHARACTERS = [
+  { name: 'Thrallmächtig', realm: 'Firemaw', className: 'Schamane', level: 70 },
+  { name: 'Arthaslull', realm: 'Firemaw', className: 'Paladin', level: 70 },
+  { name: 'Dottqueen', realm: 'Firemaw', className: 'Hexenmeister', level: 65 },
+];
+
 export async function setupMockApi(page, initialEntries = []) {
   const store = initialEntries.map(e => ({ ...e }));
 
@@ -11,6 +17,16 @@ export async function setupMockApi(page, initialEntries = []) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ username: MOCK_USER.username, userId: MOCK_USER.userId }),
+      });
+      return;
+    }
+
+    if (body.action === 'bnet-login') {
+      // Return a mock Battle.net OAuth URL — tests can intercept navigation
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ url: 'https://eu.battle.net/oauth/authorize?mock=1' }),
       });
       return;
     }
@@ -34,6 +50,14 @@ export async function setupMockApi(page, initialEntries = []) {
     }
 
     await route.continue();
+  });
+
+  await page.route('**/api/bnet-characters', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ characters: MOCK_BNET_CHARACTERS }),
+    });
   });
 
   await page.route('**/api/entries**', async (route) => {
