@@ -166,7 +166,7 @@ export default async (req, context) => {
       return new Response(JSON.stringify(entry), { status: 200, headers });
     }
 
-    // DELETE — remove entry
+    // DELETE — remove entry (single by id, or all if admin with ?all=true)
     if (req.method === "DELETE") {
       const user = await validateSession(req);
       if (!user) {
@@ -174,6 +174,22 @@ export default async (req, context) => {
       }
       const url = new URL(req.url);
       const id = url.searchParams.get("id");
+      const all = url.searchParams.get("all");
+
+      // Admin: delete all entries
+      if (all === "true") {
+        if (!user.isAdmin) {
+          return new Response(JSON.stringify({ error: "Nur Admins erlaubt" }), { status: 403, headers });
+        }
+        const { blobs } = await store.list();
+        let deleted = 0;
+        for (const blob of blobs) {
+          await store.delete(blob.key);
+          deleted++;
+        }
+        return new Response(JSON.stringify({ ok: true, deleted }), { status: 200, headers });
+      }
+
       if (!id) {
         return new Response(JSON.stringify({ error: "ID fehlt" }), { status: 400, headers });
       }
