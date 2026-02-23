@@ -55,22 +55,27 @@ input[type=text]{
 }
 input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 
+/* WoW icons */
+.wow-ico{width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:4px;flex-shrink:0}
+.wow-ico-sm{width:16px;height:16px;border-radius:3px;vertical-align:middle;margin-right:3px;flex-shrink:0}
+.wow-ico-lg{width:28px;height:28px;border-radius:5px;vertical-align:middle;margin-right:6px;flex-shrink:0}
+
 /* Class chips */
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{
   padding:6px 13px;border-radius:6px;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;
   border:2px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx3);transition:all .15s;user-select:none;
-  min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+  min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:4px;
 }
 .chip:hover{border-color:rgba(255,255,255,.12)}
 
-/* Role chips */
-.rchips{display:flex;gap:8px}
+/* Spec chips */
+.rchips{display:flex;flex-wrap:wrap;gap:8px}
 .rchip{
-  padding:10px 0;border-radius:8px;cursor:pointer;font:600 14px 'Nunito Sans',sans-serif;
+  padding:8px 12px;border-radius:8px;cursor:pointer;font:600 13px 'Nunito Sans',sans-serif;
   border:2px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx3);
-  transition:all .15s;flex:1;text-align:center;user-select:none;
-  min-height:44px;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;user-select:none;
+  min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;
 }
 
 /* Timeline grid */
@@ -476,26 +481,29 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
 
 <script>
 // ── Constants ──
+const WOW_ICONS="https://cdn.jsdelivr.net/gh/orourkek/Wow-Icons@master/images";
 const CLS=[
-  {n:"Druide",c:"#FF7C0A"},{n:"Hexenmeister",c:"#8788EE"},{n:"Jäger",c:"#AAD372"},
-  {n:"Krieger",c:"#C69B6D"},{n:"Magier",c:"#3FC7EB"},{n:"Paladin",c:"#F48CBA"},
-  {n:"Priester",c:"#FFFFFF"},{n:"Schamane",c:"#0070DD"},{n:"Schurke",c:"#FFF468"},
+  {n:"Druide",c:"#FF7C0A",i:"druid"},{n:"Hexenmeister",c:"#8788EE",i:"warlock"},{n:"Jäger",c:"#AAD372",i:"hunter"},
+  {n:"Krieger",c:"#C69B6D",i:"warrior"},{n:"Magier",c:"#3FC7EB",i:"mage"},{n:"Paladin",c:"#F48CBA",i:"paladin"},
+  {n:"Priester",c:"#FFFFFF",i:"priest"},{n:"Schamane",c:"#0070DD",i:"shaman"},{n:"Schurke",c:"#FFF468",i:"rogue"},
 ];
+function clsIcon(cls){const c=CLS.find(x=>x.n===cls);return c?`${WOW_ICONS}/class/64/${c.i}.png`:""}
 const ROLES=["Tank","Heiler","DPS"];
 const RI={Tank:"\u{1F6E1}\uFE0F",Heiler:"\u{1F49A}",DPS:"\u2694\uFE0F"};
 const RC={Tank:"#5b9bd5",Heiler:"#66bb6a",DPS:"#e57373"};
-// Class-specific specs: each spec maps to a role
+// Class-specific specs: each spec maps to a role + icon path
 const CLASS_SPECS={
-  "Druide":[{n:"Balance",r:"DPS"},{n:"Feral Tank",r:"Tank"},{n:"Feral DPS",r:"DPS"},{n:"Resto",r:"Heiler"}],
-  "Hexenmeister":[{n:"Affliction",r:"DPS"},{n:"Demonologie",r:"DPS"},{n:"Destruction",r:"DPS"}],
-  "Jäger":[{n:"Beast Mastery",r:"DPS"},{n:"Marksmanship",r:"DPS"},{n:"Survival",r:"DPS"}],
-  "Krieger":[{n:"Prot",r:"Tank"},{n:"Arms",r:"DPS"},{n:"Fury",r:"DPS"}],
-  "Magier":[{n:"Arcane",r:"DPS"},{n:"Fire",r:"DPS"},{n:"Frost",r:"DPS"}],
-  "Paladin":[{n:"Holy",r:"Heiler"},{n:"Prot",r:"Tank"},{n:"Retri",r:"DPS"}],
-  "Priester":[{n:"Disc",r:"Heiler"},{n:"Holy",r:"Heiler"},{n:"Shadow",r:"DPS"}],
-  "Schamane":[{n:"Elemental",r:"DPS"},{n:"Enhancement",r:"DPS"},{n:"Resto",r:"Heiler"}],
-  "Schurke":[{n:"Assassination",r:"DPS"},{n:"Combat",r:"DPS"},{n:"Subtlety",r:"DPS"}],
+  "Druide":[{n:"Balance",r:"DPS",i:"druid/balance"},{n:"Feral Tank",r:"Tank",i:"druid/feral"},{n:"Feral DPS",r:"DPS",i:"druid/feral"},{n:"Resto",r:"Heiler",i:"druid/restoration"}],
+  "Hexenmeister":[{n:"Affliction",r:"DPS",i:"warlock/affliction"},{n:"Demonologie",r:"DPS",i:"warlock/demonology"},{n:"Destruction",r:"DPS",i:"warlock/destruction"}],
+  "Jäger":[{n:"Beast Mastery",r:"DPS",i:"hunter/beastmastery"},{n:"Marksmanship",r:"DPS",i:"hunter/marksman"},{n:"Survival",r:"DPS",i:"hunter/survival"}],
+  "Krieger":[{n:"Prot",r:"Tank",i:"warrior/protection"},{n:"Arms",r:"DPS",i:"warrior/arms"},{n:"Fury",r:"DPS",i:"warrior/fury"}],
+  "Magier":[{n:"Arcane",r:"DPS",i:"mage/arcane"},{n:"Fire",r:"DPS",i:"mage/fire"},{n:"Frost",r:"DPS",i:"mage/frost"}],
+  "Paladin":[{n:"Holy",r:"Heiler",i:"paladin/holy"},{n:"Prot",r:"Tank",i:"paladin/protection"},{n:"Retri",r:"DPS",i:"paladin/retribution"}],
+  "Priester":[{n:"Disc",r:"Heiler",i:"priest/discipline"},{n:"Holy",r:"Heiler",i:"priest/holy"},{n:"Shadow",r:"DPS",i:"priest/shadow"}],
+  "Schamane":[{n:"Elemental",r:"DPS",i:"shaman/elemental"},{n:"Enhancement",r:"DPS",i:"shaman/enhancement"},{n:"Resto",r:"Heiler",i:"shaman/restoration"}],
+  "Schurke":[{n:"Assassination",r:"DPS",i:"rogue/assassination"},{n:"Combat",r:"DPS",i:"rogue/combat"},{n:"Subtlety",r:"DPS",i:"rogue/subtlety"}],
 };
+function specIcon(cls,specName){const sp=(CLASS_SPECS[cls]||[]).find(s=>s.n===specName);return sp?`${WOW_ICONS}/spec/${sp.i}.png`:""}
 function specsToRoles(cls,specs){
   const cspecs=CLASS_SPECS[cls]||[];
   const rs=new Set();
@@ -1023,7 +1031,7 @@ function renderForm(skipSync){
       </div>
       <div class="fld">
         <span class="lbl">Klasse</span>
-        <div class="chips" role="radiogroup" aria-label="Klasse">${CLS.map(c=>`<div class="chip${form.cls===c.n?" active":""}" role="radio" aria-checked="${form.cls===c.n}" style="${form.cls===c.n?`border-color:${c.c};color:${c.c};background:${c.c}18`:""}" onclick="pickCls('${c.n}')" tabindex="0" onkeydown="if(event.key===' '||event.key==='Enter'){pickCls('${c.n}');event.preventDefault()}">${c.n}</div>`).join("")}</div>
+        <div class="chips" role="radiogroup" aria-label="Klasse">${CLS.map(c=>`<div class="chip${form.cls===c.n?" active":""}" role="radio" aria-checked="${form.cls===c.n}" style="${form.cls===c.n?`border-color:${c.c};color:${c.c};background:${c.c}18`:""}" onclick="pickCls('${c.n}')" tabindex="0" onkeydown="if(event.key===' '||event.key==='Enter'){pickCls('${c.n}');event.preventDefault()}"><img class="wow-ico" src="${WOW_ICONS}/class/64/${c.i}.png" alt="" loading="lazy">${c.n}</div>`).join("")}</div>
       </div>
       <div class="fld">
         <span class="lbl">Spezialisierung(en)</span>
@@ -1031,7 +1039,7 @@ function renderForm(skipSync){
         ${form.cls?`<div class="rchips" role="group" aria-label="Specs">${(CLASS_SPECS[form.cls]||[]).map(sp=>{
           const on=form.specs.includes(sp.n);
           const col=RC[sp.r];
-          return`<div class="rchip${on?" active":""}" role="checkbox" aria-checked="${on}" style="${on?`border-color:${col};color:${col};background:${col}18`:""}" onclick="toggleSpec('${sp.n}')" tabindex="0" onkeydown="if(event.key===' '||event.key==='Enter'){toggleSpec('${sp.n}');event.preventDefault()}">${RI[sp.r]} ${sp.n}</div>`;
+          return`<div class="rchip${on?" active":""}" role="checkbox" aria-checked="${on}" style="${on?`border-color:${col};color:${col};background:${col}18`:""}" onclick="toggleSpec('${sp.n}')" tabindex="0" onkeydown="if(event.key===' '||event.key==='Enter'){toggleSpec('${sp.n}');event.preventDefault()}"><img class="wow-ico" src="${WOW_ICONS}/spec/${sp.i}.png" alt="" loading="lazy">${sp.n}<span style="font-size:10px;opacity:.7">${sp.r}</span></div>`;
         }).join("")}</div>`:`<div style="font-size:12px;color:var(--tx4)">W\u00E4hle zuerst eine Klasse</div>`}
       </div>
       <div class="fld">
@@ -1233,9 +1241,9 @@ function renderRoster(){
     }));
     html+=`<div class="entry">
       <div class="e-info">
-        <div class="e-name" style="color:${cc(e.className)}">${h(e.charName)}</div>
+        <div class="e-name" style="color:${cc(e.className)}"><img class="wow-ico-sm" src="${clsIcon(e.className)}" alt="" loading="lazy">${h(e.charName)}</div>
         <div class="e-class">${h(e.className)}</div>
-        <div class="e-roles">${e.specs&&e.specs.length?e.specs.map(s=>{const r=specRole(e.className,s);return`<span class="rbadge" style="background:${RC[r]}18;color:${RC[r]}">${RI[r]} ${s}</span>`}).join(""):roles.map(r=>`<span class="rbadge" style="background:${RC[r]}18;color:${RC[r]}">${RI[r]} ${r}</span>`).join("")}</div>
+        <div class="e-roles">${e.specs&&e.specs.length?e.specs.map(s=>{const r=specRole(e.className,s);const ico=specIcon(e.className,s);return`<span class="rbadge" style="background:${RC[r]}18;color:${RC[r]}">${ico?`<img class="wow-ico-sm" src="${ico}" alt="">`:RI[r]} ${s}</span>`}).join(""):roles.map(r=>`<span class="rbadge" style="background:${RC[r]}18;color:${RC[r]}">${RI[r]} ${r}</span>`).join("")}</div>
       </div>
       <div class="e-slots">${slotTags.length?slotTags.join(""):`<span style="font-size:11px;color:var(--tx5)">Keine Zeiten</span>`}</div>
       ${e.notes?`<div class="e-notes">\u201E${h(e.notes)}\u201C</div>`:""}
@@ -1545,11 +1553,12 @@ function renderRaidCard(raid,isPast){
         const isTent=s.status==="tentative";
         const specBadges=(s.offeredSpecs||[]).map(sp=>{
           const r=specRole(s.className,sp);
+          const ico=specIcon(s.className,sp);
           const isAssigned=s.assignedSpec===sp;
-          return`<span style="font-size:10px;padding:1px 5px;border-radius:4px;background:${RC[r]}${isAssigned?"30":"10"};color:${RC[r]};${isAssigned?"font-weight:600;border:1px solid "+RC[r]:""}">${sp}</span>`;
+          return`<span style="font-size:10px;padding:1px 5px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;background:${RC[r]}${isAssigned?"30":"10"};color:${RC[r]};${isAssigned?"font-weight:600;border:1px solid "+RC[r]:""}">${ico?`<img style="width:14px;height:14px;border-radius:2px" src="${ico}" alt="">`:""} ${sp}</span>`;
         }).join(" ");
         signupHtml+=`<div class="raid-signup-row">
-          <span class="raid-signup-name" style="color:${s.className?cc(s.className):"var(--tx)"}">${h(s.charName)}</span>
+          <span class="raid-signup-name" style="color:${s.className?cc(s.className):"var(--tx)"}">${s.className?`<img class="wow-ico-sm" src="${clsIcon(s.className)}" alt="" loading="lazy">`:""} ${h(s.charName)}</span>
           ${s.className?`<span style="font-size:11px;color:var(--tx4)">${h(s.className)}</span>`:""}
           ${specBadges?`<span>${specBadges}</span>`:""}
           ${s.assignedSpec?`<span style="font-size:10px;color:var(--grn)">\u2713 ${h(s.assignedSpec)}</span>`:""}
@@ -1815,7 +1824,7 @@ function renderSuSpecs(raidId,cls){
   return specs.map(sp=>{
     const on=sel.includes(sp.n);
     const col=RC[sp.r];
-    return`<div class="rchip${on?" active":""}" style="font-size:12px;padding:6px 8px;${on?`border-color:${col};color:${col};background:${col}18`:""}" onclick="toggleSuSpec('${raidId}','${sp.n}')">${RI[sp.r]} ${sp.n}</div>`;
+    return`<div class="rchip${on?" active":""}" style="font-size:12px;padding:6px 8px;${on?`border-color:${col};color:${col};background:${col}18`:""}" onclick="toggleSuSpec('${raidId}','${sp.n}')"><img class="wow-ico-sm" src="${WOW_ICONS}/spec/${sp.i}.png" alt="" loading="lazy">${sp.n}</div>`;
   }).join("");
 }
 
