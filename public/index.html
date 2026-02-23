@@ -434,6 +434,52 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
   .dkp-role-add input{width:100%}
 }
 
+/* Admin Dashboard */
+.adm-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.adm-stat{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:16px;text-align:center}
+.adm-stat-val{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--gold)}
+.adm-stat-lbl{font-size:11px;color:var(--tx4);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.adm-users-table{width:100%;border-collapse:separate;border-spacing:0 4px}
+.adm-users-table th{font-size:11px;color:var(--tx4);text-transform:uppercase;letter-spacing:1px;padding:6px 10px;text-align:left;font-weight:500}
+.adm-users-table td{padding:10px;background:var(--card);font-size:14px}
+.adm-users-table tr td:first-child{border-radius:8px 0 0 8px}
+.adm-users-table tr td:last-child{border-radius:0 8px 8px 0}
+.adm-role-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.adm-role-admin{background:rgba(201,168,76,.15);color:var(--gold)}
+.adm-role-officer{background:rgba(100,149,237,.15);color:#6495ed}
+.adm-role-site{background:rgba(229,115,115,.15);color:var(--dps)}
+.adm-role-none{color:var(--tx4);font-size:12px;font-style:italic}
+.adm-danger{margin-top:20px;padding:20px;border:1px solid rgba(220,53,69,.2);border-radius:10px;background:rgba(220,53,69,.03)}
+.adm-danger-t{font-size:12px;color:rgba(220,53,69,.8);text-transform:uppercase;letter-spacing:2px;margin-bottom:14px;font-weight:700}
+.adm-danger-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.adm-danger-row:last-child{border-bottom:none}
+.adm-danger-info{flex:1}
+.adm-danger-info strong{display:block;font-size:14px;color:var(--tx);margin-bottom:2px}
+.adm-danger-info small{font-size:12px;color:var(--tx4)}
+.adm-danger-btn{padding:8px 18px;border-radius:6px;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;border:1px solid rgba(220,53,69,.3);background:rgba(220,53,69,.08);color:rgba(220,53,69,.8);transition:all .15s;white-space:nowrap}
+.adm-danger-btn:hover{border-color:rgba(220,53,69,.6);background:rgba(220,53,69,.12);color:#dc3545}
+.adm-role-actions{display:flex;gap:6px;align-items:center}
+.adm-role-btn{padding:4px 10px;border-radius:4px;cursor:pointer;font:600 11px 'Nunito Sans',sans-serif;border:1px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx4);transition:all .15s}
+.adm-role-btn:hover{border-color:rgba(255,255,255,.12);color:var(--tx)}
+.adm-role-del{border-color:rgba(229,115,115,.2);color:var(--dps)}
+.adm-role-del:hover{border-color:rgba(229,115,115,.4);background:rgba(229,115,115,.05)}
+.adm-entries-table{width:100%;border-collapse:separate;border-spacing:0 4px}
+.adm-entries-table th{font-size:11px;color:var(--tx4);text-transform:uppercase;letter-spacing:1px;padding:6px 10px;text-align:left;font-weight:500}
+.adm-entries-table td{padding:10px;background:var(--card);font-size:14px}
+.adm-entries-table tr td:first-child{border-radius:8px 0 0 8px}
+.adm-entries-table tr td:last-child{border-radius:0 8px 8px 0}
+.adm-entry-del{padding:4px 10px;border-radius:4px;cursor:pointer;font:600 11px 'Nunito Sans',sans-serif;border:1px solid rgba(229,115,115,.2);background:rgba(0,0,0,.2);color:var(--dps);transition:all .15s}
+.adm-entry-del:hover{border-color:rgba(229,115,115,.4);background:rgba(229,115,115,.05)}
+.adm-section{margin-bottom:20px}
+.adm-no-access{text-align:center;padding:40px;color:var(--tx3);font-size:14px}
+@media(max-width:640px){
+  .adm-stats{grid-template-columns:repeat(2,1fr)}
+  .adm-danger-row{flex-direction:column;align-items:flex-start;gap:8px}
+  .adm-users-table,.adm-entries-table{font-size:12px}
+  .adm-users-table td,.adm-entries-table td{padding:8px 6px}
+  .adm-role-actions{flex-wrap:wrap}
+}
+
 /* Hidden */
 .hidden{display:none!important}
 
@@ -468,6 +514,7 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
     <button class="tab" data-v="heatmap" role="tab" aria-selected="false" aria-controls="v-heatmap" id="tab-heatmap">Heatmap</button>
     <button class="tab" data-v="analytics" role="tab" aria-selected="false" aria-controls="v-analytics" id="tab-analytics">Auswertung</button>
     <button class="tab" data-v="dkp" role="tab" aria-selected="false" aria-controls="v-dkp" id="tab-dkp">DKP</button>
+    <button class="tab hidden" data-v="admin" role="tab" aria-selected="false" aria-controls="v-admin" id="tab-admin">Admin</button>
   </div>
 
   <!-- VIEWS -->
@@ -477,6 +524,7 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
   <div id="v-heatmap" class="hidden" role="tabpanel" aria-labelledby="tab-heatmap"></div>
   <div id="v-analytics" class="hidden" role="tabpanel" aria-labelledby="tab-analytics"></div>
   <div id="v-dkp" class="hidden" role="tabpanel" aria-labelledby="tab-dkp"></div>
+  <div id="v-admin" class="hidden" role="tabpanel" aria-labelledby="tab-admin"></div>
 </div>
 <div id="auth-overlay"></div>
 <div class="toast" id="toast"></div>
@@ -606,6 +654,11 @@ let dkpSortCol="balance", dkpSortDir="desc";
 let dkpPlayerDetail=null, dkpPlayerTx=[];
 let dkpRoleAddUser="", dkpRoleAddRole="officer";
 
+// Admin state
+const ADMIN_API="/api/admin";
+let adminUsers=[], adminView="overview", adminLoaded=false;
+let adminRoleAddUser="", adminRoleAddRole="officer";
+
 // ── Auth API ──
 async function authApi(action,data){
   const hdrs={"Content-Type":"application/json"};
@@ -629,10 +682,12 @@ let bnetCharacters=[]; // cached characters from Battle.net API
 function renderAuthBar(){
   const el=document.getElementById("auth-bar");
   if(currentUser){
-    el.innerHTML=`<div class="auth-bar">Eingeloggt als <span class="auth-user">${h(currentUser.username)}</span>${currentUser.isAdmin?` <span class="admin-badge">Admin</span> <button class="btn-admin-purge" onclick="doPurgeUsers()">Accounts zurücksetzen</button> <button class="btn-admin-purge" onclick="doPurgeEntries()">Alle Raider entfernen</button>`:""} <button class="btn-logout" onclick="doLogout()">Abmelden</button></div>`;
+    const roleBadge=isAdminUser()?' <span class="admin-badge">Admin</span>':isOfficerUser()?' <span class="admin-badge" style="background:#6495ed">Offizier</span>':"";
+    el.innerHTML=`<div class="auth-bar">Eingeloggt als <span class="auth-user">${h(currentUser.username)}</span>${roleBadge} <button class="btn-logout" onclick="doLogout()">Abmelden</button></div>`;
   }else{
     el.innerHTML=`<div class="auth-bar"><button class="btn-bnet" onclick="doBnetLogin()">${BNET_ICON} Mit Battle.net anmelden</button></div>`;
   }
+  updateAdminTabVisibility();
 }
 function renderAuthOverlay(show){
   const el=document.getElementById("auth-overlay");
@@ -837,7 +892,7 @@ document.getElementById("tabs").addEventListener("click",e=>{
     t.classList.toggle("on",isOn);
     t.setAttribute("aria-selected",isOn?"true":"false");
   });
-  ["form","raids","roster","heatmap","analytics","dkp"].forEach(v=>{
+  ["form","raids","roster","heatmap","analytics","dkp","admin"].forEach(v=>{
     document.getElementById("v-"+v).classList.toggle("hidden",v!==view);
   });
   document.getElementById('htooltip')?.classList.remove('show','arrow-down','arrow-up');
@@ -847,6 +902,7 @@ document.getElementById("tabs").addEventListener("click",e=>{
   if(view==="heatmap")renderHeatmap();
   if(view==="analytics")renderAnalytics();
   if(view==="dkp")renderDkp();
+  if(view==="admin")renderAdmin();
 });
 
 function switchTab(v){
@@ -857,7 +913,7 @@ function switchTab(v){
     t.setAttribute("aria-selected",isOn?"true":"false");
     if(isOn && v==="form") t.textContent=editId?"Bearbeiten":"Eintragen";
   });
-  ["form","raids","roster","heatmap","analytics","dkp"].forEach(x=>{
+  ["form","raids","roster","heatmap","analytics","dkp","admin"].forEach(x=>{
     document.getElementById("v-"+x).classList.toggle("hidden",x!==v);
   });
 }
@@ -870,6 +926,8 @@ function updateAll(){
   if(view==="heatmap")renderHeatmap();
   if(view==="analytics")renderAnalytics();
   if(view==="dkp")renderDkp();
+  if(view==="admin")renderAdmin();
+  updateAdminTabVisibility();
 }
 
 // ── Helpers ──
@@ -2499,6 +2557,302 @@ window.doDkpDecay=async function(){
     }catch(e){handleDkpError(e)}
   });
 };
+
+// ══════════════════════════════
+//  ADMIN DASHBOARD
+// ══════════════════════════════
+
+function isAdminUser(){
+  if(!currentUser)return false;
+  if(currentUser.isAdmin)return true;
+  if(!dkpConfig.roles)return false;
+  const lower=currentUser.username.toLowerCase();
+  const role=dkpConfig.roles[lower];
+  if(role)return role==="admin";
+  const prefix=lower.split("#")[0];
+  if(prefix!==lower&&dkpConfig.roles[prefix])return dkpConfig.roles[prefix]==="admin";
+  return false;
+}
+
+function isOfficerUser(){
+  if(isAdminUser())return true;
+  if(!currentUser||!dkpConfig.roles)return false;
+  const lower=currentUser.username.toLowerCase();
+  const role=dkpConfig.roles[lower];
+  if(role)return role==="admin"||role==="officer";
+  const prefix=lower.split("#")[0];
+  if(prefix!==lower&&dkpConfig.roles[prefix]){const r=dkpConfig.roles[prefix];return r==="admin"||r==="officer"}
+  return false;
+}
+
+function updateAdminTabVisibility(){
+  const tab=document.getElementById("tab-admin");
+  if(tab){
+    const show=isOfficerUser();
+    tab.classList.toggle("hidden",!show);
+    // If admin tab was active but user lost access, switch to form
+    if(!show&&view==="admin"){switchTab("form");renderForm()}
+  }
+}
+
+async function loadAdminUsers(){
+  if(!isOfficerUser())return;
+  try{
+    const r=await fetch(ADMIN_API,{headers:authHeader()});
+    if(!r.ok)throw new Error("Laden fehlgeschlagen");
+    const d=await r.json();
+    adminUsers=d.users||[];
+    adminLoaded=true;
+  }catch(e){console.error("Admin users load error:",e)}
+}
+
+function renderAdmin(){
+  const el=document.getElementById("v-admin");
+  if(!isOfficerUser()){
+    el.innerHTML=`<div class="adm-no-access">Nur für Admins und Offiziere sichtbar.</div>`;
+    return;
+  }
+  const admin=isAdminUser();
+
+  let html=`<div class="dkp-actions-bar">
+    <button class="ht-btn${adminView==="overview"?" active":""}" onclick="adminView='overview';renderAdmin()">Übersicht</button>
+    <button class="ht-btn${adminView==="users"?" active":""}" onclick="adminView='users';if(!adminLoaded)loadAdminUsers().then(()=>renderAdmin());renderAdmin()">Benutzer</button>
+    <button class="ht-btn${adminView==="entries"?" active":""}" onclick="adminView='entries';renderAdmin()">Einträge</button>
+    ${admin?`<button class="ht-btn${adminView==="manage"?" active":""}" onclick="adminView='manage';renderAdmin()">Verwaltung</button>`:""}
+  </div>`;
+
+  if(adminView==="users")html+=renderAdminUsers();
+  else if(adminView==="entries")html+=renderAdminEntries();
+  else if(adminView==="manage"&&admin)html+=renderAdminManage();
+  else html+=renderAdminOverview();
+
+  el.innerHTML=html;
+}
+
+function renderAdminOverview(){
+  const totalEntries=entries.length;
+  const totalUsers=adminLoaded?adminUsers.length:"—";
+  const classCounts={};
+  const roleCounts={Tank:0,Heiler:0,DPS:0};
+  entries.forEach(e=>{
+    classCounts[e.className]=(classCounts[e.className]||0)+1;
+    (e.roles||[]).forEach(r=>{if(roleCounts[r]!==undefined)roleCounts[r]++});
+  });
+
+  let html=`<div class="adm-stats">
+    <div class="adm-stat"><div class="adm-stat-val">${totalEntries}</div><div class="adm-stat-lbl">Raider</div></div>
+    <div class="adm-stat"><div class="adm-stat-val">${totalUsers}</div><div class="adm-stat-lbl">Benutzer</div></div>
+    <div class="adm-stat"><div class="adm-stat-val" style="color:var(--tank)">${roleCounts.Tank}</div><div class="adm-stat-lbl">Tanks</div></div>
+    <div class="adm-stat"><div class="adm-stat-val" style="color:var(--heal)">${roleCounts.Heiler}</div><div class="adm-stat-lbl">Heiler</div></div>
+    <div class="adm-stat"><div class="adm-stat-val" style="color:var(--dps)">${roleCounts.DPS}</div><div class="adm-stat-lbl">DPS</div></div>
+  </div>`;
+
+  // Class distribution
+  html+=`<div class="card"><div class="card-t">Klassenverteilung</div>`;
+  const sortedClasses=CLS.map(c=>({name:c.n,color:c.c,count:classCounts[c.n]||0})).sort((a,b)=>b.count-a.count);
+  const maxCount=Math.max(...sortedClasses.map(c=>c.count),1);
+  sortedClasses.forEach(c=>{
+    const pct=Math.round(c.count/maxCount*100);
+    html+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <span style="min-width:100px;font-size:13px;color:${c.color};font-weight:600">${h(c.name)}</span>
+      <div style="flex:1;height:20px;background:rgba(0,0,0,.2);border-radius:4px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${c.color};opacity:.6;border-radius:4px;transition:width .3s"></div>
+      </div>
+      <span style="min-width:30px;text-align:right;font-size:13px;font-weight:600;color:var(--tx2)">${c.count}</span>
+    </div>`;
+  });
+  html+=`</div>`;
+
+  // Role readiness
+  const rr={Tank:{have:roleCounts.Tank,need:2},Heiler:{have:roleCounts.Heiler,need:5},DPS:{have:roleCounts.DPS,need:18}};
+  html+=`<div class="card"><div class="card-t">Raidbereitschaft (25er)</div>`;
+  ["Tank","Heiler","DPS"].forEach(r=>{
+    const d=rr[r];
+    const ok=d.have>=d.need;
+    const color=ok?"var(--grn)":"var(--dps)";
+    const pct=Math.min(Math.round(d.have/d.need*100),100);
+    html+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="min-width:60px;font-size:13px;font-weight:600;color:var(--tx2)">${r}</span>
+      <div style="flex:1;height:20px;background:rgba(0,0,0,.2);border-radius:4px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${color};opacity:.6;border-radius:4px"></div>
+      </div>
+      <span style="min-width:60px;text-align:right;font-size:13px;font-weight:600;color:${color}">${d.have} / ${d.need}</span>
+    </div>`;
+  });
+  html+=`</div>`;
+
+  return html;
+}
+
+function renderAdminUsers(){
+  if(!adminLoaded){
+    return`<div class="card" style="text-align:center;padding:30px"><div class="spinner"></div> Lade Benutzer...</div>`;
+  }
+  const admin=isAdminUser();
+  const roles=dkpConfig.roles||{};
+
+  let html=`<div class="card"><div class="card-t">Registrierte Benutzer (${adminUsers.length})</div>`;
+
+  if(!adminUsers.length){
+    html+=`<div style="color:var(--tx4);font-size:13px">Keine Benutzer gefunden.</div>`;
+  }else{
+    html+=`<div style="overflow-x:auto"><table class="adm-users-table"><thead><tr>
+      <th>Benutzer</th><th>Rolle</th><th>Registriert</th>${admin?`<th>Aktionen</th>`:""}</tr></thead><tbody>`;
+    adminUsers.forEach(u=>{
+      const uname=u.username||u.battleTag||"—";
+      const isMe=currentUser&&uname.toLowerCase()===currentUser.username.toLowerCase();
+      let roleBadge="";
+      if(u.isSiteAdmin)roleBadge=`<span class="adm-role-badge adm-role-site">Site-Admin</span>`;
+      else if(u.role==="admin")roleBadge=`<span class="adm-role-badge adm-role-admin">Admin</span>`;
+      else if(u.role==="officer")roleBadge=`<span class="adm-role-badge adm-role-officer">Offizier</span>`;
+      else roleBadge=`<span class="adm-role-none">—</span>`;
+
+      const created=u.createdAt?new Date(u.createdAt).toLocaleDateString("de-DE"):"—";
+
+      let actions="";
+      if(admin&&!isMe&&!u.isSiteAdmin){
+        const escapedName=h(uname).replace(/'/g,"\\'");
+        const currentRole=u.role;
+        actions=`<div class="adm-role-actions">`;
+        if(currentRole==="admin")actions+=`<button class="adm-role-btn" onclick="adminSetRole('${escapedName}','officer')">→ Offizier</button>`;
+        else if(currentRole==="officer")actions+=`<button class="adm-role-btn" onclick="adminSetRole('${escapedName}','admin')">→ Admin</button>`;
+        else actions+=`<button class="adm-role-btn" onclick="adminSetRole('${escapedName}','officer')">→ Offizier</button><button class="adm-role-btn" onclick="adminSetRole('${escapedName}','admin')">→ Admin</button>`;
+        if(currentRole)actions+=`<button class="adm-role-btn adm-role-del" onclick="adminRemoveRole('${escapedName}')">Entfernen</button>`;
+        actions+=`</div>`;
+      }
+
+      html+=`<tr>
+        <td><strong>${h(uname)}</strong>${isMe?" (Du)":""}</td>
+        <td>${roleBadge}</td>
+        <td style="color:var(--tx4);font-size:12px">${created}</td>
+        ${admin?`<td>${actions}</td>`:""}
+      </tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  }
+
+  // Add role section for admin
+  if(admin){
+    html+=`<div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.04)">
+      <div style="font-size:12px;color:var(--tx4);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Rolle zuweisen</div>
+      <div class="dkp-role-add">
+        <input type="text" id="adm-role-user" placeholder="Benutzername" value="${h(adminRoleAddUser)}" oninput="adminRoleAddUser=this.value">
+        <select id="adm-role-type" onchange="adminRoleAddRole=this.value">
+          <option value="officer"${adminRoleAddRole==="officer"?" selected":""}>Offizier</option>
+          <option value="admin"${adminRoleAddRole==="admin"?" selected":""}>Admin</option>
+        </select>
+        <button class="btn-p" style="padding:8px 16px;font-size:13px" onclick="adminAddRole()">Hinzufügen</button>
+      </div>
+    </div>`;
+  }
+
+  html+=`</div>`;
+  return html;
+}
+
+function renderAdminEntries(){
+  let html=`<div class="card"><div class="card-t">Alle Einträge (${entries.length})</div>`;
+  if(!entries.length){
+    html+=`<div style="color:var(--tx4);font-size:13px">Keine Einträge vorhanden.</div>`;
+  }else{
+    html+=`<div style="overflow-x:auto"><table class="adm-entries-table"><thead><tr>
+      <th>Charakter</th><th>Klasse</th><th>Rollen</th><th>Erstellt</th><th></th></tr></thead><tbody>`;
+    entries.forEach(e=>{
+      const color=cc(e.className);
+      const roles=(e.roles||[]).join(", ");
+      const date=e.timestamp?new Date(e.timestamp).toLocaleDateString("de-DE"):"—";
+      html+=`<tr>
+        <td><strong>${h(e.charName)}</strong></td>
+        <td style="color:${color}">${h(e.className)}</td>
+        <td style="font-size:12px;color:var(--tx3)">${h(roles)}</td>
+        <td style="color:var(--tx4);font-size:12px">${date}</td>
+        <td><button class="adm-entry-del" onclick="adminDelEntry('${h(e.id)}')">Löschen</button></td>
+      </tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  }
+  html+=`</div>`;
+  return html;
+}
+
+function renderAdminManage(){
+  let html=`<div class="card">
+    <div class="card-t">Verwaltung</div>
+    <p style="font-size:13px;color:var(--tx3);margin-bottom:16px">Administrative Aktionen. Diese Aktionen können nicht rückgängig gemacht werden.</p>
+    <div class="adm-danger">
+      <div class="adm-danger-t">Gefahrenzone</div>
+      <div class="adm-danger-row">
+        <div class="adm-danger-info">
+          <strong>Accounts zurücksetzen</strong>
+          <small>Alle Accounts außer Admins werden gelöscht. Nutzer müssen sich neu anmelden. Raid-Einträge bleiben erhalten.</small>
+        </div>
+        <button class="adm-danger-btn" onclick="doPurgeUsers()">Zurücksetzen</button>
+      </div>
+      <div class="adm-danger-row">
+        <div class="adm-danger-info">
+          <strong>Alle Raider entfernen</strong>
+          <small>Alle ${entries.length} Einträge werden unwiderruflich gelöscht.</small>
+        </div>
+        <button class="adm-danger-btn" onclick="doPurgeEntries()">Alle entfernen</button>
+      </div>
+    </div>
+  </div>`;
+  return html;
+}
+
+// ── Admin role management (delegates to DKP API) ──
+window.adminSetRole=async function(username,newRole){
+  try{
+    const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"manage-roles",username,role:newRole})});
+    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+    const d=await r.json();dkpConfig=d.config;
+    toast(`${username} ist jetzt ${newRole==="admin"?"Admin":"Offizier"}`);
+    await loadAdminUsers();renderAdmin();
+  }catch(e){handleAdminError(e)}
+};
+
+window.adminRemoveRole=async function(username){
+  showModal("Rolle entfernen",`Wirklich <strong>${h(username)}</strong> als Verwalter entfernen?`,async()=>{
+    try{
+      const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"manage-roles",username,remove:true})});
+      if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+      const d=await r.json();dkpConfig=d.config;
+      toast(`${username} entfernt`);
+      await loadAdminUsers();renderAdmin();
+    }catch(e){handleAdminError(e)}
+  });
+};
+
+window.adminAddRole=async function(){
+  const username=adminRoleAddUser.trim();
+  if(!username){toast("Benutzername eingeben");return}
+  try{
+    const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"manage-roles",username,role:adminRoleAddRole})});
+    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+    const d=await r.json();dkpConfig=d.config;adminRoleAddUser="";
+    toast(`${username} als ${adminRoleAddRole==="admin"?"Admin":"Offizier"} hinzugefügt`);
+    await loadAdminUsers();renderAdmin();
+  }catch(e){handleAdminError(e)}
+};
+
+window.adminDelEntry=function(id){
+  const entry=entries.find(e=>e.id===id);
+  const name=entry?entry.charName:"?";
+  showModal("Eintrag löschen",`Wirklich <strong>${h(name)}</strong> löschen?`,async()=>{
+    try{
+      await del(id);
+      toast(`${name} gelöscht`);
+      await load();
+    }catch(e){handleAdminError(e)}
+  });
+};
+
+function handleAdminError(e){
+  if(e.message==="Nicht angemeldet"||e.message==="Sitzung ungültig"){
+    currentUser=null;localStorage.removeItem("raid-auth");renderAuthBar();updateAll();
+    toast("Sitzung abgelaufen — bitte erneut anmelden");
+  }else{toast("Fehler: "+e.message)}
+}
 
 // ══════════════════════════════
 //  DISCORD INTEGRATION

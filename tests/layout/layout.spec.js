@@ -48,9 +48,11 @@ test.describe('Layout checks', () => {
     expect(overflow).toBe(false);
   });
 
-  test('all 6 tabs are visible and clickable', async ({ page }) => {
-    const tabs = page.locator('.tab');
-    await expect(tabs).toHaveCount(6);
+  test('all tabs are visible and clickable', async ({ page }) => {
+    // 7 tabs for admin users (includes Admin tab), 6 for regular users
+    const tabs = page.locator('.tab:not(.hidden)');
+    const count = await tabs.count();
+    expect(count).toBeGreaterThanOrEqual(6);
     for (const tab of await tabs.all()) {
       await expect(tab).toBeVisible();
       await expect(tab).toBeEnabled();
