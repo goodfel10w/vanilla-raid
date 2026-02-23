@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { validateSession } from "./shared/auth-utils.mjs";
 
 const DEFAULT_CONFIG = {
-  roles: { "zandyra": "admin" },
+  roles: { "goodfell0w": "admin" },
   defaultDecayPercent: 15,
   maxDkpAmount: 10000,
   allowNegativeBalance: true,
@@ -37,7 +37,13 @@ async function loadConfig(configStore) {
 
 function getRole(username, cfg) {
   if (!username || !cfg.roles) return null;
-  return cfg.roles[username.toLowerCase()] || null;
+  const lower = username.toLowerCase();
+  // Exact match first (full BattleTag or plain name)
+  if (cfg.roles[lower]) return cfg.roles[lower];
+  // Prefix match: "goodfell0w" matches "goodfell0w#12345"
+  const prefix = lower.split("#")[0];
+  if (prefix !== lower && cfg.roles[prefix]) return cfg.roles[prefix];
+  return null;
 }
 
 function isAdmin(username, cfg) {

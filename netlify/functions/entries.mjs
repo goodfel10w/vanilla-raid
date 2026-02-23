@@ -138,8 +138,8 @@ export default async (req, context) => {
       if (body.id && typeof body.id === "string") {
         const existing = await store.get(body.id, { type: "json" });
         if (existing) {
-          // Ownership check: deny if entry belongs to another user (legacy entries without userId are open)
-          if (existing.userId && existing.userId !== user.userId) {
+          // Ownership check: admin can edit any entry; others can only edit own or legacy entries
+          if (existing.userId && existing.userId !== user.userId && !user.isAdmin) {
             return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
           }
           id = body.id;
@@ -178,7 +178,7 @@ export default async (req, context) => {
         return new Response(JSON.stringify({ error: "ID fehlt" }), { status: 400, headers });
       }
       const existing = await store.get(id, { type: "json" });
-      if (existing && existing.userId && existing.userId !== user.userId) {
+      if (existing && existing.userId && existing.userId !== user.userId && !user.isAdmin) {
         return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
       }
       await store.delete(id);

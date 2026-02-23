@@ -1,5 +1,14 @@
 import { getStore } from "@netlify/blobs";
 
+// Site-wide admins matched case-insensitively against BattleTag prefix (before #)
+const SITE_ADMINS = ["goodfell0w"];
+
+export function isSiteAdmin(username) {
+  if (!username) return false;
+  const lower = username.toLowerCase();
+  return SITE_ADMINS.some(a => lower === a || lower.startsWith(a + "#"));
+}
+
 export async function validateSession(req) {
   const auth = req.headers.get("authorization");
   if (!auth || !auth.startsWith("Bearer ")) return null;
@@ -15,5 +24,9 @@ export async function validateSession(req) {
     return null;
   }
 
-  return { userId: session.userId, username: session.username };
+  return {
+    userId: session.userId,
+    username: session.username,
+    isAdmin: isSiteAdmin(session.username),
+  };
 }
