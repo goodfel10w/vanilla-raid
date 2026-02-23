@@ -3,6 +3,8 @@ import { randomUUID } from "crypto";
 
 const SESSION_DAYS = 7;
 const BNET_REGION = process.env.BNET_REGION || "eu";
+const BNET_REALM = process.env.BNET_REALM || "thunderstrike";
+const BNET_FACTION = process.env.BNET_FACTION || "ALLIANCE";
 
 // Region → OAuth base URL
 const OAUTH_BASE = `https://${BNET_REGION}.battle.net/oauth`;
@@ -95,23 +97,28 @@ export default async (req) => {
     const bnetId = String(userInfo.id);
     const battleTag = userInfo.battletag || `User#${bnetId}`;
 
-    // Fetch WoW characters
+    // Fetch WoW characters from Classic TBC profile
     let characters = [];
     try {
       const charsRes = await fetch(
-        `${API_BASE}/profile/user/wow?namespace=profile-${BNET_REGION}&locale=de_DE`,
+        `${API_BASE}/profile/user/wow?namespace=profile-classic-${BNET_REGION}&locale=de_DE`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       if (charsRes.ok) {
         const charsData = await charsRes.json();
-        // Extract characters from all WoW accounts
+        // Extract characters from all WoW accounts, filtered by faction and realm
         for (const account of charsData.wow_accounts || []) {
           for (const char of account.characters || []) {
+            const faction = char.faction?.type;
+            const realmSlug = char.realm?.slug || "";
+            if (BNET_FACTION && faction !== BNET_FACTION) continue;
+            if (BNET_REALM && realmSlug !== BNET_REALM) continue;
+
             const germanClass = CLASS_MAP[char.playable_class?.id];
             if (germanClass) {
               characters.push({
                 name: char.name,
-                realm: char.realm?.name || char.realm?.slug || "",
+                realm: char.realm?.name || realmSlug,
                 className: germanClass,
                 level: char.level || 0,
               });
