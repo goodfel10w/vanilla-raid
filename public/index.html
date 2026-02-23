@@ -243,6 +243,9 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .auth-bar button{background:none;border:1px solid rgba(255,255,255,.1);color:var(--tx2);padding:5px 14px;border-radius:6px;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;transition:all .2s}
 .auth-bar button:hover{border-color:rgba(201,168,76,.4);color:var(--gold)}
 .auth-bar .btn-logout{border-color:rgba(255,255,255,.06);color:var(--tx3);font-weight:400}
+.admin-badge{background:var(--gold);color:#1a1a2e;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px}
+.btn-admin-purge{border-color:rgba(220,53,69,.3)!important;color:rgba(220,53,69,.8)!important}
+.btn-admin-purge:hover{border-color:rgba(220,53,69,.6)!important;color:#dc3545!important}
 
 /* Auth overlay */
 .auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1001;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease}
@@ -626,7 +629,7 @@ let bnetCharacters=[]; // cached characters from Battle.net API
 function renderAuthBar(){
   const el=document.getElementById("auth-bar");
   if(currentUser){
-    el.innerHTML=`<div class="auth-bar">Eingeloggt als <span class="auth-user">${h(currentUser.username)}</span> <button class="btn-logout" onclick="doLogout()">Abmelden</button></div>`;
+    el.innerHTML=`<div class="auth-bar">Eingeloggt als <span class="auth-user">${h(currentUser.username)}</span>${currentUser.isAdmin?` <span class="admin-badge">Admin</span> <button class="btn-admin-purge" onclick="doPurgeUsers()">Accounts zurücksetzen</button>`:""} <button class="btn-logout" onclick="doLogout()">Abmelden</button></div>`;
   }else{
     el.innerHTML=`<div class="auth-bar"><button class="btn-bnet" onclick="doBnetLogin()">${BNET_ICON} Mit Battle.net anmelden</button></div>`;
   }
@@ -664,6 +667,16 @@ window.doLogout=async function(){
   updateAll();
   toast("Abgemeldet");
 };
+window.doPurgeUsers=function(){
+  showModal("Accounts zurücksetzen","Alle Accounts außer Admins werden gelöscht. Nutzer müssen sich neu anmelden. Raid-Einträge bleiben erhalten.<br><br>Wirklich fortfahren?",async()=>{
+    try{
+      const r=await authApi("purge-users");
+      toast(`${r.deletedUsers} Accounts und ${r.deletedSessions} Sitzungen gelöscht`);
+    }catch(e){
+      toast("Fehler: "+e.message);
+    }
+  });
+};
 async function loadBnetCharacters(){
   if(!currentUser?.token)return;
   try{
@@ -689,7 +702,7 @@ async function initAuth(){
     localStorage.setItem("raid-auth",JSON.stringify(currentUser));
     try{
       const res=await authApi("validate");
-      currentUser={token:bnetToken,username:res.username,userId:res.userId};
+      currentUser={token:bnetToken,username:res.username,userId:res.userId,isAdmin:res.isAdmin||false};
       localStorage.setItem("raid-auth",JSON.stringify(currentUser));
       toast("Angemeldet als "+res.username);
       await loadBnetCharacters();
@@ -713,7 +726,7 @@ async function initAuth(){
       const data=JSON.parse(stored);
       currentUser=data;
       const res=await authApi("validate");
-      currentUser={...data,username:res.username,userId:res.userId};
+      currentUser={...data,username:res.username,userId:res.userId,isAdmin:res.isAdmin||false};
       await loadBnetCharacters();
     }catch(e){
       currentUser=null;
@@ -1247,7 +1260,7 @@ function renderRoster(){
       </div>
       <div class="e-slots">${slotTags.length?slotTags.join(""):`<span style="font-size:11px;color:var(--tx5)">Keine Zeiten</span>`}</div>
       ${e.notes?`<div class="e-notes">\u201E${h(e.notes)}\u201C</div>`:""}
-      ${currentUser&&(!e.userId||e.userId===currentUser.userId)?`<div class="e-actions">
+      ${currentUser&&(currentUser.isAdmin||!e.userId||e.userId===currentUser.userId)?`<div class="e-actions">
         <button class="btn-edit" data-edit="${h(e.id)}">Bearbeiten</button>
         <button class="btn-del" data-del="${h(e.id)}" aria-label="Eintrag von ${h(e.charName)} l\u00F6schen">\u2715</button>
       </div>`:""}
