@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-The application has **solid security fundamentals** with consistent XSS escaping via the `h()` helper function, proper server-side input validation, and well-structured authorization checks. The audit identified **1 critical issue** (session token in URL query string), **3 high-severity issues**, and several medium/low findings. Fixes for the most impactful issues are included with this report.
+The application has **solid security fundamentals** with consistent XSS escaping via the `h()` helper function, proper server-side input validation, and well-structured authorization checks. The audit identified **1 critical issue** (session token in URL query string), **3 high-severity issues**, and several medium/low findings. **8 of 12 findings have been fixed**; the remaining 4 are accepted risks, by-design decisions, or infrastructure-level concerns.
 
 ---
 
@@ -46,11 +46,11 @@ No security headers were configured. The application was missing:
 
 #### 3. Battle.net Access Token Stored in Database
 **File:** `netlify/functions/bnet-callback.mjs:145`
-**Status:** NOT FIXED (architectural)
+**Status:** FIXED
 
-The Battle.net OAuth access token is stored persistently in the users blob store (`bnetAccessToken` field). If the Netlify Blobs data is compromised, attackers gain access to users' Battle.net accounts (scoped to `openid wow.profile`).
+The Battle.net OAuth access token was stored in plaintext in the users blob store. If the data leaked, attackers would gain access to users' Battle.net accounts.
 
-**Recommendation:** Consider encrypting the access token at rest using an environment variable as the encryption key, or fetching characters during the callback only and not storing the token.
+**Fix applied:** Added AES-256-GCM encryption in `shared/auth-utils.mjs`. Tokens are encrypted before storage and decrypted on read. Requires a `TOKEN_ENCRYPTION_KEY` environment variable to be set in Netlify. Backward compatible: unencrypted legacy tokens still work (they get encrypted on next write).
 
 #### 4. Third-Party Script Without Integrity Check
 **File:** `public/index.html:446`
@@ -84,21 +84,21 @@ The HTML escaping function `h(s)` called `.replace()` directly on `s` without co
 
 **Fix applied:** Added `String(s)` coercion.
 
-#### 7. `showModal()` Accepts Raw HTML in Parameters
+#### 7. `showModal()` Accepts Raw HTML in Title Parameter
 **File:** `public/index.html:806-816`
-**Status:** NOT FIXED (by design)
+**Status:** FIXED
 
-The `showModal(title, msg, onConfirm)` function injects `title` and `msg` directly into `innerHTML` without escaping. Currently all call sites either use hardcoded strings or properly escape with `h()`, but the function is a **footgun** — any future call that forgets to escape will create an XSS vulnerability.
+The `showModal(title, msg, onConfirm)` function injected `title` directly into `innerHTML` without escaping. Any future call site that forgot to escape the title would create an XSS vulnerability.
 
-**Recommendation:** Either escape within `showModal()` itself and use a separate parameter for trusted HTML, or add a code comment documenting that callers must escape user data.
+**Fix applied:** The title is now set via `textContent` instead of interpolation into `innerHTML`, making it structurally safe regardless of input. The `msg` parameter still accepts trusted HTML (for `<strong>`, `<br>` formatting) — all call sites properly escape user data in `msg`.
 
 #### 8. OAuth State Tokens Not Rate-Limited
 **File:** `netlify/functions/auth.mjs:37-38`
-**Status:** NOT FIXED
+**Status:** FIXED
 
-Each `bnet-login` request creates a new state token in the `oauth-states` blob store. There is no rate limiting, so an attacker could flood the store with state entries. While they expire after 10 minutes and are cleaned up on use, no automated cleanup exists for unused states.
+Each `bnet-login` request creates a new state token in the `oauth-states` blob store. There was no rate limiting, so an attacker could flood the store with state entries.
 
-**Recommendation:** Add rate limiting per IP or implement a periodic cleanup of expired states.
+**Fix applied:** Added automatic cleanup of expired states (>10 min) on each login request, plus a hard cap of 50 active states — returns HTTP 429 if exceeded.
 
 ---
 
@@ -106,11 +106,11 @@ Each `bnet-login` request creates a new state token in the `oauth-states` blob s
 
 #### 9. Unused Dependency: `bcryptjs`
 **File:** `package.json:12`
-**Status:** NOT FIXED
+**Status:** FIXED
 
-`bcryptjs` is listed as a production dependency but is not imported anywhere in the codebase. It appears to be a leftover from the pre-OAuth password-based auth system.
+`bcryptjs` was listed as a production dependency but not imported anywhere. Leftover from the pre-OAuth password-based auth system.
 
-**Recommendation:** Remove with `npm uninstall bcryptjs` to reduce attack surface and bundle size.
+**Fix applied:** Removed with `npm uninstall bcryptjs`.
 
 #### 10. Bearer Token in localStorage
 **File:** `public/index.html:718,722`
@@ -161,13 +161,13 @@ The following security practices are well-implemented:
 |---|----------|---------|--------|
 | 1 | CRITICAL | Session token in URL query string | Fixed |
 | 2 | HIGH | No security headers | Fixed |
-| 3 | HIGH | Battle.net access token stored unencrypted | Not fixed |
+| 3 | HIGH | Battle.net access token stored unencrypted | Fixed (AES-256-GCM encryption) |
 | 4 | HIGH | Third-party script without SRI | Accepted risk |
 | 5 | MEDIUM | Delete accepts non-existent IDs | Fixed |
 | 6 | MEDIUM | `h()` crashes on non-string input | Fixed |
-| 7 | MEDIUM | `showModal()` accepts raw HTML | Not fixed |
-| 8 | MEDIUM | OAuth states not rate-limited | Not fixed |
-| 9 | LOW | Unused `bcryptjs` dependency | Not fixed |
+| 7 | MEDIUM | `showModal()` accepts raw HTML in title | Fixed (textContent) |
+| 8 | MEDIUM | OAuth states not rate-limited | Fixed (cleanup + cap at 50) |
+| 9 | LOW | Unused `bcryptjs` dependency | Fixed (removed) |
 | 10 | LOW | Bearer token in localStorage | Accepted risk |
 | 11 | LOW | DKP role prefix matching | By design |
-| 12 | LOW | No API rate limiting | Not fixed |
+| 12 | LOW | No API rate limiting | Not fixed (infrastructure) |

@@ -804,17 +804,19 @@ function toast(msg){
 }
 
 // ── Modal ──
+// title: plain text (escaped internally), msg: trusted HTML from call sites
 function showModal(title,msg,onConfirm){
   const bg=document.createElement("div");
   bg.className="modal-bg";
   bg.innerHTML=`<div class="modal">
-    <div class="modal-title">${title}</div>
+    <div class="modal-title"></div>
     <div class="modal-msg">${msg}</div>
     <div class="modal-btns">
       <button class="modal-cancel">Abbrechen</button>
       <button class="modal-confirm">Bestätigen</button>
     </div>
   </div>`;
+  bg.querySelector(".modal-title").textContent=title;
   document.body.appendChild(bg);
   const cancelBtn=bg.querySelector(".modal-cancel");
   const confirmBtn=bg.querySelector(".modal-confirm");

@@ -35,6 +35,26 @@ export default async (req) => {
 
       // Store state for CSRF validation
       const states = getStore({ name: "oauth-states", consistency: "strong" });
+
+      // Purge expired states (older than 10 min) to prevent store bloat from abandoned logins
+      try {
+        const { blobs } = await states.list();
+        const expiry = Date.now() - 10 * 60 * 1000;
+        for (const blob of blobs) {
+          const s = await states.get(blob.key, { type: "json" });
+          if (s && new Date(s.createdAt).getTime() < expiry) {
+            await states.delete(blob.key);
+          }
+        }
+        // Rate limit: reject if too many pending states (> 50 active)
+        const { blobs: remaining } = await states.list();
+        if (remaining.length > 50) {
+          return new Response(JSON.stringify({ error: "Zu viele Anmeldeversuche. Bitte später erneut versuchen." }), { status: 429, headers });
+        }
+      } catch (e) {
+        console.error("State cleanup error:", e);
+      }
+
       await states.setJSON(state, { createdAt: new Date().toISOString() });
 
       const authUrl = `${OAUTH_BASE}/authorize?` + new URLSearchParams({

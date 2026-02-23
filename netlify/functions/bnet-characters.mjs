@@ -1,5 +1,5 @@
 import { getStore } from "@netlify/blobs";
-import { validateSession } from "./shared/auth-utils.mjs";
+import { validateSession, decryptToken } from "./shared/auth-utils.mjs";
 
 const BNET_REGION = process.env.BNET_REGION || "eu";
 const BNET_REALM = process.env.BNET_REALM || "thunderstrike";
@@ -52,7 +52,8 @@ export default async (req) => {
     const userKey = `bnet_${sessionData.bnetId}`;
     const user = await users.get(userKey, { type: "json" });
 
-    if (!user?.bnetAccessToken) {
+    const bnetAccessToken = decryptToken(user?.bnetAccessToken);
+    if (!bnetAccessToken) {
       return new Response(JSON.stringify({ characters: [] }), { status: 200, headers });
     }
 
@@ -60,7 +61,7 @@ export default async (req) => {
     // Use profile-classic namespace for TBC Classic realms (e.g. Thunderstrike)
     const charsRes = await fetch(
       `${API_BASE}/profile/user/wow?namespace=profile-classic-${BNET_REGION}&locale=de_DE`,
-      { headers: { Authorization: `Bearer ${user.bnetAccessToken}` } }
+      { headers: { Authorization: `Bearer ${bnetAccessToken}` } }
     );
 
     if (!charsRes.ok) {

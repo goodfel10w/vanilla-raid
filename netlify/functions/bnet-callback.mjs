@@ -1,5 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import { randomUUID } from "crypto";
+import { encryptToken } from "./shared/auth-utils.mjs";
 
 const SESSION_DAYS = 7;
 const BNET_REGION = process.env.BNET_REGION || "eu";
@@ -142,7 +143,7 @@ export default async (req) => {
       username: battleTag,
       bnetId,
       battleTag,
-      bnetAccessToken: accessToken,
+      bnetAccessToken: encryptToken(accessToken),
       characters,
       createdAt: existingUser?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
