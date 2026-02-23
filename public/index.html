@@ -629,7 +629,7 @@ let bnetCharacters=[]; // cached characters from Battle.net API
 function renderAuthBar(){
   const el=document.getElementById("auth-bar");
   if(currentUser){
-    el.innerHTML=`<div class="auth-bar">Eingeloggt als <span class="auth-user">${h(currentUser.username)}</span>${currentUser.isAdmin?` <span class="admin-badge">Admin</span> <button class="btn-admin-purge" onclick="doPurgeUsers()">Accounts zurücksetzen</button>`:""} <button class="btn-logout" onclick="doLogout()">Abmelden</button></div>`;
+    el.innerHTML=`<div class="auth-bar">Eingeloggt als <span class="auth-user">${h(currentUser.username)}</span>${currentUser.isAdmin?` <span class="admin-badge">Admin</span> <button class="btn-admin-purge" onclick="doPurgeUsers()">Accounts zurücksetzen</button> <button class="btn-admin-purge" onclick="doPurgeEntries()">Alle Raider entfernen</button>`:""} <button class="btn-logout" onclick="doLogout()">Abmelden</button></div>`;
   }else{
     el.innerHTML=`<div class="auth-bar"><button class="btn-bnet" onclick="doBnetLogin()">${BNET_ICON} Mit Battle.net anmelden</button></div>`;
   }
@@ -674,6 +674,22 @@ window.doPurgeUsers=function(){
       toast(`${r.deletedUsers} Accounts und ${r.deletedSessions} Sitzungen gelöscht`);
     }catch(e){
       toast("Fehler: "+e.message);
+    }
+  });
+};
+window.doPurgeEntries=function(){
+  showModal("Alle Raider entfernen",`Alle <strong>${entries.length}</strong> Einträge werden unwiderruflich gelöscht.<br><br>Wirklich fortfahren?`,async()=>{
+    try{
+      const r=await fetch(API+"?all=true",{method:"DELETE",headers:{...authHeader()}});
+      const d=await r.json();
+      if(!r.ok)throw new Error(d.error||"Fehler");
+      toast(`${d.deleted} Einträge gelöscht`);
+      await load();
+    }catch(e){
+      if(e.message==="Nicht angemeldet"||e.message==="Sitzung ungültig"){
+        currentUser=null;localStorage.removeItem("raid-auth");renderAuthBar();updateAll();
+        toast("Sitzung abgelaufen — bitte erneut anmelden");
+      }else{toast("Fehler: "+e.message)}
     }
   });
 };
