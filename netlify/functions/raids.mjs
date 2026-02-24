@@ -1,7 +1,7 @@
 import { getStore } from "@netlify/blobs";
 import { randomUUID } from "crypto";
 import { validateSession } from "./shared/auth-utils.mjs";
-import { buildRaidEmbed } from "./discord.mjs";
+import { buildRaidEmbed, buildRaidButtons } from "./discord.mjs";
 
 const VALID_INSTANCES = [
   "Karazhan", "Gruuls Unterschlupf", "Magtheridons Kammer",
@@ -266,11 +266,27 @@ async function autoUpdateDiscord(raidId, raid) {
 
     const siteUrl = process.env.URL || process.env.DEPLOY_PRIME_URL || "";
     const embed = buildRaidEmbed(raid, siteUrl);
-    const res = await fetch(`${webhookUrl}/messages/${mapping.messageId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ embeds: [embed] }),
-    });
+    const botToken = process.env.DISCORD_BOT_TOKEN;
+    const buttons = buildRaidButtons(raidId);
+
+    let res;
+    if (botToken && mapping.channelId) {
+      // Update via bot API (preserves interactive buttons)
+      res = await fetch(`https://discord.com/api/v10/channels/${mapping.channelId}/messages/${mapping.messageId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bot ${botToken}`,
+        },
+        body: JSON.stringify({ embeds: [embed], components: buttons }),
+      });
+    } else {
+      res = await fetch(`${webhookUrl}/messages/${mapping.messageId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ embeds: [embed] }),
+      });
+    }
 
     if (res.status === 404) {
       await discordStore.delete(raidId);

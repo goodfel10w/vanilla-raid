@@ -16,7 +16,7 @@ for (const vp of viewports) {
       await setupMockApi(page, [SAMPLE_ENTRY, SAMPLE_ENTRY_2]);
       await page.addInitScript(() => {
         localStorage.setItem('raid-auth', JSON.stringify({
-          token: 'mock-token', username: 'Testuser', userId: 'mock-user-1'
+          token: 'mock-token', username: 'Testuser', userId: 'mock-user-1', discordLinked: true, discordUsername: 'Testuser#1234', discordGuildMember: true
         }));
       });
       await page.goto('/');

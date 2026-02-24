@@ -326,6 +326,14 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .btn-discord .dc-ico{display:inline-block;width:14px;height:14px;vertical-align:middle;margin-right:4px}
 .discord-posted{font-size:11px;color:#5865F2;margin-top:4px;display:flex;align-items:center;gap:4px}
 .discord-posted .dc-ico{display:inline-block;width:12px;height:12px}
+.btn-dc-link{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:6px;border:1px solid rgba(88,101,242,.4);background:none;color:#5865F2;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;transition:all .2s}
+.btn-dc-link:hover{background:rgba(88,101,242,.1);border-color:#5865F2}
+.btn-dc-link svg{width:14px;height:14px}
+.dc-verified{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#5865F2;padding:2px 8px;border-radius:4px;background:rgba(88,101,242,.1);font-weight:600}
+.dc-verified svg{width:12px;height:12px}
+.dc-unverified{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--dps);padding:2px 8px;border-radius:4px;background:rgba(229,115,115,.1);font-weight:600}
+.dc-gate-hint{text-align:center;padding:12px 16px;color:var(--tx3);font-size:13px;border:1px dashed rgba(88,101,242,.3);border-radius:8px;margin:8px 0;background:rgba(88,101,242,.04)}
+.dc-gate-hint .btn-dc-link{margin-top:8px}
 
 /* Raid composition panel */
 .raid-comp{margin-top:14px;border-top:1px solid rgba(255,255,255,.04);padding-top:14px}
@@ -723,7 +731,7 @@ const RR_TANK=2, RR_HEAL=5, RR_DPS=18;
 // ── State ──
 let entries=[], view="form", editId=null, heatMode="1h", rosterSort="name";
 let form={name:"",cls:"",specs:[],roles:[],avail:{},notes:""};
-let currentUser=null; // { token, username, userId }
+let currentUser=null; // { token, username, userId, discordLinked, discordUsername, discordGuildMember }
 
 // Raids state
 const TBC_RAIDS=[
@@ -783,7 +791,15 @@ function renderAuthBar(){
   const el=document.getElementById("auth-bar");
   if(currentUser){
     const roleBadge=isAdminUser()?' <span class="admin-badge">Admin</span>':isOfficerUser()?' <span class="admin-badge" style="background:#6495ed">Offizier</span>':"";
-    el.innerHTML=`<div class="auth-bar">Eingeloggt als <span class="auth-user">${h(currentUser.username)}</span>${roleBadge} <button class="btn-logout" onclick="doLogout()">Abmelden</button></div>`;
+    let dcBadge="";
+    if(currentUser.discordLinked&&currentUser.discordGuildMember){
+      dcBadge=` <span class="dc-verified">${dcIco(12)} ${h(currentUser.discordUsername)}</span>`;
+    }else if(currentUser.discordLinked){
+      dcBadge=` <span class="dc-unverified" title="Nicht auf dem Gilden-Discord">${dcIco(12)} Kein Gildenmitglied</span>`;
+    }else{
+      dcBadge=` <button class="btn-dc-link" onclick="doDiscordLink()">${dcIco(14)} Discord verknüpfen</button>`;
+    }
+    el.innerHTML=`<div class="auth-bar">Eingeloggt als <span class="auth-user">${h(currentUser.username)}</span>${roleBadge}${dcBadge} <button class="btn-logout" onclick="doLogout()">Abmelden</button></div>`;
   }else{
     el.innerHTML=`<div class="auth-bar"><button class="btn-bnet" onclick="doBnetLogin()">${BNET_ICON} Mit Battle.net anmelden</button></div>`;
   }
@@ -811,6 +827,29 @@ window.doBnetLogin=async function(){
     const errEl=document.getElementById("auth-err");
     if(errEl)errEl.textContent=e.message;
     else toast("Login-Fehler: "+e.message);
+  }
+};
+window.doDiscordLink=async function(){
+  try{
+    const res=await authApi("discord-link");
+    if(res.url) window.location.href=res.url;
+  }catch(e){
+    toast("Discord-Fehler: "+e.message);
+  }
+};
+window.doDiscordUnlink=async function(){
+  try{
+    await authApi("discord-unlink");
+    if(currentUser){
+      currentUser.discordLinked=false;
+      currentUser.discordUsername=null;
+      currentUser.discordGuildMember=false;
+      localStorage.setItem("raid-auth",JSON.stringify(currentUser));
+    }
+    renderAuthBar();
+    toast("Discord-Verknüpfung aufgehoben");
+  }catch(e){
+    toast("Fehler: "+e.message);
   }
 };
 window.doLogout=async function(){
@@ -861,12 +900,19 @@ async function loadBnetCharacters(){
     console.error("Character load error:",e);
   }
 }
+function applyDiscordInfo(target,res){
+  target.discordLinked=res.discordLinked||false;
+  target.discordUsername=res.discordUsername||null;
+  target.discordGuildMember=res.discordGuildMember||false;
+}
 async function initAuth(){
   // Handle Battle.net OAuth callback token in URL fragment (preferred) or query param (legacy)
   const hashParams=new URLSearchParams(window.location.hash.slice(1));
   const queryParams=new URLSearchParams(window.location.search);
   const bnetToken=hashParams.get("bnet_token")||queryParams.get("bnet_token");
   const authError=queryParams.get("auth_error");
+  const discordLinked=hashParams.get("discord_linked");
+  const discordError=queryParams.get("discord_error");
   if(bnetToken){
     // Clean URL — remove both hash and query params
     window.history.replaceState({},"",window.location.pathname);
@@ -875,6 +921,7 @@ async function initAuth(){
     try{
       const res=await authApi("validate");
       currentUser={token:bnetToken,username:res.username,userId:res.userId,isAdmin:res.isAdmin||false};
+      applyDiscordInfo(currentUser,res);
       localStorage.setItem("raid-auth",JSON.stringify(currentUser));
       toast("Angemeldet als "+res.username);
       await loadBnetCharacters();
@@ -888,6 +935,38 @@ async function initAuth(){
     load();
     return;
   }
+  // Handle Discord link callback
+  if(discordLinked){
+    window.history.replaceState({},"",window.location.pathname);
+    // Re-validate to pick up Discord data
+    const stored=localStorage.getItem("raid-auth");
+    if(stored){
+      try{
+        const data=JSON.parse(stored);
+        currentUser=data;
+        const res=await authApi("validate");
+        currentUser={...data,username:res.username,userId:res.userId,isAdmin:res.isAdmin||false};
+        applyDiscordInfo(currentUser,res);
+        localStorage.setItem("raid-auth",JSON.stringify(currentUser));
+        if(currentUser.discordGuildMember){
+          toast("Discord verknüpft — Gildenmitglied bestätigt ✓");
+        }else if(currentUser.discordLinked){
+          toast("Discord verknüpft — aber nicht auf dem Gilden-Discord");
+        }
+      }catch(e){
+        currentUser=null;
+        localStorage.removeItem("raid-auth");
+      }
+    }
+    renderAuthBar();
+    renderForm();
+    load();
+    return;
+  }
+  if(discordError){
+    window.history.replaceState({},"",window.location.pathname);
+    toast("Discord-Verknüpfung fehlgeschlagen");
+  }
   if(authError){
     window.history.replaceState({},"",window.location.pathname);
     toast("Battle.net-Anmeldung fehlgeschlagen");
@@ -899,6 +978,8 @@ async function initAuth(){
       currentUser=data;
       const res=await authApi("validate");
       currentUser={...data,username:res.username,userId:res.userId,isAdmin:res.isAdmin||false};
+      applyDiscordInfo(currentUser,res);
+      localStorage.setItem("raid-auth",JSON.stringify(currentUser));
       await loadBnetCharacters();
     }catch(e){
       currentUser=null;

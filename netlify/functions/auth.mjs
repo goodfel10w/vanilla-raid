@@ -84,10 +84,36 @@ export default async (req) => {
       if (!session) {
         return new Response(JSON.stringify({ error: "Sitzung ungültig" }), { status: 401, headers });
       }
+
+      // Look up user record for Discord link status
+      const users = getStore({ name: "users", consistency: "strong" });
+      let discordLinked = false;
+      let discordUsername = null;
+      let discordGuildMember = false;
+
+      // Find user by bnetId or userId
+      const auth = req.headers.get("authorization");
+      const token = auth?.slice(7);
+      const sess = token ? await sessions.get(token, { type: "json" }) : null;
+      if (sess) {
+        const userKey = sess.bnetId ? `bnet_${sess.bnetId}` : null;
+        if (userKey) {
+          const user = await users.get(userKey, { type: "json" });
+          if (user?.discordId) {
+            discordLinked = true;
+            discordUsername = user.discordUsername || null;
+            discordGuildMember = user.discordGuildMember || false;
+          }
+        }
+      }
+
       return new Response(JSON.stringify({
         username: session.username,
         userId: session.userId,
         isAdmin: session.isAdmin || false,
+        discordLinked,
+        discordUsername,
+        discordGuildMember,
       }), { status: 200, headers });
     }
 
@@ -125,6 +151,108 @@ export default async (req) => {
         deletedUsers,
         deletedSessions,
       }), { status: 200, headers });
+    }
+
+    // ── Discord Link — generate Discord OAuth URL ──
+    if (action === "discord-link") {
+      const session = await validateSession(req);
+      if (!session) {
+        return new Response(JSON.stringify({ error: "Nicht angemeldet" }), { status: 401, headers });
+      }
+
+      const clientId = process.env.DISCORD_CLIENT_ID;
+      if (!clientId) {
+        return new Response(JSON.stringify({ error: "Discord OAuth nicht konfiguriert" }), { status: 500, headers });
+      }
+
+      const origin = new URL(req.url).origin;
+      const redirectUri = `${origin}/api/discord-callback`;
+      const state = randomUUID();
+
+      // Get session token to pass to callback
+      const auth = req.headers.get("authorization");
+      const sessionToken = auth?.slice(7);
+      const sess = sessionToken ? await sessions.get(sessionToken, { type: "json" }) : null;
+      const userKey = sess?.bnetId ? `bnet_${sess.bnetId}` : null;
+
+      if (!userKey) {
+        return new Response(JSON.stringify({ error: "Benutzer nicht gefunden" }), { status: 400, headers });
+      }
+
+      // Store state with session reference
+      const discordStates = getStore({ name: "discord-oauth-states", consistency: "strong" });
+
+      // Purge expired states (older than 10 min)
+      try {
+        const { blobs } = await discordStates.list();
+        const expiry = Date.now() - 10 * 60 * 1000;
+        for (const blob of blobs) {
+          const s = await discordStates.get(blob.key, { type: "json" });
+          if (s && new Date(s.createdAt).getTime() < expiry) {
+            await discordStates.delete(blob.key);
+          }
+        }
+      } catch (e) {
+        console.error("Discord state cleanup error:", e);
+      }
+
+      await discordStates.setJSON(state, {
+        createdAt: new Date().toISOString(),
+        sessionToken,
+        userKey,
+      });
+
+      const authUrl = `https://discord.com/oauth2/authorize?` + new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        response_type: "code",
+        scope: "identify guilds.members.read",
+        state,
+      }).toString();
+
+      return new Response(JSON.stringify({ url: authUrl }), { status: 200, headers });
+    }
+
+    // ── Discord Unlink — remove Discord account ──
+    if (action === "discord-unlink") {
+      const session = await validateSession(req);
+      if (!session) {
+        return new Response(JSON.stringify({ error: "Nicht angemeldet" }), { status: 401, headers });
+      }
+
+      const auth = req.headers.get("authorization");
+      const sessionToken = auth?.slice(7);
+      const sess = sessionToken ? await sessions.get(sessionToken, { type: "json" }) : null;
+      const userKey = sess?.bnetId ? `bnet_${sess.bnetId}` : null;
+
+      if (!userKey) {
+        return new Response(JSON.stringify({ error: "Benutzer nicht gefunden" }), { status: 400, headers });
+      }
+
+      const users = getStore({ name: "users", consistency: "strong" });
+      const user = await users.get(userKey, { type: "json" });
+      if (user) {
+        delete user.discordId;
+        delete user.discordUsername;
+        delete user.discordAvatar;
+        delete user.discordAccessToken;
+        delete user.discordGuildMember;
+        delete user.discordGuildNickname;
+        delete user.discordGuildRoles;
+        delete user.discordLinkedAt;
+        user.updatedAt = new Date().toISOString();
+        await users.setJSON(userKey, user);
+      }
+
+      // Clear Discord info from session
+      if (sess) {
+        delete sess.discordId;
+        delete sess.discordUsername;
+        delete sess.discordGuildMember;
+        await sessions.setJSON(sessionToken, sess);
+      }
+
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }
 
     return new Response(JSON.stringify({ error: "Unbekannte Aktion" }), { status: 400, headers });
