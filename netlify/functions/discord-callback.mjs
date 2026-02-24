@@ -130,6 +130,15 @@ export default async (req) => {
     user.updatedAt = new Date().toISOString();
     await users.setJSON(userKey, user);
 
+    // Maintain discord-user-map for slash command character lookup
+    const discordMap = getStore({ name: "discord-user-map", consistency: "strong" });
+    await discordMap.setJSON(discordId, {
+      userId: session.userId,
+      userKey,
+      discordUsername,
+      linkedAt: new Date().toISOString(),
+    });
+
     // Update session with Discord info so validate returns it
     session.discordId = discordId;
     session.discordUsername = discordUsername;

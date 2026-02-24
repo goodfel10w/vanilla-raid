@@ -232,6 +232,11 @@ export default async (req) => {
       const users = getStore({ name: "users", consistency: "strong" });
       const user = await users.get(userKey, { type: "json" });
       if (user) {
+        // Remove discord-user-map entry for slash command lookup
+        if (user.discordId) {
+          const discordMap = getStore({ name: "discord-user-map", consistency: "strong" });
+          await discordMap.delete(user.discordId).catch(() => {});
+        }
         delete user.discordId;
         delete user.discordUsername;
         delete user.discordAvatar;
