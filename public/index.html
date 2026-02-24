@@ -280,12 +280,15 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
   .bs-roles{flex-direction:column}
   .toast{left:12px;right:12px;transform:translateX(0) translateY(40px);text-align:center}
   .toast.show{transform:translateX(0) translateY(0)}
+  .rc-targets{grid-template-columns:1fr}
+  .rc-cls-name{min-width:80px}
+  .raid-signup-row{flex-wrap:wrap;gap:4px}
 }
 
 /* Raids */
 .raid-list{display:flex;flex-direction:column;gap:10px}
 .raid-card{background:var(--card);border-radius:12px;border:1px solid var(--bdr);padding:18px 20px;animation:fadeIn .3s ease}
-.raid-card.past{opacity:.5}
+.raid-card.past{opacity:.55}
 .raid-hdr{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
 .raid-inst{font-family:'Cinzel',serif;font-weight:700;font-size:17px;color:var(--gold)}
 .raid-tier{font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(201,168,76,.12);color:var(--gold-d);font-weight:700;letter-spacing:1px}
@@ -323,6 +326,44 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .btn-discord .dc-ico{display:inline-block;width:14px;height:14px;vertical-align:middle;margin-right:4px}
 .discord-posted{font-size:11px;color:#5865F2;margin-top:4px;display:flex;align-items:center;gap:4px}
 .discord-posted .dc-ico{display:inline-block;width:12px;height:12px}
+
+/* Raid composition panel */
+.raid-comp{margin-top:14px;border-top:1px solid rgba(255,255,255,.04);padding-top:14px}
+.raid-comp-toggle{font-size:12px;color:var(--gold);cursor:pointer;background:none;border:none;font-family:inherit;font-weight:600;display:inline-flex;align-items:center;gap:4px;padding:0;transition:color .15s}
+.raid-comp-toggle:hover{color:var(--gold-l)}
+.raid-comp-body{margin-top:12px;animation:fadeIn .25s ease}
+
+/* Role targets grid */
+.rc-targets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.rc-target{padding:10px 12px;border-radius:8px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.04);text-align:center}
+.rc-target-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;display:flex;align-items:center;justify-content:center;gap:4px}
+.rc-target-count{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.rc-target-max{font-size:11px;color:var(--tx4);margin-top:2px}
+.rc-target.ok .rc-target-count{color:var(--grn)}
+.rc-target.warn .rc-target-count{color:var(--ylw)}
+.rc-target.low .rc-target-count{color:var(--dps)}
+
+/* Class distribution mini bar */
+.rc-classes{margin-bottom:14px}
+.rc-cls-row{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px}
+.rc-cls-bar{height:6px;border-radius:3px;min-width:2px;transition:width .3s}
+.rc-cls-name{min-width:100px;display:flex;align-items:center;gap:5px;font-weight:600}
+.rc-cls-ct{min-width:28px;text-align:right;color:var(--tx3);font-variant-numeric:tabular-nums}
+
+/* Bench / lineup section */
+.rc-section{margin-bottom:12px}
+.rc-section-t{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--tx3);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.rc-lineup{display:flex;flex-wrap:wrap;gap:4px}
+.rc-player{font-size:12px;padding:4px 10px;border-radius:5px;display:inline-flex;align-items:center;gap:4px;font-weight:600;border:1px solid rgba(255,255,255,.04)}
+.rc-player.in{background:rgba(102,187,106,.06);border-color:rgba(102,187,106,.15)}
+.rc-player.bench{background:rgba(229,194,68,.06);border-color:rgba(229,194,68,.15);color:var(--ylw)}
+.rc-player.tentative{opacity:.7;font-style:italic}
+.rc-player .wow-ico-sm{width:14px;height:14px}
+.rc-note{font-size:11px;color:var(--tx4);margin-top:6px;font-style:italic}
+
+/* Signup groups improved */
+.raid-signups-group{margin-top:6px;padding:8px 12px;border-radius:8px;background:rgba(0,0,0,.12);border:1px solid rgba(255,255,255,.03)}
+
 .raid-form{max-width:500px;margin:0 auto 20px}
 .raid-form .fld{margin-bottom:14px}
 .raid-form select{display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;transition:border-color .2s;appearance:none;-webkit-appearance:none;cursor:pointer}
@@ -1661,6 +1702,8 @@ function renderRaids(){
 function renderRaidCard(raid,isPast){
   const signups=(raid.signups||[]).filter(s=>s.status!=="declined");
   const declined=(raid.signups||[]).filter(s=>s.status==="declined");
+  const tentative=signups.filter(s=>s.status==="tentative");
+  const confirmed=signups.filter(s=>s.status==="accepted");
   const total=signups.length;
   const pct=Math.min(100,Math.round(total/raid.maxPlayers*100));
   const barCls=total>raid.maxPlayers?"over":total===raid.maxPlayers?"full":"";
@@ -1671,6 +1714,10 @@ function renderRaidCard(raid,isPast){
     if(s.role==="Heiler")hl++;
     if(s.role==="DPS")dp++;
   });
+
+  // Role targets based on raid size
+  const is10=raid.maxPlayers<=10;
+  const tgtTank=is10?2:RR_TANK, tgtHeal=is10?2:RR_HEAL, tgtDps=is10?6:RR_DPS;
 
   const inst=TBC_RAIDS.find(i=>i.n===raid.instance)||{n:raid.instance,tier:"?"};
   const mySignup=(raid.signups||[]).find(s=>s.userId===currentUser?.userId);
@@ -1683,7 +1730,8 @@ function renderRaidCard(raid,isPast){
     ROLES.forEach(role=>{
       const rs=signups.filter(s=>s.role===role);
       if(!rs.length)return;
-      signupHtml+=`<div class="raid-signups-t" style="color:${RC[role]};margin-top:8px">${RI[role]} ${role} (${rs.length})</div>`;
+      signupHtml+=`<div class="raid-signups-group">`;
+      signupHtml+=`<div class="raid-signups-t" style="color:${RC[role]}">${RI[role]} ${role} (${rs.length})</div>`;
       rs.forEach(s=>{
         const isTent=s.status==="tentative";
         const specBadges=(s.offeredSpecs||[]).map(sp=>{
@@ -1705,15 +1753,18 @@ function renderRaidCard(raid,isPast){
           </select>`:""}
         </div>`;
       });
+      signupHtml+=`</div>`;
     });
     if(declined.length){
-      signupHtml+=`<div class="raid-signups-t" style="color:var(--dps);margin-top:8px">Abgesagt (${declined.length})</div>`;
+      signupHtml+=`<div class="raid-signups-group" style="border-color:rgba(229,115,115,.08)">`;
+      signupHtml+=`<div class="raid-signups-t" style="color:var(--dps)">\u274C Abgesagt (${declined.length})</div>`;
       declined.forEach(s=>{
         signupHtml+=`<div class="raid-signup-row">
           <span class="raid-signup-name" style="color:var(--tx4);text-decoration:line-through">${h(s.charName)}</span>
           ${s.note?`<span style="font-size:11px;color:var(--tx4);font-style:italic">${h(s.note)}</span>`:""}
         </div>`;
       });
+      signupHtml+=`</div>`;
     }
     signupHtml+=`</div>`;
   }
@@ -1721,14 +1772,18 @@ function renderRaidCard(raid,isPast){
   // Signup form for current user
   let signupForm="";
   if(currentUser&&!isPast){
-    // Get user's characters from entries
-    const myChars=entries.filter(e=>e.userId===currentUser.userId);
     if(mySignup){
       const statusLbl=mySignup.status==="accepted"?"Angemeldet":mySignup.status==="tentative"?"Vielleicht":"Abgesagt";
       const statusColor=mySignup.status==="accepted"?"var(--grn)":mySignup.status==="tentative"?"var(--ylw)":"var(--dps)";
       const mySpecInfo=mySignup.assignedSpec?mySignup.assignedSpec:mySignup.offeredSpecs?mySignup.offeredSpecs.join(", "):mySignup.role;
-      signupForm=`<div style="font-size:12px;color:${statusColor};margin-top:8px">Du bist als <strong>${h(mySignup.charName)}</strong> (${h(mySpecInfo)}) ${statusLbl.toLowerCase()}${mySignup.assignedSpec?` \u2014 <span style="color:var(--grn)">Zugewiesen: ${h(mySignup.assignedSpec)}</span>`:""}</div>`;
+      signupForm=`<div style="font-size:12px;color:${statusColor};margin-top:8px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,.15)">Du bist als <strong>${h(mySignup.charName)}</strong> (${h(mySpecInfo)}) ${statusLbl.toLowerCase()}${mySignup.assignedSpec?` \u2014 <span style="color:var(--grn)">Zugewiesen: ${h(mySignup.assignedSpec)}</span>`:""}</div>`;
     }
+  }
+
+  // Composition suggestion panel (only for raids with signups)
+  let compHtml="";
+  if(signups.length&&!isPast){
+    compHtml=renderRaidComp(raid,signups,declined,{t,hl,dp,tgtTank,tgtHeal,tgtDps});
   }
 
   // Action buttons
@@ -1758,25 +1813,158 @@ function renderRaidCard(raid,isPast){
     <div class="raid-hdr">
       <span class="raid-inst">${h(raid.instance)}</span>
       <span class="raid-tier">${h(inst.tier)}</span>
+      ${tentative.length?`<span style="font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(229,194,68,.1);color:var(--ylw);font-weight:600">${tentative.length} unsicher</span>`:""}
     </div>
     <div class="raid-meta">
       <span>\u{1F4C5} ${fmtDate(raid.date)}</span>
       <span>\u{1F552} ${raid.time} Uhr</span>
-      <span>\u{1F465} ${total}/${raid.maxPlayers}</span>
+      <span>\u{1F465} <strong>${confirmed.length}</strong>${tentative.length?`<span style="color:var(--ylw)">+${tentative.length}</span>`:""} / ${raid.maxPlayers}</span>
       <span style="font-size:11px;color:var(--tx4)">von ${h(raid.createdByName)}</span>
     </div>
     <div class="raid-bar"><div class="raid-bar-fill ${barCls}" style="width:${pct}%"></div></div>
     <div class="raid-roles">
-      <span style="background:rgba(91,155,213,.12);color:var(--tank)">\u{1F6E1}\uFE0F ${t} Tank</span>
-      <span style="background:rgba(102,187,106,.12);color:var(--heal)">\u{1F49A} ${hl} Heiler</span>
-      <span style="background:rgba(229,115,115,.12);color:var(--dps)">\u2694\uFE0F ${dp} DPS</span>
+      <span style="background:rgba(91,155,213,.12);color:var(--tank)">\u{1F6E1}\uFE0F ${t}${is10?"":"/${tgtTank}"} Tank</span>
+      <span style="background:rgba(102,187,106,.12);color:var(--heal)">\u{1F49A} ${hl}${is10?"":"/${tgtHeal}"} Heiler</span>
+      <span style="background:rgba(229,115,115,.12);color:var(--dps)">\u2694\uFE0F ${dp}${is10?"":"/${tgtDps}"} DPS</span>
     </div>
-    ${raid.notes?`<div style="font-size:12px;color:var(--tx3);font-style:italic;margin-bottom:6px">\u201E${h(raid.notes)}\u201C</div>`:""}
+    ${raid.notes?`<div style="font-size:12px;color:var(--tx3);font-style:italic;margin-bottom:6px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,.1)">\u{1F4DD} \u201E${h(raid.notes)}\u201C</div>`:""}
     ${signupHtml}
     ${signupForm}
+    ${compHtml}
     <div id="signup-form-${raid.id}"></div>
     ${actions}
   </div>`;
+}
+
+// ── Raid composition suggestion ──
+const _compOpen={};
+function renderRaidComp(raid,signups,declined,counts){
+  const {t,hl,dp,tgtTank,tgtHeal,tgtDps}=counts;
+  const rid=raid.id;
+  const isOpen=_compOpen[rid];
+
+  // Build suggestion: who's in, who's on bench
+  const comp=buildRaidComp(raid,signups);
+
+  let html=`<div class="raid-comp">`;
+  html+=`<button class="raid-comp-toggle" onclick="_compOpen['${rid}']=!_compOpen['${rid}'];renderRaids()">${isOpen?"\u25BE":"\u25B8"} Aufstellung &amp; Zusammensetzung${comp.bench.length?` <span style="color:var(--ylw)">(${comp.bench.length} auf der Bank)</span>`:""}</button>`;
+
+  if(isOpen){
+    html+=`<div class="raid-comp-body">`;
+
+    // Role target gauges
+    const tState=t>=tgtTank?"ok":t>=tgtTank-1?"warn":"low";
+    const hState=hl>=tgtHeal?"ok":hl>=tgtHeal-2?"warn":"low";
+    const dState=dp>=tgtDps?"ok":dp>=tgtDps-4?"warn":"low";
+    html+=`<div class="rc-targets">
+      <div class="rc-target ${tState}">
+        <div class="rc-target-label" style="color:var(--tank)">\u{1F6E1}\uFE0F Tank</div>
+        <div class="rc-target-count">${t}</div>
+        <div class="rc-target-max">von ${tgtTank} ben\u00F6tigt</div>
+      </div>
+      <div class="rc-target ${hState}">
+        <div class="rc-target-label" style="color:var(--heal)">\u{1F49A} Heiler</div>
+        <div class="rc-target-count">${hl}</div>
+        <div class="rc-target-max">von ${tgtHeal} ben\u00F6tigt</div>
+      </div>
+      <div class="rc-target ${dState}">
+        <div class="rc-target-label" style="color:var(--dps)">\u2694\uFE0F DPS</div>
+        <div class="rc-target-count">${dp}</div>
+        <div class="rc-target-max">von ${tgtDps} ben\u00F6tigt</div>
+      </div>
+    </div>`;
+
+    // Class distribution
+    const clsCounts={};
+    signups.forEach(s=>{if(s.className)clsCounts[s.className]=(clsCounts[s.className]||0)+1});
+    const clsEntries=Object.entries(clsCounts).sort((a,b)=>b[1]-a[1]);
+    if(clsEntries.length){
+      const maxCt=clsEntries[0][1];
+      html+=`<div class="rc-classes">`;
+      clsEntries.forEach(([cls,ct])=>{
+        const w=Math.max(4,Math.round(ct/maxCt*100));
+        html+=`<div class="rc-cls-row">
+          <span class="rc-cls-name" style="color:${cc(cls)}"><img class="wow-ico-sm" src="${clsIcon(cls)}" alt="" loading="lazy"> ${h(cls)}</span>
+          <div style="flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.04)"><div class="rc-cls-bar" style="width:${w}%;background:${cc(cls)}"></div></div>
+          <span class="rc-cls-ct">${ct}</span>
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+
+    // Lineup suggestion
+    if(comp.lineup.length){
+      html+=`<div class="rc-section">
+        <div class="rc-section-t"><span style="color:var(--grn)">\u2705</span> Aufstellung (${comp.lineup.length}/${raid.maxPlayers})</div>
+        <div class="rc-lineup">${comp.lineup.map(s=>`<span class="rc-player in${s.status==="tentative"?" tentative":""}" style="color:${s.className?cc(s.className):"var(--tx)"}">${s.className?`<img class="wow-ico-sm" src="${clsIcon(s.className)}" alt="" loading="lazy">`:""} ${h(s.charName)} <span style="font-size:10px;color:var(--tx4)">${s.assignedSpec||s.role}</span></span>`).join("")}</div>
+      </div>`;
+    }
+
+    // Bench
+    if(comp.bench.length){
+      html+=`<div class="rc-section">
+        <div class="rc-section-t"><span style="color:var(--ylw)">\u{1F4A4}</span> Bank (${comp.bench.length})</div>
+        <div class="rc-lineup">${comp.bench.map(s=>`<span class="rc-player bench" style="color:${s.className?cc(s.className):"var(--ylw)"}">${s.className?`<img class="wow-ico-sm" src="${clsIcon(s.className)}" alt="" loading="lazy">`:""} ${h(s.charName)} <span style="font-size:10px;color:var(--tx4)">${s.role}</span></span>`).join("")}</div>
+        <div class="rc-note">\u{1F4A1} Vorschlag basiert auf Rollenverteilung — finale Entscheidung liegt beim Raidleiter.</div>
+      </div>`;
+    }
+
+    html+=`</div>`;
+  }
+
+  html+=`</div>`;
+  return html;
+}
+
+// Build raid composition: suggest who's in and who's benched
+function buildRaidComp(raid,signups){
+  const max=raid.maxPlayers;
+  const is10=max<=10;
+  const tgtTank=is10?2:RR_TANK, tgtHeal=is10?2:RR_HEAL, tgtDps=is10?6:RR_DPS;
+
+  // Separate confirmed vs tentative (confirmed get priority)
+  const conf=signups.filter(s=>s.status==="accepted");
+  const tent=signups.filter(s=>s.status==="tentative");
+
+  const lineup=[];
+  const bench=[];
+  const roleFilled={Tank:0,Heiler:0,DPS:0};
+
+  // Priority: fill role targets with confirmed first, then tentative
+  function tryPlace(player){
+    const role=player.assignedSpec?specRole(player.className,player.assignedSpec):player.role;
+    const tgt=role==="Tank"?tgtTank:role==="Heiler"?tgtHeal:tgtDps;
+    if(roleFilled[role]<tgt&&lineup.length<max){
+      lineup.push(player);
+      roleFilled[role]++;
+      return true;
+    }
+    return false;
+  }
+
+  // Pass 1: place confirmed into their primary roles
+  const confRemaining=[];
+  conf.forEach(s=>{
+    if(!tryPlace(s))confRemaining.push(s);
+  });
+
+  // Pass 2: place tentative into primary roles
+  const tentRemaining=[];
+  tent.forEach(s=>{
+    if(!tryPlace(s))tentRemaining.push(s);
+  });
+
+  // Pass 3: fill remaining spots with overflow (up to max)
+  [...confRemaining,...tentRemaining].forEach(s=>{
+    if(lineup.length<max){
+      lineup.push(s);
+      roleFilled[s.role]++;
+    }else{
+      bench.push(s);
+    }
+  });
+
+  return{lineup,bench};
 }
 
 function renderRaidForm(el){

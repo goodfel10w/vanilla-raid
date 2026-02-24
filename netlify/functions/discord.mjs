@@ -25,57 +25,121 @@ function fmtDate(ds) {
   return dn + ", " + String(d.getDate()).padStart(2, "0") + "." + String(d.getMonth() + 1).padStart(2, "0") + "." + d.getFullYear();
 }
 
+// Role targets for raid composition
+const RAID_TARGETS_25 = { Tank: 2, Heiler: 5, DPS: 18 };
+const RAID_TARGETS_10 = { Tank: 2, Heiler: 2, DPS: 6 };
+
 function buildRaidEmbed(raid, siteUrl) {
   const signups = (raid.signups || []).filter(s => s.status !== "declined");
   const declined = (raid.signups || []).filter(s => s.status === "declined");
+  const confirmed = signups.filter(s => s.status === "accepted");
+  const tentative = signups.filter(s => s.status === "tentative");
   const total = signups.length;
   const pct = Math.min(100, Math.round(total / raid.maxPlayers * 100));
+
+  const is10 = raid.maxPlayers <= 10;
+  const targets = is10 ? RAID_TARGETS_10 : RAID_TARGETS_25;
 
   // Count by role
   const roleCounts = {};
   ROLES.forEach(r => { roleCounts[r] = 0; });
   signups.forEach(s => { if (roleCounts[s.role] !== undefined) roleCounts[s.role]++; });
 
-  // Progress bar (text-based)
+  // Count classes
+  const classCounts = {};
+  signups.forEach(s => { if (s.className) classCounts[s.className] = (classCounts[s.className] || 0) + 1; });
+
+  // Progress bar (text-based, more detailed)
   const barLen = 20;
   const filled = Math.round(pct / 100 * barLen);
   const bar = "▓".repeat(filled) + "░".repeat(barLen - filled);
 
-  // Build signup list per role
+  // Status indicator
+  let statusEmoji = "🟡";
+  if (total >= raid.maxPlayers) statusEmoji = "🟢";
+  if (total > raid.maxPlayers) statusEmoji = "🔴";
+
+  // Role status line with target indicators
+  const roleStatus = ROLES.map(role => {
+    const ct = roleCounts[role];
+    const tgt = targets[role];
+    const icon = ct >= tgt ? "✅" : ct >= tgt - 1 ? "⚠️" : "❌";
+    return `${ROLE_EMOJI[role]} **${ct}**/${tgt} ${role} ${icon}`;
+  }).join("\n");
+
+  // Description with clear sections
+  const descParts = [
+    `### 📅 ${fmtDate(raid.date)} • 🕒 ${raid.time} Uhr`,
+    "",
+    `${statusEmoji} **${confirmed.length}** sicher${tentative.length ? ` + **${tentative.length}** unsicher` : ""} von **${raid.maxPlayers}** Plätzen`,
+    `\`${bar}\` ${pct}%`,
+    "",
+    `**Rollenverteilung:**`,
+    roleStatus,
+  ];
+
+  if (raid.notes) {
+    descParts.push("", `📝 *„${raid.notes}"*`);
+  }
+
+  // Build signup list per role with better formatting
   const fields = [];
   ROLES.forEach(role => {
     const rs = signups.filter(s => s.role === role);
-    if (!rs.length && !declined.length) return;
-    if (rs.length) {
-      const lines = rs.map(s => {
-        const tent = s.status === "tentative" ? " *(Vielleicht)*" : "";
-        const cls = s.className ? ` (${s.className})` : "";
-        const specInfo = s.assignedSpec ? ` **[${s.assignedSpec}]**` : s.offeredSpecs && s.offeredSpecs.length ? ` [${s.offeredSpecs.join("/")}]` : "";
-        return `> ${s.charName}${cls}${specInfo}${tent}`;
-      });
-      fields.push({
-        name: `${ROLE_EMOJI[role]} ${role} (${rs.length})`,
-        value: lines.join("\n"),
-        inline: true,
-      });
-    }
+    if (!rs.length) return;
+    const lines = rs.map(s => {
+      const tent = s.status === "tentative" ? " 🔸" : "";
+      const cls = s.className ? ` \`${s.className}\`` : "";
+      const specInfo = s.assignedSpec
+        ? ` ✅ **${s.assignedSpec}**`
+        : s.offeredSpecs && s.offeredSpecs.length
+        ? ` *(${s.offeredSpecs.join(" / ")})*`
+        : "";
+      return `> **${s.charName}**${cls}${specInfo}${tent}`;
+    });
+    fields.push({
+      name: `${ROLE_EMOJI[role]} ${role} — ${rs.length}/${targets[role]}`,
+      value: lines.join("\n"),
+      inline: true,
+    });
   });
+
+  // Class breakdown as compact field
+  const clsEntries = Object.entries(classCounts).sort((a, b) => b[1] - a[1]);
+  if (clsEntries.length) {
+    const clsLines = clsEntries.map(([cls, ct]) => `\`${ct}×\` ${cls}`);
+    fields.push({
+      name: "📊 Klassenverteilung",
+      value: clsLines.join(" • "),
+      inline: false,
+    });
+  }
 
   // Declined
   if (declined.length) {
-    const lines = declined.map(s => `> ~~${s.charName}~~`);
+    const lines = declined.map(s => `~~${s.charName}~~`);
     fields.push({
       name: `❌ Abgesagt (${declined.length})`,
-      value: lines.join("\n"),
-      inline: true,
+      value: "> " + lines.join(", "),
+      inline: false,
+    });
+  }
+
+  // Bench suggestion if oversigned
+  if (total > raid.maxPlayers) {
+    const overCount = total - raid.maxPlayers;
+    fields.push({
+      name: `💤 Überzählig (${overCount})`,
+      value: `*${overCount} Spieler müssen auf die Bank — Raidleiter entscheidet.*`,
+      inline: false,
     });
   }
 
   // If no signups yet
-  if (!fields.length) {
+  if (!signups.length && !declined.length) {
     fields.push({
       name: "Anmeldungen",
-      value: "*Noch keine Anmeldungen*",
+      value: "*Noch keine Anmeldungen — sei der Erste!*",
       inline: false,
     });
   }
@@ -86,13 +150,8 @@ function buildRaidEmbed(raid, siteUrl) {
   if (total > raid.maxPlayers) color = 0xE57373; // red = over
 
   const embed = {
-    title: `⚔️ ${raid.instance}`,
-    description: [
-      `📅 **${fmtDate(raid.date)}** • 🕒 **${raid.time} Uhr**`,
-      `👥 **${total}/${raid.maxPlayers}** Spieler  \`${bar}\`  ${pct}%`,
-      `${ROLE_EMOJI.Tank} ${roleCounts.Tank} Tank • ${ROLE_EMOJI.Heiler} ${roleCounts.Heiler} Heiler • ${ROLE_EMOJI.DPS} ${roleCounts.DPS} DPS`,
-      raid.notes ? `\n📝 *„${raid.notes}"*` : "",
-    ].filter(Boolean).join("\n"),
+    title: `⚔️  ${raid.instance}`,
+    description: descParts.join("\n"),
     color,
     fields,
     footer: {
@@ -103,7 +162,7 @@ function buildRaidEmbed(raid, siteUrl) {
 
   // Add link to sign up
   if (siteUrl) {
-    embed.description += `\n\n🔗 [Jetzt anmelden](${siteUrl}#raids)`;
+    embed.description += `\n\n🔗 **[Jetzt anmelden!](${siteUrl}#raids)**`;
   }
 
   return embed;
