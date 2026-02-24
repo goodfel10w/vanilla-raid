@@ -2144,11 +2144,11 @@ function renderRaidForm(el){
     </div>
     <div class="fld">
       <span class="lbl">Datum</span>
-      <input type="date" id="rf-date" value="${raidForm.date}" min="${todayStr()}" onchange="raidForm.date=this.value">
+      <input type="date" id="rf-date" value="${raidForm.date}" min="${todayStr()}" onchange="raidForm.date=this.value;updRaidBtn()">
     </div>
     <div class="fld">
       <span class="lbl">Uhrzeit</span>
-      <input type="time" id="rf-time" value="${raidForm.time}" onchange="raidForm.time=this.value">
+      <input type="time" id="rf-time" value="${raidForm.time}" onchange="raidForm.time=this.value;updRaidBtn()">
     </div>
     <div class="fld">
       <span class="lbl">Max. Spieler</span>
@@ -2170,6 +2170,10 @@ window.autoMaxPlayers=function(){
   if(inst){
     raidForm.maxPlayers=inst.max;
   }
+};
+window.updRaidBtn=function(){
+  const b=document.getElementById("rf-submit");
+  if(b)b.disabled=!(raidForm.instance&&raidForm.date&&raidForm.time);
 };
 
 window.submitRaid=async function(){
