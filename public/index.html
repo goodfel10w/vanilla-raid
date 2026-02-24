@@ -361,6 +361,20 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .rc-player .wow-ico-sm{width:14px;height:14px}
 .rc-note{font-size:11px;color:var(--tx4);margin-top:6px;font-style:italic}
 
+/* Karazhan group suggestions */
+.kara-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:12px}
+.kara-group{background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px}
+.kara-group-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.04)}
+.kara-group-title{font-size:14px;font-weight:700;color:var(--gold)}
+.kara-group-count{font-size:12px;color:var(--tx3);font-variant-numeric:tabular-nums}
+.kara-roles{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.kara-role{font-size:11px;padding:3px 8px;border-radius:5px;background:rgba(255,255,255,.04);font-weight:600;font-variant-numeric:tabular-nums}
+.kara-role.ok{background:rgba(102,187,106,.1);outline:1px solid rgba(102,187,106,.2)}
+.kara-player{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px}
+.kara-player.tentative{opacity:.65;font-style:italic}
+.kara-player-spec{font-size:10px;margin-left:auto;font-weight:600}
+@media(max-width:640px){.kara-groups{grid-template-columns:1fr}}
+
 /* Signup groups improved */
 .raid-signups-group{margin-top:6px;padding:8px 12px;border-radius:8px;background:rgba(0,0,0,.12);border:1px solid rgba(255,255,255,.03)}
 
@@ -1786,6 +1800,12 @@ function renderRaidCard(raid,isPast){
     compHtml=renderRaidComp(raid,signups,declined,{t,hl,dp,tgtTank,tgtHeal,tgtDps});
   }
 
+  // Karazhan group suggestion (when >10 signups for a 10-man raid)
+  let karaHtml="";
+  if(raid.instance==="Karazhan"&&signups.length>KARA_SIZE&&!isPast){
+    karaHtml=renderKaraGroups(raid,signups);
+  }
+
   // Action buttons
   let actions="";
   if(currentUser&&!isPast){
@@ -1831,6 +1851,7 @@ function renderRaidCard(raid,isPast){
     ${signupHtml}
     ${signupForm}
     ${compHtml}
+    ${karaHtml}
     <div id="signup-form-${raid.id}"></div>
     ${actions}
   </div>`;
@@ -1965,6 +1986,144 @@ function buildRaidComp(raid,signups){
   });
 
   return{lineup,bench};
+}
+
+// ── Karazhan group suggestion ──
+// When a Karazhan raid has >10 signups, suggest balanced 10-man groups
+const _karaGroupsOpen={};
+const KARA_TANKS=2, KARA_HEALERS=2, KARA_DPS=6, KARA_SIZE=10;
+
+function suggestKaraGroups(signups){
+  // Separate by role
+  const tanks=[], healers=[], dps=[];
+  // Confirmed first, then tentative
+  const sorted=[...signups.filter(s=>s.status==="accepted"),...signups.filter(s=>s.status==="tentative")];
+  sorted.forEach(s=>{
+    const role=s.assignedSpec?specRole(s.className,s.assignedSpec):s.role;
+    if(role==="Tank")tanks.push(s);
+    else if(role==="Heiler")healers.push(s);
+    else dps.push(s);
+  });
+
+  const numGroups=Math.max(1,Math.ceil(sorted.length/KARA_SIZE));
+  const groups=Array.from({length:numGroups},()=>({players:[],tanks:0,healers:0,dps:0}));
+
+  // Round-robin distribute, smallest group first, respecting role targets
+  function distribute(pool,role,perGroup){
+    pool.forEach(player=>{
+      // Find group with fewest of this role, then fewest total
+      const eligible=[...groups].sort((a,b)=>{
+        const ra=role==="Tank"?a.tanks:role==="Heiler"?a.healers:a.dps;
+        const rb=role==="Tank"?b.tanks:role==="Heiler"?b.healers:b.dps;
+        if(ra!==rb)return ra-rb;
+        return a.players.length-b.players.length;
+      });
+      const g=eligible[0];
+      g.players.push(player);
+      if(role==="Tank")g.tanks++;
+      else if(role==="Heiler")g.healers++;
+      else g.dps++;
+    });
+  }
+
+  distribute(tanks,"Tank",KARA_TANKS);
+  distribute(healers,"Heiler",KARA_HEALERS);
+  distribute(dps,"DPS",KARA_DPS);
+
+  // Diversify classes within groups: try swapping same-role players between groups
+  // to avoid duplicate classes in one group
+  for(let pass=0;pass<3;pass++){
+    for(let gi=0;gi<groups.length;gi++){
+      for(let gj=gi+1;gj<groups.length;gj++){
+        const ga=groups[gi], gb=groups[gj];
+        for(let ai=0;ai<ga.players.length;ai++){
+          for(let bi=0;bi<gb.players.length;bi++){
+            const pa=ga.players[ai], pb=gb.players[bi];
+            const ra=pa.assignedSpec?specRole(pa.className,pa.assignedSpec):pa.role;
+            const rb=pb.assignedSpec?specRole(pb.className,pb.assignedSpec):pb.role;
+            if(ra!==rb)continue; // only swap same-role
+            // Count class duplicates before/after swap
+            const dupsBefore=classDupes(ga.players)+classDupes(gb.players);
+            ga.players[ai]=pb; gb.players[bi]=pa;
+            const dupsAfter=classDupes(ga.players)+classDupes(gb.players);
+            if(dupsAfter>=dupsBefore){
+              ga.players[ai]=pa; gb.players[bi]=pb; // revert
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return groups;
+}
+
+function classDupes(players){
+  const counts={};
+  players.forEach(p=>{if(p.className)counts[p.className]=(counts[p.className]||0)+1});
+  return Object.values(counts).reduce((sum,c)=>sum+Math.max(0,c-1),0);
+}
+
+function renderKaraGroups(raid,signups){
+  const rid=raid.id;
+  const isOpen=_karaGroupsOpen[rid];
+  const groups=suggestKaraGroups(signups);
+  const numGroups=groups.length;
+
+  let html=`<div class="raid-comp" style="border-top:1px solid rgba(201,168,76,.15)">`;
+  html+=`<button class="raid-comp-toggle" onclick="_karaGroupsOpen['${rid}']=!_karaGroupsOpen['${rid}'];renderRaids()">
+    ${isOpen?"\u25BE":"\u25B8"} Gruppenvorschlag (${numGroups} Gruppen \u00E0 max. ${KARA_SIZE})
+  </button>`;
+
+  if(isOpen){
+    html+=`<div class="raid-comp-body">`;
+    html+=`<div class="rc-note" style="margin-bottom:12px">\u2139\uFE0F Automatischer Vorschlag f\u00FCr ${numGroups} Karazhan-Gruppe${numGroups>1?"n":""}. Jede Gruppe ben\u00F6tigt ${KARA_TANKS} Tanks + ${KARA_HEALERS} Heiler + ${KARA_DPS} DPS.</div>`;
+
+    html+=`<div class="kara-groups">`;
+    groups.forEach((g,i)=>{
+      const tankOk=g.tanks>=KARA_TANKS, healOk=g.healers>=KARA_HEALERS;
+      const statusIcon=tankOk&&healOk&&g.players.length>=KARA_SIZE?"\u2705":"\u26A0\uFE0F";
+
+      html+=`<div class="kara-group">`;
+      html+=`<div class="kara-group-hdr">
+        <span class="kara-group-title">${statusIcon} Gruppe ${i+1}</span>
+        <span class="kara-group-count">${g.players.length}/${KARA_SIZE}</span>
+      </div>`;
+
+      // Role gauges
+      html+=`<div class="kara-roles">
+        <span class="kara-role${g.tanks>=KARA_TANKS?" ok":""}" style="color:var(--tank)">\u{1F6E1}\uFE0F ${g.tanks}/${KARA_TANKS}</span>
+        <span class="kara-role${g.healers>=KARA_HEALERS?" ok":""}" style="color:var(--heal)">\u{1F49A} ${g.healers}/${KARA_HEALERS}</span>
+        <span class="kara-role" style="color:var(--dps)">\u2694\uFE0F ${g.dps}/${KARA_DPS}</span>
+      </div>`;
+
+      // Player list grouped by role
+      ["Tank","Heiler","DPS"].forEach(role=>{
+        const rs=g.players.filter(s=>{
+          const r=s.assignedSpec?specRole(s.className,s.assignedSpec):s.role;
+          return r===role;
+        });
+        if(!rs.length)return;
+        rs.forEach(s=>{
+          const tent=s.status==="tentative";
+          html+=`<div class="kara-player${tent?" tentative":""}">
+            ${s.className?`<img class="wow-ico-sm" src="${clsIcon(s.className)}" alt="" loading="lazy">`:""}
+            <span style="color:${s.className?cc(s.className):"var(--tx)"};font-weight:600">${h(s.charName)}</span>
+            <span class="kara-player-spec" style="color:${RC[role]}">${s.assignedSpec||role}</span>
+          </div>`;
+        });
+      });
+
+      html+=`</div>`;
+    });
+    html+=`</div>`;
+
+    html+=`<div class="rc-note">\u{1F4A1} Vorschlag basiert auf Rollenverteilung und Klassenvielfalt — finale Entscheidung liegt beim Raidleiter.</div>`;
+    html+=`</div>`;
+  }
+
+  html+=`</div>`;
+  return html;
 }
 
 function renderRaidForm(el){
