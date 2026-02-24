@@ -1924,9 +1924,9 @@ function renderRaidCard(raid,isPast){
     </div>
     <div class="raid-bar"><div class="raid-bar-fill ${barCls}" style="width:${pct}%"></div></div>
     <div class="raid-roles">
-      <span style="background:rgba(91,155,213,.12);color:var(--tank)">\u{1F6E1}\uFE0F ${t}${is10?"":"/${tgtTank}"} Tank</span>
-      <span style="background:rgba(102,187,106,.12);color:var(--heal)">\u{1F49A} ${hl}${is10?"":"/${tgtHeal}"} Heiler</span>
-      <span style="background:rgba(229,115,115,.12);color:var(--dps)">\u2694\uFE0F ${dp}${is10?"":"/${tgtDps}"} DPS</span>
+      <span style="background:rgba(91,155,213,.12);color:var(--tank)">\u{1F6E1}\uFE0F ${t}${is10?"":"/"+tgtTank} Tank</span>
+      <span style="background:rgba(102,187,106,.12);color:var(--heal)">\u{1F49A} ${hl}${is10?"":"/"+tgtHeal} Heiler</span>
+      <span style="background:rgba(229,115,115,.12);color:var(--dps)">\u2694\uFE0F ${dp}${is10?"":"/"+tgtDps} DPS</span>
     </div>
     ${raid.notes?`<div style="font-size:12px;color:var(--tx3);font-style:italic;margin-bottom:6px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,.1)">\u{1F4DD} \u201E${h(raid.notes)}\u201C</div>`:""}
     ${signupHtml}
