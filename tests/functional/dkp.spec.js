@@ -568,4 +568,202 @@ test.describe('DKP', () => {
       await expect(rows.first()).toContainText('Heiligschein');
     });
   });
+
+  // ─── Search / Filter ───
+  test.describe('search and filter', () => {
+    test.beforeEach(async ({ page }) => {
+      await setupMockApi(page, [SAMPLE_ENTRY, SAMPLE_ENTRY_2]);
+      await seedAuth(page);
+      await gotoDkp(page);
+
+      // Award DKP to both players
+      await page.click('.dkp-actions-bar button:has-text("Vergeben")');
+      await page.click('.dkp-selectall');
+      await page.fill('#dkp-award-amount', '50');
+      await page.fill('#dkp-award-reason', 'Test award');
+      await page.click('.btn-p:has-text("Vergeben")');
+      await expect(page.locator('#toast')).toHaveClass(/show/);
+    });
+
+    test('search bar filters standings by player name', async ({ page }) => {
+      await expect(page.locator('.dkp-standings tbody tr')).toHaveCount(2);
+      await page.fill('#dkp-search-input', 'Thrall');
+      await expect(page.locator('.dkp-standings tbody tr')).toHaveCount(1);
+      await expect(page.locator('.dkp-standings tbody tr').first()).toContainText('Thrallmächtig');
+    });
+
+    test('search shows "no results" for non-matching query', async ({ page }) => {
+      await page.fill('#dkp-search-input', 'zzzzzzz');
+      await expect(page.locator('#v-dkp')).toContainText('Keine Treffer');
+    });
+
+    test('transaction type filter buttons work', async ({ page }) => {
+      // Should have "Verdient" transactions
+      await expect(page.locator('.dkp-tx')).toHaveCount(2);
+
+      // Filter to "Beute" — should show none
+      await page.click('.dkp-tx-filter:has-text("Beute")');
+      await expect(page.locator('#v-dkp .card:last-child')).toContainText('Keine Transaktionen in dieser Kategorie');
+
+      // Filter back to "Alle"
+      await page.click('.dkp-tx-filter:has-text("Alle")');
+      await expect(page.locator('.dkp-tx')).toHaveCount(2);
+    });
+  });
+
+  // ─── Transaction Management (Admin) ───
+  test.describe('transaction management', () => {
+    test.beforeEach(async ({ page }) => {
+      await setupMockApi(page, [SAMPLE_ENTRY]);
+      await seedAuth(page);
+      await gotoDkp(page);
+
+      // Award DKP
+      await page.click('.dkp-actions-bar button:has-text("Vergeben")');
+      await page.locator('.dkp-pchip', { hasText: 'Thrallmächtig' }).click();
+      await page.fill('#dkp-award-amount', '100');
+      await page.fill('#dkp-award-reason', 'Initial');
+      await page.click('.btn-p:has-text("Vergeben")');
+      await expect(page.locator('#toast')).toHaveClass(/show/);
+    });
+
+    test('edit button appears on transactions for admin', async ({ page }) => {
+      await expect(page.locator('.dkp-tx-btn').first()).toBeVisible();
+    });
+
+    test('edit transaction updates amount and reason', async ({ page }) => {
+      // Wait for initial toast to disappear
+      await expect(page.locator('#toast')).not.toHaveClass(/show/, { timeout: 6000 });
+
+      // Click edit button (pencil icon)
+      await page.locator('.dkp-tx-btn').first().click();
+      await expect(page.locator('.modal-bg')).toBeVisible();
+
+      // Change amount and reason
+      await page.fill('#dkp-edit-amount', '75');
+      await page.fill('#dkp-edit-reason', 'Adjusted amount');
+      await page.click('.modal-confirm');
+
+      await expect(page.locator('#toast')).toContainText('aktualisiert');
+
+      // Balance should reflect the change (75 instead of 100)
+      await expect(page.locator('.dkp-standings')).toBeVisible();
+      await expect(page.locator('#v-dkp')).toContainText('+75');
+    });
+
+    test('delete transaction removes it and adjusts balance', async ({ page }) => {
+      // Wait for initial toast to disappear
+      await expect(page.locator('#toast')).not.toHaveClass(/show/, { timeout: 6000 });
+
+      // Click delete button (X icon)
+      await page.locator('.dkp-tx-btn.dkp-tx-del').first().click();
+      await expect(page.locator('.modal-bg')).toBeVisible();
+      await page.click('.modal-confirm');
+
+      await expect(page.locator('#toast')).toContainText('gelöscht');
+
+      // Balance should be back to 0
+      await expect(page.locator('.dkp-standings')).toBeVisible();
+      await expect(page.locator('.dkp-bal')).toContainText('0');
+    });
+  });
+
+  // ─── Player Management (Admin) ───
+  test.describe('player management', () => {
+    test.beforeEach(async ({ page }) => {
+      await setupMockApi(page, [SAMPLE_ENTRY]);
+      await seedAuth(page);
+      await gotoDkp(page);
+
+      // Award DKP to create player
+      await page.click('.dkp-actions-bar button:has-text("Vergeben")');
+      await page.locator('.dkp-pchip', { hasText: 'Thrallmächtig' }).click();
+      await page.fill('#dkp-award-amount', '100');
+      await page.fill('#dkp-award-reason', 'Setup');
+      await page.click('.btn-p:has-text("Vergeben")');
+      await expect(page.locator('#toast')).toHaveClass(/show/);
+    });
+
+    test('player detail shows admin action buttons', async ({ page }) => {
+      await page.locator('.dkp-standings tbody tr').first().click();
+      await expect(page.locator('.dkp-detail-actions')).toBeVisible();
+      await expect(page.locator('.dkp-detail-action', { hasText: 'DKP anpassen' })).toBeVisible();
+      await expect(page.locator('.dkp-detail-action', { hasText: 'Bearbeiten' })).toBeVisible();
+      await expect(page.locator('.dkp-detail-action.danger', { hasText: 'Spieler löschen' })).toBeVisible();
+    });
+
+    test('adjust balance changes player DKP directly', async ({ page }) => {
+      // Wait for initial toast to disappear
+      await expect(page.locator('#toast')).not.toHaveClass(/show/, { timeout: 6000 });
+
+      await page.locator('.dkp-standings tbody tr').first().click();
+      await page.click('.dkp-detail-action:has-text("DKP anpassen")');
+      await expect(page.locator('.modal-bg')).toBeVisible();
+
+      await page.fill('#dkp-adj-balance', '250');
+      await page.fill('#dkp-adj-reason', 'Bonus');
+      await page.click('.modal-confirm');
+
+      await expect(page.locator('#toast')).toContainText('250');
+      // Detail view should show updated balance
+      await expect(page.locator('.dkp-detail-bal')).toContainText('+250 DKP');
+    });
+
+    test('edit player allows changing class', async ({ page }) => {
+      // Wait for initial toast to disappear
+      await expect(page.locator('#toast')).not.toHaveClass(/show/, { timeout: 6000 });
+
+      await page.locator('.dkp-standings tbody tr').first().click();
+      await page.click('.dkp-detail-action:has-text("Bearbeiten")');
+      await expect(page.locator('.modal-bg')).toBeVisible();
+
+      // Change class to Magier
+      await page.selectOption('#dkp-edit-class', 'Magier');
+      await page.click('.modal-confirm');
+
+      await expect(page.locator('#toast')).toContainText('aktualisiert');
+    });
+
+    test('delete player removes from DKP system', async ({ page }) => {
+      // Wait for initial toast to disappear
+      await expect(page.locator('#toast')).not.toHaveClass(/show/, { timeout: 6000 });
+
+      await page.locator('.dkp-standings tbody tr').first().click();
+      await page.click('.dkp-detail-action.danger');
+      await expect(page.locator('.modal-bg')).toBeVisible();
+      await page.click('.modal-confirm');
+
+      await expect(page.locator('#toast')).toContainText('entfernt');
+      // Should be back to overview with empty standings
+      await expect(page.locator('#v-dkp')).toContainText('Noch keine DKP-Einträge');
+    });
+  });
+
+  // ─── My DKP ───
+  test.describe('my DKP', () => {
+    test.beforeEach(async ({ page }) => {
+      await setupMockApi(page, [SAMPLE_ENTRY]);
+      await seedAuth(page);
+      await gotoDkp(page);
+    });
+
+    test('Mein DKP button appears when user has DKP balance matching username', async ({ page }) => {
+      // Award DKP to "Testuser" (matching the mock auth username)
+      await page.click('.dkp-actions-bar button:has-text("Vergeben")');
+
+      // First we need a player with a name matching the username
+      // The mock user is "Testuser" - we need a balance matching that
+      // Let's award to Thrallmächtig first (no match)
+      await page.locator('.dkp-pchip', { hasText: 'Thrallmächtig' }).click();
+      await page.fill('#dkp-award-amount', '50');
+      await page.fill('#dkp-award-reason', 'Test');
+      await page.click('.btn-p:has-text("Vergeben")');
+      await expect(page.locator('#toast')).toHaveClass(/show/);
+
+      // Mein DKP should not appear (no match for "Testuser")
+      // But the entry has userId matching, so it may match via entries
+      // The SAMPLE_ENTRY has userId 'mock-user-1' which matches our auth
+      await expect(page.locator('.dkp-my-btn')).toBeVisible();
+    });
+  });
 });

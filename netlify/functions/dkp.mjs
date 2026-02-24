@@ -431,6 +431,305 @@ export default async (req, context) => {
         return new Response(JSON.stringify({ ok: true, balances: results }), { status: 200, headers });
       }
 
+      // ── Edit transaction — admin only ──
+      if (action === "edit-transaction") {
+        if (!isAdmin(user.username, cfg)) {
+          return new Response(
+            JSON.stringify({ error: "Nur Admins dürfen Transaktionen bearbeiten" }),
+            { status: 403, headers }
+          );
+        }
+
+        const { transactionId, amount, reason } = body;
+        if (!transactionId) {
+          return new Response(
+            JSON.stringify({ error: "Transaktions-ID erforderlich" }),
+            { status: 400, headers }
+          );
+        }
+
+        const tx = await txStore.get(transactionId, { type: "json" });
+        if (!tx) {
+          return new Response(
+            JSON.stringify({ error: "Transaktion nicht gefunden" }),
+            { status: 404, headers }
+          );
+        }
+
+        const oldAmount = tx.amount;
+        let newAmount = oldAmount;
+
+        if (amount !== undefined) {
+          const parsed = Number(amount);
+          if (isNaN(parsed) || parsed === 0) {
+            return new Response(
+              JSON.stringify({ error: "Ungültiger Betrag" }),
+              { status: 400, headers }
+            );
+          }
+          // For spend/decay, amount is stored negative; for earn, positive
+          if (tx.type === "earn") {
+            if (parsed <= 0 || parsed > cfg.maxDkpAmount) {
+              return new Response(
+                JSON.stringify({ error: `Betrag muss zwischen 1 und ${cfg.maxDkpAmount} liegen` }),
+                { status: 400, headers }
+              );
+            }
+            newAmount = parsed;
+          } else {
+            if (parsed <= 0 || parsed > cfg.maxDkpAmount) {
+              return new Response(
+                JSON.stringify({ error: `Betrag muss zwischen 1 und ${cfg.maxDkpAmount} liegen` }),
+                { status: 400, headers }
+              );
+            }
+            newAmount = -parsed;
+          }
+        }
+
+        if (reason !== undefined) {
+          if (typeof reason !== "string" || reason.trim().length === 0 || reason.length > maxReason) {
+            return new Response(
+              JSON.stringify({ error: `Grund erforderlich (max. ${maxReason} Zeichen)` }),
+              { status: 400, headers }
+            );
+          }
+          tx.reason = reason.trim().slice(0, maxReason);
+        }
+
+        // Adjust player balance by the difference
+        if (newAmount !== oldAmount) {
+          const diff = newAmount - oldAmount;
+          const key = tx.playerName.trim().toLowerCase();
+          const existing = await balanceStore.get(key, { type: "json" });
+          if (existing) {
+            existing.balance += diff;
+            existing.lastUpdated = new Date().toISOString();
+            await balanceStore.setJSON(key, existing);
+          }
+          tx.amount = newAmount;
+        }
+
+        tx.editedBy = user.username;
+        tx.editedAt = new Date().toISOString();
+        await txStore.setJSON(transactionId, tx);
+
+        return new Response(
+          JSON.stringify({ ok: true, transaction: tx }),
+          { status: 200, headers }
+        );
+      }
+
+      // ── Delete transaction — admin only ──
+      if (action === "delete-transaction") {
+        if (!isAdmin(user.username, cfg)) {
+          return new Response(
+            JSON.stringify({ error: "Nur Admins dürfen Transaktionen löschen" }),
+            { status: 403, headers }
+          );
+        }
+
+        const { transactionId } = body;
+        if (!transactionId) {
+          return new Response(
+            JSON.stringify({ error: "Transaktions-ID erforderlich" }),
+            { status: 400, headers }
+          );
+        }
+
+        const tx = await txStore.get(transactionId, { type: "json" });
+        if (!tx) {
+          return new Response(
+            JSON.stringify({ error: "Transaktion nicht gefunden" }),
+            { status: 404, headers }
+          );
+        }
+
+        // Reverse the balance change
+        const key = tx.playerName.trim().toLowerCase();
+        const existing = await balanceStore.get(key, { type: "json" });
+        if (existing) {
+          existing.balance -= tx.amount;
+          existing.lastUpdated = new Date().toISOString();
+          await balanceStore.setJSON(key, existing);
+        }
+
+        await txStore.delete(transactionId);
+
+        return new Response(
+          JSON.stringify({ ok: true, reversed: tx, balance: existing }),
+          { status: 200, headers }
+        );
+      }
+
+      // ── Adjust balance — admin only ──
+      if (action === "adjust-balance") {
+        if (!isAdmin(user.username, cfg)) {
+          return new Response(
+            JSON.stringify({ error: "Nur Admins dürfen Bilanzen anpassen" }),
+            { status: 403, headers }
+          );
+        }
+
+        const { playerName, newBalance, reason } = body;
+        if (!playerName || typeof playerName !== "string" || playerName.trim().length === 0) {
+          return new Response(
+            JSON.stringify({ error: "Spieler erforderlich" }),
+            { status: 400, headers }
+          );
+        }
+
+        const parsedBalance = Number(newBalance);
+        if (isNaN(parsedBalance)) {
+          return new Response(
+            JSON.stringify({ error: "Ungültiger Betrag" }),
+            { status: 400, headers }
+          );
+        }
+
+        const key = playerName.trim().toLowerCase();
+        const existing = await balanceStore.get(key, { type: "json" });
+        if (!existing) {
+          return new Response(
+            JSON.stringify({ error: "Spieler nicht im DKP-System gefunden" }),
+            { status: 404, headers }
+          );
+        }
+
+        const diff = parsedBalance - existing.balance;
+        existing.balance = parsedBalance;
+        existing.lastUpdated = new Date().toISOString();
+        await balanceStore.setJSON(key, existing);
+
+        // Log the adjustment as a transaction
+        const txId = randomUUID();
+        await txStore.setJSON(txId, {
+          id: txId,
+          playerName: playerName.trim(),
+          type: "adjust",
+          amount: diff,
+          reason: ((reason || "Manuelle Anpassung").trim()).slice(0, maxReason),
+          createdBy: user.username,
+          timestamp: new Date().toISOString(),
+        });
+
+        return new Response(
+          JSON.stringify({ ok: true, balance: existing }),
+          { status: 200, headers }
+        );
+      }
+
+      // ── Edit player — admin only ──
+      if (action === "edit-player") {
+        if (!isAdmin(user.username, cfg)) {
+          return new Response(
+            JSON.stringify({ error: "Nur Admins dürfen Spieler bearbeiten" }),
+            { status: 403, headers }
+          );
+        }
+
+        const { playerName, newName, newClassName } = body;
+        if (!playerName || typeof playerName !== "string") {
+          return new Response(
+            JSON.stringify({ error: "Spieler erforderlich" }),
+            { status: 400, headers }
+          );
+        }
+
+        const key = playerName.trim().toLowerCase();
+        const existing = await balanceStore.get(key, { type: "json" });
+        if (!existing) {
+          return new Response(
+            JSON.stringify({ error: "Spieler nicht im DKP-System gefunden" }),
+            { status: 404, headers }
+          );
+        }
+
+        if (newClassName !== undefined) {
+          existing.className = newClassName;
+        }
+
+        if (newName && newName.trim() !== playerName.trim()) {
+          const newKey = newName.trim().toLowerCase();
+          // Check target doesn't already exist
+          const conflict = await balanceStore.get(newKey, { type: "json" });
+          if (conflict) {
+            return new Response(
+              JSON.stringify({ error: "Ein Spieler mit diesem Namen existiert bereits" }),
+              { status: 400, headers }
+            );
+          }
+
+          existing.playerName = newName.trim();
+          existing.lastUpdated = new Date().toISOString();
+          await balanceStore.setJSON(newKey, existing);
+          await balanceStore.delete(key);
+
+          // Update all transactions for this player
+          const { blobs: txBlobs } = await txStore.list();
+          for (const blob of txBlobs) {
+            const tx = await txStore.get(blob.key, { type: "json" });
+            if (tx && tx.playerName.trim().toLowerCase() === key) {
+              tx.playerName = newName.trim();
+              await txStore.setJSON(blob.key, tx);
+            }
+          }
+        } else {
+          existing.lastUpdated = new Date().toISOString();
+          await balanceStore.setJSON(key, existing);
+        }
+
+        return new Response(
+          JSON.stringify({ ok: true, balance: existing }),
+          { status: 200, headers }
+        );
+      }
+
+      // ── Delete player — admin only ──
+      if (action === "delete-player") {
+        if (!isAdmin(user.username, cfg)) {
+          return new Response(
+            JSON.stringify({ error: "Nur Admins dürfen Spieler löschen" }),
+            { status: 403, headers }
+          );
+        }
+
+        const { playerName, deleteTransactions } = body;
+        if (!playerName || typeof playerName !== "string") {
+          return new Response(
+            JSON.stringify({ error: "Spieler erforderlich" }),
+            { status: 400, headers }
+          );
+        }
+
+        const key = playerName.trim().toLowerCase();
+        const existing = await balanceStore.get(key, { type: "json" });
+        if (!existing) {
+          return new Response(
+            JSON.stringify({ error: "Spieler nicht im DKP-System gefunden" }),
+            { status: 404, headers }
+          );
+        }
+
+        await balanceStore.delete(key);
+
+        // Optionally delete all transactions for this player
+        if (deleteTransactions) {
+          const { blobs: txBlobs } = await txStore.list();
+          for (const blob of txBlobs) {
+            const tx = await txStore.get(blob.key, { type: "json" });
+            if (tx && tx.playerName.trim().toLowerCase() === key) {
+              await txStore.delete(blob.key);
+            }
+          }
+        }
+
+        return new Response(
+          JSON.stringify({ ok: true }),
+          { status: 200, headers }
+        );
+      }
+
       return new Response(JSON.stringify({ error: "Unbekannte Aktion" }), { status: 400, headers });
     }
 

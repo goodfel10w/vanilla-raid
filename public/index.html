@@ -424,6 +424,47 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
 .dkp-detail-stats{display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap}
 .dkp-detail-stat{padding:8px 14px;border-radius:8px;background:rgba(0,0,0,.2);font-size:12px;color:var(--tx3)}
 .dkp-detail-stat strong{display:block;font-size:16px;color:var(--tx);margin-bottom:2px;font-variant-numeric:tabular-nums}
+/* DKP transaction actions */
+.dkp-tx-actions{display:flex;gap:4px;margin-left:4px;flex-shrink:0}
+.dkp-tx-btn{padding:2px 8px;border-radius:4px;cursor:pointer;font:600 10px 'Nunito Sans',sans-serif;border:1px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx4);transition:all .15s}
+.dkp-tx-btn:hover{border-color:rgba(255,255,255,.12);color:var(--tx)}
+.dkp-tx-btn.dkp-tx-del{border-color:rgba(229,115,115,.2);color:var(--dps)}
+.dkp-tx-btn.dkp-tx-del:hover{border-color:rgba(229,115,115,.4);background:rgba(229,115,115,.05)}
+.dkp-tx-adjust{background:rgba(201,168,76,.15);color:var(--gold);font-style:italic}
+
+/* DKP edit modal */
+.dkp-edit-form{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.dkp-edit-form .fld{margin-bottom:0}
+.dkp-edit-form label{font-size:12px;color:var(--tx3);margin-bottom:4px;display:block}
+.dkp-edit-form input,.dkp-edit-form select{display:block;width:100%;padding:8px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:14px 'Nunito Sans',sans-serif;outline:none}
+.dkp-edit-form input:focus,.dkp-edit-form select:focus{border-color:rgba(201,168,76,.3)}
+
+/* DKP player detail actions */
+.dkp-detail-actions{display:flex;gap:6px;margin:12px 0;flex-wrap:wrap}
+.dkp-detail-action{padding:6px 14px;border-radius:6px;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;border:1px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx3);transition:all .15s}
+.dkp-detail-action:hover{border-color:rgba(255,255,255,.12);color:var(--tx)}
+.dkp-detail-action.danger{border-color:rgba(229,115,115,.2);color:var(--dps)}
+.dkp-detail-action.danger:hover{border-color:rgba(229,115,115,.4);background:rgba(229,115,115,.05)}
+
+/* DKP search */
+.dkp-search{margin-bottom:14px}
+.dkp-search input{display:block;width:100%;padding:10px 14px 10px 36px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:14px 'Nunito Sans',sans-serif;outline:none;transition:border-color .2s}
+.dkp-search input:focus{border-color:rgba(201,168,76,.3)}
+.dkp-search{position:relative}
+.dkp-search::before{content:"🔍";position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.4}
+
+/* DKP My DKP button */
+.dkp-my-btn{background:linear-gradient(135deg,var(--gold),var(--gold-d))!important;color:var(--bg)!important;border-color:var(--gold-d)!important;font-weight:700!important}
+
+/* DKP tx filter */
+.dkp-tx-filters{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.dkp-tx-filter{padding:4px 12px;border-radius:4px;cursor:pointer;font:600 11px 'Nunito Sans',sans-serif;border:1px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx4);transition:all .15s}
+.dkp-tx-filter:hover{border-color:rgba(255,255,255,.12);color:var(--tx)}
+.dkp-tx-filter.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08)}
+
+/* DKP edited badge */
+.dkp-tx-edited{font-size:9px;color:var(--ylw);opacity:.6;font-style:italic}
+
 @media(max-width:640px){
   .dkp-tx{flex-wrap:wrap;gap:6px}
   .dkp-tx-meta{min-width:auto;text-align:left;width:100%;margin-top:2px}
@@ -432,6 +473,8 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
   .dkp-detail-stats{gap:8px}
   .dkp-role-add{flex-wrap:wrap}
   .dkp-role-add input{width:100%}
+  .dkp-tx-actions{width:100%;justify-content:flex-end}
+  .dkp-detail-actions{gap:4px}
 }
 
 /* Admin Dashboard */
@@ -653,6 +696,8 @@ let dkpConfig={roles:{},defaultDecayPercent:15,maxDkpAmount:10000,allowNegativeB
 let dkpSortCol="balance", dkpSortDir="desc";
 let dkpPlayerDetail=null, dkpPlayerTx=[];
 let dkpRoleAddUser="", dkpRoleAddRole="officer";
+let dkpSearchQuery="", dkpTxFilter="all";
+let dkpEditingTx=null; // transaction being edited
 
 // Admin state
 const ADMIN_API="/api/admin";
@@ -877,7 +922,7 @@ function showModal(title,msg,onConfirm){
   const confirmBtn=bg.querySelector(".modal-confirm");
   function close(){bg.remove()}
   cancelBtn.addEventListener("click",close);
-  confirmBtn.addEventListener("click",()=>{close();onConfirm()});
+  confirmBtn.addEventListener("click",()=>{onConfirm();close()});
   bg.addEventListener("click",e=>{if(e.target===bg)close()});
   document.addEventListener("keydown",function esc(e){if(e.key==="Escape"){close();document.removeEventListener("keydown",esc)}});
   confirmBtn.focus();
@@ -2056,8 +2101,16 @@ function renderDkp(){
   const admin=isDkpAdmin();
   const officer=isDkpOfficer();
 
+  // Find current user's DKP entry for "Mein DKP" button
+  const myDkp=currentUser?dkpBalances.find(b=>{
+    const lower=b.playerName.toLowerCase();
+    const uLower=currentUser.username.toLowerCase();
+    return lower===uLower||lower===uLower.split("#")[0];
+  })||entries.find(e=>e.userId===currentUser.userId):null;
+
   let html=`<div class="dkp-actions-bar">
     <button class="ht-btn${dkpView==="overview"?" active":""}" onclick="dkpView='overview';dkpPlayerDetail=null;renderDkp()">Übersicht</button>
+    ${currentUser&&myDkp?`<button class="ht-btn dkp-my-btn${dkpView==="mydkp"?" active":""}" onclick="dkpShowMyDkp()">Mein DKP</button>`:""}
     ${officer?`<button class="ht-btn${dkpView==="award"?" active":""}" onclick="dkpView='award';renderDkp()">Vergeben</button>
     <button class="ht-btn${dkpView==="spend"?" active":""}" onclick="dkpView='spend';renderDkp()">Beute</button>`:""}
     ${admin?`<button class="ht-btn${dkpView==="decay"?" active":""}" onclick="dkpView='decay';renderDkp()">Verfall</button>
@@ -2093,10 +2146,18 @@ function renderDkpOverview(){
     return html;
   }
 
+  // Search bar
+  html+=`<div class="dkp-search"><input type="text" id="dkp-search-input" value="${h(dkpSearchQuery)}" placeholder="Spieler suchen…" oninput="dkpSearchQuery=this.value;renderDkp()"></div>`;
+
+  // Filter standings by search
+  const filtered=dkpSearchQuery?sorted.filter(b=>b.playerName.toLowerCase().includes(dkpSearchQuery.toLowerCase())||((b.className||"").toLowerCase().includes(dkpSearchQuery.toLowerCase()))):sorted;
+
   // Standings table
-  html+=`<div class="card"><div class="card-t">DKP-Übersicht</div>`;
+  html+=`<div class="card"><div class="card-t">DKP-Übersicht${filtered.length!==sorted.length?` <span style="font-size:12px;color:var(--tx4);font-weight:400">(${filtered.length} von ${sorted.length})</span>`:""}</div>`;
   if(!sorted.length){
     html+=`<div class="empty">Noch keine DKP-Einträge. Vergib DKP über den "Vergeben"-Tab.</div>`;
+  }else if(!filtered.length){
+    html+=`<div class="empty">Keine Treffer für „${h(dkpSearchQuery)}"</div>`;
   }else{
     const sortArrow=c=>dkpSortCol===c?(dkpSortDir==="asc"?"▲":"▼"):"";
     const sortCls=c=>dkpSortCol===c?" dkp-sort-active":"";
@@ -2107,7 +2168,7 @@ function renderDkpOverview(){
         <th class="${sortCls("class")}" onclick="dkpSortBy('class')">Klasse<span class="dkp-sort-arrow">${sortArrow("class")}</span></th>
         <th class="${sortCls("balance")}" style="text-align:right" onclick="dkpSortBy('balance')">DKP<span class="dkp-sort-arrow">${sortArrow("balance")}</span></th>
       </tr></thead>
-      <tbody>${sorted.map((b,i)=>{
+      <tbody>${filtered.map((b,i)=>{
         const balCls=b.balance>0?"dkp-pos":b.balance<0?"dkp-neg":"dkp-zero";
         const clr=cc(b.className);
         return`<tr onclick="showDkpPlayerDetail('${h(b.playerName).replace(/'/g,"\\'")}')">
@@ -2121,31 +2182,46 @@ function renderDkpOverview(){
   }
   html+=`</div>`;
 
-  // Recent transactions
+  // Recent transactions with filter
   if(dkpTransactions.length){
     html+=`<div class="card"><div class="card-t">Letzte Transaktionen</div>`;
-    html+=renderDkpTxList(dkpTransactions.slice(0,20));
+    html+=`<div class="dkp-tx-filters">
+      <button class="dkp-tx-filter${dkpTxFilter==="all"?" active":""}" onclick="dkpTxFilter='all';renderDkp()">Alle</button>
+      <button class="dkp-tx-filter${dkpTxFilter==="earn"?" active":""}" onclick="dkpTxFilter='earn';renderDkp()">Verdient</button>
+      <button class="dkp-tx-filter${dkpTxFilter==="spend"?" active":""}" onclick="dkpTxFilter='spend';renderDkp()">Beute</button>
+      <button class="dkp-tx-filter${dkpTxFilter==="decay"?" active":""}" onclick="dkpTxFilter='decay';renderDkp()">Verfall</button>
+      <button class="dkp-tx-filter${dkpTxFilter==="adjust"?" active":""}" onclick="dkpTxFilter='adjust';renderDkp()">Anpassung</button>
+    </div>`;
+    const filteredTx=dkpTxFilter==="all"?dkpTransactions:dkpTransactions.filter(t=>t.type===dkpTxFilter);
+    html+=renderDkpTxList(filteredTx.slice(0,20));
+    if(!filteredTx.length)html+=`<div class="empty" style="padding:12px 0">Keine Transaktionen in dieser Kategorie.</div>`;
     html+=`</div>`;
   }
 
   return html;
 }
 
-function renderDkpTxList(txList){
+function renderDkpTxList(txList,showActions){
+  const admin=showActions!==false&&isDkpAdmin();
   return txList.map(tx=>{
-    const typeCls=tx.type==="earn"?"dkp-tx-earn":tx.type==="spend"?"dkp-tx-spend":"dkp-tx-decay";
-    const typeLabel=tx.type==="earn"?"Verdient":tx.type==="spend"?"Beute":"Verfall";
+    const typeCls=tx.type==="earn"?"dkp-tx-earn":tx.type==="spend"?"dkp-tx-spend":tx.type==="adjust"?"dkp-tx-adjust":"dkp-tx-decay";
+    const typeLabel=tx.type==="earn"?"Verdient":tx.type==="spend"?"Beute":tx.type==="adjust"?"Anpassung":"Verfall";
     const amtCls=tx.amount>0?"dkp-pos":tx.amount<0?"dkp-neg":"dkp-zero";
     const amtStr=tx.amount>0?"+"+tx.amount:String(tx.amount);
     const clr=cc(dkpBalances.find(b=>b.playerName===tx.playerName)?.className);
     const date=new Date(tx.timestamp);
     const dateStr=String(date.getDate()).padStart(2,"0")+"."+String(date.getMonth()+1).padStart(2,"0")+". "+String(date.getHours()).padStart(2,"0")+":"+String(date.getMinutes()).padStart(2,"0");
+    const edited=tx.editedAt?` <span class="dkp-tx-edited">(bearbeitet)</span>`:"";
     return`<div class="dkp-tx">
       <span class="dkp-tx-type ${typeCls}">${typeLabel}</span>
       <span class="dkp-tx-name" style="color:${clr}">${h(tx.playerName)}</span>
-      <span class="dkp-tx-reason">${tx.type==="spend"?linkItems(tx.reason):h(tx.reason)}</span>
+      <span class="dkp-tx-reason">${tx.type==="spend"?linkItems(tx.reason):h(tx.reason)}${edited}</span>
       <span class="dkp-tx-amount ${amtCls}">${amtStr}</span>
       <span class="dkp-tx-meta">${h(tx.createdBy||"")} · ${dateStr}</span>
+      ${admin?`<span class="dkp-tx-actions">
+        <button class="dkp-tx-btn" onclick="event.stopPropagation();dkpEditTx('${tx.id}')">✎</button>
+        <button class="dkp-tx-btn dkp-tx-del" onclick="event.stopPropagation();dkpDeleteTx('${tx.id}')">✕</button>
+      </span>`:""}
     </div>`;
   }).join("");
 }
@@ -2158,6 +2234,8 @@ function renderDkpPlayerDetail(){
   const earned=dkpPlayerTx.filter(t=>t.type==="earn").reduce((s,t)=>s+t.amount,0);
   const spent=dkpPlayerTx.filter(t=>t.type==="spend").reduce((s,t)=>s+Math.abs(t.amount),0);
   const decayed=dkpPlayerTx.filter(t=>t.type==="decay").reduce((s,t)=>s+Math.abs(t.amount),0);
+  const adjusted=dkpPlayerTx.filter(t=>t.type==="adjust").reduce((s,t)=>s+t.amount,0);
+  const admin=isDkpAdmin();
 
   let html=`<div class="card dkp-player-detail">
     <div class="dkp-detail-header">
@@ -2172,12 +2250,36 @@ function renderDkpPlayerDetail(){
       <div class="dkp-detail-stat"><strong style="color:var(--grn)">+${earned}</strong>Verdient</div>
       <div class="dkp-detail-stat"><strong style="color:var(--dps)">−${spent}</strong>Beute</div>
       <div class="dkp-detail-stat"><strong style="color:var(--ylw)">−${decayed}</strong>Verfall</div>
+      ${adjusted?`<div class="dkp-detail-stat"><strong style="color:var(--gold)">${adjusted>0?"+":""}${adjusted}</strong>Anpassung</div>`:""}
       <div class="dkp-detail-stat"><strong>${dkpPlayerTx.length}</strong>Transaktionen</div>
     </div>`;
 
+  // Admin player management actions
+  if(admin){
+    const eName=h(bal.playerName).replace(/'/g,"\\'");
+    html+=`<div class="dkp-detail-actions">
+      <button class="dkp-detail-action" onclick="dkpAdjustBalance('${eName}',${bal.balance})">DKP anpassen</button>
+      <button class="dkp-detail-action" onclick="dkpEditPlayer('${eName}','${h(bal.className||"").replace(/'/g,"\\'")}')">Bearbeiten</button>
+      <button class="dkp-detail-action danger" onclick="dkpDeletePlayer('${eName}')">Spieler löschen</button>
+    </div>`;
+  }
+
   if(dkpPlayerTx.length){
+    // Transaction type filter
     html+=`<div class="card-t" style="margin-bottom:8px">Alle Transaktionen</div>`;
-    html+=renderDkpTxList(dkpPlayerTx);
+    html+=`<div class="dkp-tx-filters">
+      <button class="dkp-tx-filter${dkpTxFilter==="all"?" active":""}" onclick="dkpTxFilter='all';renderDkp()">Alle</button>
+      <button class="dkp-tx-filter${dkpTxFilter==="earn"?" active":""}" onclick="dkpTxFilter='earn';renderDkp()">Verdient</button>
+      <button class="dkp-tx-filter${dkpTxFilter==="spend"?" active":""}" onclick="dkpTxFilter='spend';renderDkp()">Beute</button>
+      <button class="dkp-tx-filter${dkpTxFilter==="decay"?" active":""}" onclick="dkpTxFilter='decay';renderDkp()">Verfall</button>
+      <button class="dkp-tx-filter${dkpTxFilter==="adjust"?" active":""}" onclick="dkpTxFilter='adjust';renderDkp()">Anpassung</button>
+    </div>`;
+    const filteredPlayerTx=dkpTxFilter==="all"?dkpPlayerTx:dkpPlayerTx.filter(t=>t.type===dkpTxFilter);
+    if(filteredPlayerTx.length){
+      html+=renderDkpTxList(filteredPlayerTx);
+    }else{
+      html+=`<div class="empty" style="padding:12px 0">Keine Transaktionen in dieser Kategorie.</div>`;
+    }
   }else{
     html+=`<div class="empty">Keine Transaktionen</div>`;
   }
@@ -2496,6 +2598,147 @@ window.dkpSelectAll=function(){
   else{dkpAwardPlayers=entries.map(e=>({name:e.charName,className:e.className}))}
   dkpAwardRaidId="";
   renderDkp();
+};
+
+// ── Mein DKP (My DKP quick-view) ──
+window.dkpShowMyDkp=async function(){
+  if(!currentUser)return;
+  // Try to find the player by matching username to DKP balance or roster entry
+  const uLower=currentUser.username.toLowerCase();
+  const uPrefix=uLower.split("#")[0];
+  let match=dkpBalances.find(b=>{
+    const lower=b.playerName.toLowerCase();
+    return lower===uLower||lower===uPrefix;
+  });
+  if(!match){
+    // Try matching via roster entries linked to this userId
+    const myEntry=entries.find(e=>e.userId===currentUser.userId);
+    if(myEntry)match=dkpBalances.find(b=>b.playerName===myEntry.charName);
+  }
+  if(match){
+    dkpView="overview";dkpTxFilter="all";
+    showDkpPlayerDetail(match.playerName);
+  }else{
+    toast("Kein DKP-Eintrag für deinen Account gefunden");
+  }
+};
+
+// ── Edit transaction ──
+window.dkpEditTx=function(txId){
+  const tx=dkpTransactions.find(t=>t.id===txId);
+  if(!tx){// May be in player detail view
+    const ptx=dkpPlayerTx.find(t=>t.id===txId);
+    if(!ptx)return;
+    dkpEditingTx={...ptx};
+  }else{
+    dkpEditingTx={...tx};
+  }
+  const absAmount=Math.abs(dkpEditingTx.amount);
+  const typeLabel=dkpEditingTx.type==="earn"?"Verdient":dkpEditingTx.type==="spend"?"Beute":dkpEditingTx.type==="adjust"?"Anpassung":"Verfall";
+  showModal("Transaktion bearbeiten",
+    `<strong>${typeLabel}</strong> — ${h(dkpEditingTx.playerName)}
+    <div class="dkp-edit-form">
+      <div class="fld"><label>Betrag</label><input type="number" id="dkp-edit-amount" value="${absAmount}" min="1" max="${dkpConfig.maxDkpAmount}"></div>
+      <div class="fld"><label>Grund</label><input type="text" id="dkp-edit-reason" value="${h(dkpEditingTx.reason)}" maxlength="${dkpConfig.reasonMaxLength||200}"></div>
+    </div>`,
+    async()=>{
+      const newAmount=Number(document.getElementById("dkp-edit-amount").value);
+      const newReason=document.getElementById("dkp-edit-reason").value;
+      if(!newAmount||newAmount<=0){toast("Ungültiger Betrag");return}
+      try{
+        const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"edit-transaction",transactionId:dkpEditingTx.id,amount:newAmount,reason:newReason})});
+        if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+        toast("Transaktion aktualisiert");
+        dkpEditingTx=null;
+        await loadDkp();
+        if(dkpPlayerDetail)await showDkpPlayerDetail(dkpPlayerDetail);
+        else renderDkp();
+      }catch(e){handleDkpError(e)}
+    });
+};
+
+// ── Delete transaction ──
+window.dkpDeleteTx=function(txId){
+  const tx=dkpTransactions.find(t=>t.id===txId)||dkpPlayerTx.find(t=>t.id===txId);
+  if(!tx)return;
+  const typeLabel=tx.type==="earn"?"Verdient":tx.type==="spend"?"Beute":tx.type==="adjust"?"Anpassung":"Verfall";
+  const amtStr=tx.amount>0?"+"+tx.amount:String(tx.amount);
+  showModal("Transaktion löschen",
+    `<strong>${typeLabel}</strong>: ${h(tx.playerName)} ${amtStr} DKP — „${tx.type==="spend"?linkItems(tx.reason):h(tx.reason)}"<br><br>Der DKP-Stand wird automatisch korrigiert.`,
+    async()=>{
+      try{
+        const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"delete-transaction",transactionId:txId})});
+        if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+        toast("Transaktion gelöscht");
+        await loadDkp();
+        if(dkpPlayerDetail)await showDkpPlayerDetail(dkpPlayerDetail);
+        else renderDkp();
+      }catch(e){handleDkpError(e)}
+    });
+};
+
+// ── Adjust balance ──
+window.dkpAdjustBalance=function(playerName,currentBalance){
+  showModal("DKP anpassen",
+    `<strong>${h(playerName)}</strong> — Aktuell: <span class="${currentBalance>0?"dkp-pos":currentBalance<0?"dkp-neg":"dkp-zero"}">${currentBalance>0?"+":""}${currentBalance} DKP</span>
+    <div class="dkp-edit-form">
+      <div class="fld"><label>Neuer DKP-Stand</label><input type="number" id="dkp-adj-balance" value="${currentBalance}"></div>
+      <div class="fld"><label>Grund (optional)</label><input type="text" id="dkp-adj-reason" value="" placeholder="z.B. Korrektur, Bonus" maxlength="${dkpConfig.reasonMaxLength||200}"></div>
+    </div>`,
+    async()=>{
+      const newBal=Number(document.getElementById("dkp-adj-balance").value);
+      const reason=document.getElementById("dkp-adj-reason").value||"Manuelle Anpassung";
+      if(isNaN(newBal)){toast("Ungültiger Betrag");return}
+      try{
+        const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"adjust-balance",playerName,newBalance:newBal,reason})});
+        if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+        toast(`DKP von ${playerName} auf ${newBal} gesetzt`);
+        await loadDkp();
+        if(dkpPlayerDetail)await showDkpPlayerDetail(dkpPlayerDetail);
+        else renderDkp();
+      }catch(e){handleDkpError(e)}
+    });
+};
+
+// ── Edit player ──
+window.dkpEditPlayer=function(playerName,currentClass){
+  const clsOptions=CLS.map(c=>`<option value="${h(c.n)}"${c.n===currentClass?" selected":""}>${h(c.n)}</option>`).join("");
+  showModal("Spieler bearbeiten",
+    `<div class="dkp-edit-form">
+      <div class="fld"><label>Name</label><input type="text" id="dkp-edit-name" value="${h(playerName)}" maxlength="50"></div>
+      <div class="fld"><label>Klasse</label><select id="dkp-edit-class"><option value="">— Keine —</option>${clsOptions}</select></div>
+    </div>`,
+    async()=>{
+      const newName=document.getElementById("dkp-edit-name").value.trim();
+      const newClass=document.getElementById("dkp-edit-class").value;
+      if(!newName){toast("Name darf nicht leer sein");return}
+      try{
+        const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"edit-player",playerName,newName:newName!==playerName?newName:undefined,newClassName:newClass})});
+        if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+        toast(`Spieler aktualisiert`);
+        if(dkpPlayerDetail===playerName)dkpPlayerDetail=newName||playerName;
+        await loadDkp();
+        if(dkpPlayerDetail)await showDkpPlayerDetail(dkpPlayerDetail);
+        else renderDkp();
+      }catch(e){handleDkpError(e)}
+    });
+};
+
+// ── Delete player ──
+window.dkpDeletePlayer=function(playerName){
+  showModal("Spieler aus DKP löschen",
+    `<strong>${h(playerName)}</strong> komplett aus dem DKP-System entfernen?<br><br>
+    <label style="font-size:13px;color:var(--tx3);cursor:pointer"><input type="checkbox" id="dkp-del-tx" checked style="margin-right:6px;vertical-align:middle"> Alle Transaktionen ebenfalls löschen</label>`,
+    async()=>{
+      const deleteTx=document.getElementById("dkp-del-tx").checked;
+      try{
+        const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"delete-player",playerName,deleteTransactions:deleteTx})});
+        if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+        toast(`${playerName} aus DKP entfernt`);
+        dkpPlayerDetail=null;
+        await loadDkp();renderDkp();
+      }catch(e){handleDkpError(e)}
+    });
 };
 
 window.dkpSelectRaid=function(raidId){
