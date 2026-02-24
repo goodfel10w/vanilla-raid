@@ -47,7 +47,7 @@ export default async (req) => {
       return Response.redirect(`${origin}/?discord_error=session_expired`, 302);
     }
 
-    const clientId = process.env.DISCORD_CLIENT_ID;
+    const clientId = process.env.DISCORD_CLIENT_ID || process.env.DISCORD_APPLICATION_ID;
     const clientSecret = process.env.DISCORD_CLIENT_SECRET;
     const redirectUri = `${origin}/api/discord-callback`;
 
