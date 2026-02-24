@@ -1,6 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import { randomUUID } from "crypto";
-import { validateSession } from "./shared/auth-utils.mjs";
+import { validateSession, isSiteAdmin } from "./shared/auth-utils.mjs";
 
 const DEFAULT_CONFIG = {
   roles: { "goodfell0w": "admin" },
@@ -47,10 +47,12 @@ function getRole(username, cfg) {
 }
 
 function isAdmin(username, cfg) {
+  if (isSiteAdmin(username)) return true;
   return getRole(username, cfg) === "admin";
 }
 
 function hasAccess(username, cfg) {
+  if (isSiteAdmin(username)) return true;
   const role = getRole(username, cfg);
   return role === "admin" || role === "officer";
 }
