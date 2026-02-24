@@ -14,6 +14,53 @@ const CLASS_COLORS = {
   Priester: 0xFFFFFF, Schamane: 0x0070DD, Schurke: 0xFFF468,
 };
 
+// WoW icon CDNs
+const WOW_ICONS = "https://cdn.jsdelivr.net/gh/orourkek/Wow-Icons@master/images";
+const WH_ICONS = "https://wow.zamimg.com/images/wow/icons/large";
+
+// Class name → icon path slug (matches frontend CLS array)
+const CLASS_ICON_SLUG = {
+  Druide: "druid", Hexenmeister: "warlock", Jäger: "hunter",
+  Krieger: "warrior", Magier: "mage", Paladin: "paladin",
+  Priester: "priest", Schamane: "shaman", Schurke: "rogue",
+};
+
+// Spec name → icon path (className → specName → path)
+const SPEC_ICONS = {
+  Druide: { Balance: "druid/balance", "Feral Tank": "druid/feral", "Feral DPS": "druid/feral", Resto: "druid/restoration" },
+  Hexenmeister: { Affliction: "warlock/affliction", Demonologie: "warlock/demonology", Destruction: "warlock/destruction" },
+  Jäger: { "Beast Mastery": "hunter/beastmastery", Marksmanship: "hunter/marksman", Survival: "hunter/survival" },
+  Krieger: { Prot: "warrior/protection", Arms: "warrior/arms", Fury: "warrior/fury" },
+  Magier: { Arcane: "mage/arcane", Fire: "mage/fire", Frost: "mage/frost" },
+  Paladin: { Holy: "paladin/holy", Prot: "paladin/protection", Retri: "paladin/retribution" },
+  Priester: { Disc: "priest/discipline", Holy: "priest/holy", Shadow: "priest/shadow" },
+  Schamane: { Elemental: "shaman/elemental", Enhancement: "shaman/enhancement", Resto: "shaman/restoration" },
+  Schurke: { Assassination: "rogue/assassination", Combat: "rogue/combat", Subtlety: "rogue/subtlety" },
+};
+
+// Raid instance → Wowhead achievement/boss icon for thumbnail
+const RAID_THUMBNAILS = {
+  "Karazhan": `${WH_ICONS}/achievement_boss_princemalchezaar_02.jpg`,
+  "Gruuls Unterschlupf": `${WH_ICONS}/achievement_boss_gruulthedragonkiller.jpg`,
+  "Magtheridons Kammer": `${WH_ICONS}/achievement_boss_magtheridon.jpg`,
+  "Höhle des Schlangenschreins": `${WH_ICONS}/achievement_boss_ladyvashj.jpg`,
+  "Festung der Stürme": `${WH_ICONS}/achievement_boss_kabormagistrate.jpg`,
+  "Hyjalgipfel": `${WH_ICONS}/achievement_boss_archimonde.jpg`,
+  "Schwarzer Tempel": `${WH_ICONS}/achievement_boss_illidan.jpg`,
+  "Zul'Aman": `${WH_ICONS}/achievement_boss_zuljin.jpg`,
+  "Sonnenbrunnenplateau": `${WH_ICONS}/achievement_boss_kiljaeden.jpg`,
+};
+
+function clsIconUrl(cls) {
+  const slug = CLASS_ICON_SLUG[cls];
+  return slug ? `${WOW_ICONS}/class/64/${slug}.png` : "";
+}
+
+function specIconUrl(cls, specName) {
+  const path = SPEC_ICONS[cls]?.[specName];
+  return path ? `${WOW_ICONS}/spec/${path}.png` : "";
+}
+
 const ROLE_EMOJI = { Tank: "🛡️", Heiler: "💚", DPS: "⚔️" };
 const ROLES = ["Tank", "Heiler", "DPS"];
 
@@ -28,6 +75,9 @@ function fmtDate(ds) {
 // Role targets for raid composition
 const RAID_TARGETS_25 = { Tank: 2, Heiler: 5, DPS: 18 };
 const RAID_TARGETS_10 = { Tank: 2, Heiler: 2, DPS: 6 };
+
+// Zero-width space for empty inline field padding
+const ZWS = "\u200b";
 
 function buildRaidEmbed(raid, siteUrl) {
   const signups = (raid.signups || []).filter(s => s.status !== "declined");
@@ -49,7 +99,7 @@ function buildRaidEmbed(raid, siteUrl) {
   const classCounts = {};
   signups.forEach(s => { if (s.className) classCounts[s.className] = (classCounts[s.className] || 0) + 1; });
 
-  // Progress bar (text-based, more detailed)
+  // Progress bar
   const barLen = 20;
   const filled = Math.round(pct / 100 * barLen);
   const bar = "▓".repeat(filled) + "░".repeat(barLen - filled);
@@ -59,73 +109,93 @@ function buildRaidEmbed(raid, siteUrl) {
   if (total >= raid.maxPlayers) statusEmoji = "🟢";
   if (total > raid.maxPlayers) statusEmoji = "🔴";
 
-  // Role status line with target indicators
-  const roleStatus = ROLES.map(role => {
-    const ct = roleCounts[role];
-    const tgt = targets[role];
-    const icon = ct >= tgt ? "✅" : ct >= tgt - 1 ? "⚠️" : "❌";
-    return `${ROLE_EMOJI[role]} **${ct}**/${tgt} ${role} ${icon}`;
-  }).join("\n");
-
-  // Description with clear sections
+  // Compact description — keep it short, details go in fields
   const descParts = [
-    `### 📅 ${fmtDate(raid.date)} • 🕒 ${raid.time} Uhr`,
+    `📅 **${fmtDate(raid.date)}** • 🕒 **${raid.time} Uhr**`,
     "",
     `${statusEmoji} **${confirmed.length}** sicher${tentative.length ? ` + **${tentative.length}** unsicher` : ""} von **${raid.maxPlayers}** Plätzen`,
     `\`${bar}\` ${pct}%`,
-    "",
-    `**Rollenverteilung:**`,
-    roleStatus,
   ];
 
   if (raid.notes) {
     descParts.push("", `📝 *„${raid.notes}"*`);
   }
 
-  // Build signup list per role with better formatting
+  if (siteUrl) {
+    descParts.push("", `🔗 **[Jetzt anmelden!](${siteUrl}#raids)**`);
+  }
+
+  // ── Fields ──
   const fields = [];
+
+  // Row 1: Role targets (3 inline columns)
+  ROLES.forEach(role => {
+    const ct = roleCounts[role];
+    const tgt = targets[role];
+    const icon = ct >= tgt ? "✅" : ct >= tgt - 1 ? "⚠️" : "❌";
+    const barLen2 = 8;
+    const roleFill = Math.min(barLen2, Math.round(ct / tgt * barLen2));
+    const roleBar = "█".repeat(roleFill) + "░".repeat(barLen2 - roleFill);
+    fields.push({
+      name: `${ROLE_EMOJI[role]} ${role} ${icon}`,
+      value: `**${ct}** / ${tgt}\n\`${roleBar}\``,
+      inline: true,
+    });
+  });
+
+  // Row 2: Signup lists per role (3 inline columns — always 3 for alignment)
   ROLES.forEach(role => {
     const rs = signups.filter(s => s.role === role);
-    if (!rs.length) return;
+    if (!rs.length) {
+      fields.push({ name: ZWS, value: `*— keine —*`, inline: true });
+      return;
+    }
     const lines = rs.map(s => {
       const tent = s.status === "tentative" ? " 🔸" : "";
-      const cls = s.className ? ` \`${s.className}\`` : "";
       const specInfo = s.assignedSpec
         ? ` ✅ **${s.assignedSpec}**`
         : s.offeredSpecs && s.offeredSpecs.length
-        ? ` *(${s.offeredSpecs.join(" / ")})*`
+        ? ` *(${s.offeredSpecs.join("/")})*`
         : "";
-      return `> **${s.charName}**${cls}${specInfo}${tent}`;
+      return `**${s.charName}**${specInfo}${tent}`;
     });
     fields.push({
-      name: `${ROLE_EMOJI[role]} ${role} — ${rs.length}/${targets[role]}`,
+      name: `Anmeldungen ${role}`,
       value: lines.join("\n"),
       inline: true,
     });
   });
 
-  // Class breakdown as compact field
+  // Row 3: Class breakdown split into 3 columns for wider layout
   const clsEntries = Object.entries(classCounts).sort((a, b) => b[1] - a[1]);
   if (clsEntries.length) {
-    const clsLines = clsEntries.map(([cls, ct]) => `\`${ct}×\` ${cls}`);
-    fields.push({
-      name: "📊 Klassenverteilung",
-      value: clsLines.join(" • "),
-      inline: false,
-    });
+    // Split classes into up to 3 columns
+    const colSize = Math.ceil(clsEntries.length / 3);
+    for (let col = 0; col < 3; col++) {
+      const chunk = clsEntries.slice(col * colSize, (col + 1) * colSize);
+      if (!chunk.length) {
+        fields.push({ name: ZWS, value: ZWS, inline: true });
+        continue;
+      }
+      const clsLines = chunk.map(([cls, ct]) => `\`${ct}×\` ${cls}`);
+      fields.push({
+        name: col === 0 ? "📊 Klassenverteilung" : ZWS,
+        value: clsLines.join("\n"),
+        inline: true,
+      });
+    }
   }
 
-  // Declined
+  // Full-width rows: Declined, Bench
   if (declined.length) {
-    const lines = declined.map(s => `~~${s.charName}~~`);
+    const names = declined.map(s => `~~${s.charName}~~`);
     fields.push({
       name: `❌ Abgesagt (${declined.length})`,
-      value: "> " + lines.join(", "),
+      value: names.join(", "),
       inline: false,
     });
   }
 
-  // Bench suggestion if oversigned
   if (total > raid.maxPlayers) {
     const overCount = total - raid.maxPlayers;
     fields.push({
@@ -135,7 +205,7 @@ function buildRaidEmbed(raid, siteUrl) {
     });
   }
 
-  // If no signups yet
+  // Empty state
   if (!signups.length && !declined.length) {
     fields.push({
       name: "Anmeldungen",
@@ -149,21 +219,27 @@ function buildRaidEmbed(raid, siteUrl) {
   if (total >= raid.maxPlayers) color = 0x66BB6A; // green = full
   if (total > raid.maxPlayers) color = 0xE57373; // red = over
 
+  // Find the most common class for footer icon
+  const topClass = clsEntries.length ? clsEntries[0][0] : null;
+
   const embed = {
+    author: {
+      name: "<Vanilla> Raid-Planer",
+      icon_url: `${WOW_ICONS}/class/64/warrior.png`,
+    },
     title: `⚔️  ${raid.instance}`,
     description: descParts.join("\n"),
     color,
     fields,
+    thumbnail: {
+      url: RAID_THUMBNAILS[raid.instance] || `${WH_ICONS}/inv_misc_head_dragon_01.jpg`,
+    },
     footer: {
-      text: `Erstellt von ${raid.createdByName} • <Vanilla> Raid-Planer`,
+      text: `Erstellt von ${raid.createdByName}`,
+      icon_url: topClass ? clsIconUrl(topClass) : `${WOW_ICONS}/class/64/warrior.png`,
     },
     timestamp: new Date().toISOString(),
   };
-
-  // Add link to sign up
-  if (siteUrl) {
-    embed.description += `\n\n🔗 **[Jetzt anmelden!](${siteUrl}#raids)**`;
-  }
 
   return embed;
 }
