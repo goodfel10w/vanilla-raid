@@ -79,6 +79,34 @@ const RAID_TARGETS_10 = { Tank: 2, Heiler: 2, DPS: 6 };
 // Zero-width space for empty inline field padding
 const ZWS = "\u200b";
 
+// Discord embed limits
+const MAX_FIELD_VALUE = 1024;
+
+// Truncate a field value to fit Discord's 1024-char limit
+function truncField(str, max = MAX_FIELD_VALUE) {
+  if (str.length <= max) return str;
+  const suffix = "\n*… und mehr*";
+  const lines = str.split("\n");
+  let result = "";
+  for (const line of lines) {
+    if ((result + "\n" + line + suffix).length > max) break;
+    result += (result ? "\n" : "") + line;
+  }
+  return result + suffix;
+}
+
+// Map Discord HTTP status codes to actionable German hints
+function discordErrorHint(status, body) {
+  switch (status) {
+    case 400: return "Ungültige Daten (Embed zu groß oder fehlerhaft)";
+    case 401: return "Bot-Token ungültig oder abgelaufen";
+    case 403: return "Bot hat keine Berechtigung in diesem Kanal";
+    case 404: return "Kanal oder Webhook nicht gefunden";
+    case 429: return "Rate-Limit erreicht — bitte kurz warten";
+    default: return (body || "Unbekannter Fehler").slice(0, 200);
+  }
+}
+
 function buildRaidEmbed(raid, siteUrl) {
   const signups = (raid.signups || []).filter(s => s.status !== "declined");
   const declined = (raid.signups || []).filter(s => s.status === "declined");
@@ -161,7 +189,7 @@ function buildRaidEmbed(raid, siteUrl) {
     });
     fields.push({
       name: `Anmeldungen ${role}`,
-      value: lines.join("\n"),
+      value: truncField(lines.join("\n")),
       inline: true,
     });
   });
@@ -191,7 +219,7 @@ function buildRaidEmbed(raid, siteUrl) {
     const names = declined.map(s => `~~${s.charName}~~`);
     fields.push({
       name: `❌ Abgesagt (${declined.length})`,
-      value: names.join(", "),
+      value: truncField(names.join(", ")),
       inline: false,
     });
   }
@@ -344,8 +372,10 @@ export default async (req) => {
 
         if (!discordRes.ok) {
           const errText = await discordRes.text();
-          console.error("Discord bot post error:", errText);
-          return new Response(JSON.stringify({ error: "Discord-Nachricht konnte nicht gesendet werden" }), { status: 502, headers });
+          console.error("Discord bot post error:", discordRes.status, errText);
+          return new Response(JSON.stringify({
+            error: `Discord-Fehler ${discordRes.status}: ${discordErrorHint(discordRes.status, errText)}`,
+          }), { status: 502, headers });
         }
         discordMsg = await discordRes.json();
       } else {
@@ -360,8 +390,10 @@ export default async (req) => {
 
         if (!discordRes.ok) {
           const errText = await discordRes.text();
-          console.error("Discord webhook error:", errText);
-          return new Response(JSON.stringify({ error: "Discord-Nachricht konnte nicht gesendet werden" }), { status: 502, headers });
+          console.error("Discord webhook error:", discordRes.status, errText);
+          return new Response(JSON.stringify({
+            error: `Discord-Fehler ${discordRes.status}: ${discordErrorHint(discordRes.status, errText)}`,
+          }), { status: 502, headers });
         }
         discordMsg = await discordRes.json();
       }
@@ -432,8 +464,10 @@ async function updateDiscordMessage(webhookUrl, messageId, raid, siteUrl, discor
       return new Response(JSON.stringify({ error: "Discord-Nachricht wurde gelöscht. Bitte erneut posten." }), { status: 404, headers });
     }
     const errText = await discordRes.text();
-    console.error("Discord update error:", errText);
-    return new Response(JSON.stringify({ error: "Discord-Nachricht konnte nicht aktualisiert werden" }), { status: 502, headers });
+    console.error("Discord update error:", discordRes.status, errText);
+    return new Response(JSON.stringify({
+      error: `Discord-Fehler ${discordRes.status}: ${discordErrorHint(discordRes.status, errText)}`,
+    }), { status: 502, headers });
   }
 
   // Update stored metadata
