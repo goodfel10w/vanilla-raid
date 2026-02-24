@@ -4,6 +4,17 @@ import { validateSession } from "./shared/auth-utils.mjs";
 
 const VALID_CLASSES = ["Druide","Hexenmeister","Jäger","Krieger","Magier","Paladin","Priester","Schamane","Schurke"];
 const VALID_ROLES = ["Tank","Heiler","DPS"];
+const CLASS_SPECS = {
+  "Druide":      [{n:"Balance",r:"DPS"},{n:"Feral Tank",r:"Tank"},{n:"Feral DPS",r:"DPS"},{n:"Resto",r:"Heiler"}],
+  "Hexenmeister":[{n:"Affliction",r:"DPS"},{n:"Demonologie",r:"DPS"},{n:"Destruction",r:"DPS"}],
+  "Jäger":       [{n:"Beast Mastery",r:"DPS"},{n:"Marksmanship",r:"DPS"},{n:"Survival",r:"DPS"}],
+  "Krieger":     [{n:"Prot",r:"Tank"},{n:"Arms",r:"DPS"},{n:"Fury",r:"DPS"}],
+  "Magier":      [{n:"Arcane",r:"DPS"},{n:"Fire",r:"DPS"},{n:"Frost",r:"DPS"}],
+  "Paladin":     [{n:"Holy",r:"Heiler"},{n:"Prot",r:"Tank"},{n:"Retri",r:"DPS"}],
+  "Priester":    [{n:"Disc",r:"Heiler"},{n:"Holy",r:"Heiler"},{n:"Shadow",r:"DPS"}],
+  "Schamane":    [{n:"Elemental",r:"DPS"},{n:"Enhancement",r:"DPS"},{n:"Resto",r:"Heiler"}],
+  "Schurke":     [{n:"Assassination",r:"DPS"},{n:"Combat",r:"DPS"},{n:"Subtlety",r:"DPS"}],
+};
 const DAYS = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
 
 // 15-min slots from 12:00 to 23:45 (same for all days)
@@ -66,9 +77,9 @@ export default async (req, context) => {
         return new Response(JSON.stringify({ error: "Nicht angemeldet" }), { status: 401, headers });
       }
       const body = await req.json();
-      const { charName, className, roles, availability, notes } = body;
+      const { charName, className, specs, roles, availability, notes } = body;
 
-      if (!charName || !className || !roles || roles.length === 0) {
+      if (!charName || !className) {
         return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
       }
 
@@ -78,8 +89,27 @@ export default async (req, context) => {
       if (!VALID_CLASSES.includes(className)) {
         return new Response(JSON.stringify({ error: "Ungültige Klasse" }), { status: 400, headers });
       }
-      if (!Array.isArray(roles) || roles.length === 0 || roles.some(r => !VALID_ROLES.includes(r))) {
-        return new Response(JSON.stringify({ error: "Ungültige Rolle" }), { status: 400, headers });
+      // Validate specs (new format) or roles (legacy format)
+      const classSpecs = CLASS_SPECS[className] || [];
+      const validSpecNames = classSpecs.map(s => s.n);
+      let finalSpecs = [];
+      let finalRoles = [];
+      if (Array.isArray(specs) && specs.length > 0) {
+        if (specs.some(s => !validSpecNames.includes(s))) {
+          return new Response(JSON.stringify({ error: "Ungültige Spezialisierung" }), { status: 400, headers });
+        }
+        finalSpecs = specs;
+        const roleSet = new Set();
+        specs.forEach(s => { const sp = classSpecs.find(c => c.n === s); if (sp) roleSet.add(sp.r); });
+        finalRoles = VALID_ROLES.filter(r => roleSet.has(r));
+      } else if (Array.isArray(roles) && roles.length > 0) {
+        // Legacy: accept plain roles without specs
+        if (roles.some(r => !VALID_ROLES.includes(r))) {
+          return new Response(JSON.stringify({ error: "Ungültige Rolle" }), { status: 400, headers });
+        }
+        finalRoles = roles;
+      } else {
+        return new Response(JSON.stringify({ error: "Spezialisierung oder Rolle fehlt" }), { status: 400, headers });
       }
       if (notes != null && typeof notes !== "string") {
         return new Response(JSON.stringify({ error: "Anmerkungen ungültig" }), { status: 400, headers });
@@ -108,8 +138,8 @@ export default async (req, context) => {
       if (body.id && typeof body.id === "string") {
         const existing = await store.get(body.id, { type: "json" });
         if (existing) {
-          // Ownership check: deny if entry belongs to another user (legacy entries without userId are open)
-          if (existing.userId && existing.userId !== user.userId) {
+          // Ownership check: admin can edit any entry; others can only edit own or legacy entries
+          if (existing.userId && existing.userId !== user.userId && !user.isAdmin) {
             return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
           }
           id = body.id;
@@ -124,7 +154,8 @@ export default async (req, context) => {
         id,
         charName: charName.trim().slice(0, 50),
         className,
-        roles,
+        specs: finalSpecs.length ? finalSpecs : undefined,
+        roles: finalRoles,
         availability: cleanAvail,
         notes: (notes || "").trim().slice(0, 500),
         userId: user.userId,
@@ -135,7 +166,7 @@ export default async (req, context) => {
       return new Response(JSON.stringify(entry), { status: 200, headers });
     }
 
-    // DELETE — remove entry
+    // DELETE — remove entry (single by id, or all if admin with ?all=true)
     if (req.method === "DELETE") {
       const user = await validateSession(req);
       if (!user) {
@@ -143,11 +174,30 @@ export default async (req, context) => {
       }
       const url = new URL(req.url);
       const id = url.searchParams.get("id");
+      const all = url.searchParams.get("all");
+
+      // Admin: delete all entries
+      if (all === "true") {
+        if (!user.isAdmin) {
+          return new Response(JSON.stringify({ error: "Nur Admins erlaubt" }), { status: 403, headers });
+        }
+        const { blobs } = await store.list();
+        let deleted = 0;
+        for (const blob of blobs) {
+          await store.delete(blob.key);
+          deleted++;
+        }
+        return new Response(JSON.stringify({ ok: true, deleted }), { status: 200, headers });
+      }
+
       if (!id) {
         return new Response(JSON.stringify({ error: "ID fehlt" }), { status: 400, headers });
       }
       const existing = await store.get(id, { type: "json" });
-      if (existing && existing.userId && existing.userId !== user.userId) {
+      if (!existing) {
+        return new Response(JSON.stringify({ error: "Eintrag nicht gefunden" }), { status: 404, headers });
+      }
+      if (existing.userId && existing.userId !== user.userId && !user.isAdmin) {
         return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
       }
       await store.delete(id);

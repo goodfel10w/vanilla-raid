@@ -1,10 +1,9 @@
 import { getStore } from "@netlify/blobs";
 import { randomUUID } from "crypto";
-import bcrypt from "bcryptjs";
-import { validateSession } from "./shared/auth-utils.mjs";
+import { validateSession, isSiteAdmin } from "./shared/auth-utils.mjs";
 
-const USERNAME_RE = /^[a-zA-Z0-9_äöüÄÖÜß]{3,20}$/;
-const SESSION_DAYS = 7;
+const BNET_REGION = process.env.BNET_REGION || "eu";
+const OAUTH_BASE = `https://${BNET_REGION}.battle.net/oauth`;
 
 export default async (req) => {
   const headers = { "Content-Type": "application/json" };
@@ -21,55 +20,52 @@ export default async (req) => {
     const body = await req.json();
     const { action } = body;
 
-    const users = getStore({ name: "users", consistency: "strong" });
     const sessions = getStore({ name: "sessions", consistency: "strong" });
 
-    // ── Register ──
-    if (action === "register") {
-      const username = (body.username || "").trim();
-      const password = body.password || "";
-
-      if (!USERNAME_RE.test(username)) {
-        return new Response(JSON.stringify({ error: "Benutzername muss 3–20 Zeichen lang sein (Buchstaben, Zahlen, _)" }), { status: 400, headers });
-      }
-      if (password.length < 6) {
-        return new Response(JSON.stringify({ error: "Passwort muss mindestens 6 Zeichen lang sein" }), { status: 400, headers });
+    // ── Battle.net Login — generate OAuth URL ──
+    if (action === "bnet-login") {
+      const clientId = process.env.BNET_CLIENT_ID;
+      if (!clientId) {
+        return new Response(JSON.stringify({ error: "Battle.net OAuth nicht konfiguriert" }), { status: 500, headers });
       }
 
-      const key = username.toLowerCase();
-      const existing = await users.get(key, { type: "json" });
-      if (existing) {
-        return new Response(JSON.stringify({ error: "Benutzername bereits vergeben" }), { status: 409, headers });
+      const origin = new URL(req.url).origin;
+      const redirectUri = `${origin}/api/bnet-callback`;
+      const state = randomUUID();
+
+      // Store state for CSRF validation
+      const states = getStore({ name: "oauth-states", consistency: "strong" });
+
+      // Purge expired states (older than 10 min) to prevent store bloat from abandoned logins
+      try {
+        const { blobs } = await states.list();
+        const expiry = Date.now() - 10 * 60 * 1000;
+        for (const blob of blobs) {
+          const s = await states.get(blob.key, { type: "json" });
+          if (s && new Date(s.createdAt).getTime() < expiry) {
+            await states.delete(blob.key);
+          }
+        }
+        // Rate limit: reject if too many pending states (> 50 active)
+        const { blobs: remaining } = await states.list();
+        if (remaining.length > 50) {
+          return new Response(JSON.stringify({ error: "Zu viele Anmeldeversuche. Bitte später erneut versuchen." }), { status: 429, headers });
+        }
+      } catch (e) {
+        console.error("State cleanup error:", e);
       }
 
-      const passwordHash = await bcrypt.hash(password, 10);
-      const userId = randomUUID();
-      const user = { id: userId, username, passwordHash, createdAt: new Date().toISOString() };
-      await users.setJSON(key, user);
+      await states.setJSON(state, { createdAt: new Date().toISOString() });
 
-      const token = randomUUID();
-      const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000).toISOString();
-      await sessions.setJSON(token, { userId, username, createdAt: new Date().toISOString(), expiresAt });
+      const authUrl = `${OAUTH_BASE}/authorize?` + new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        response_type: "code",
+        scope: "openid wow.profile",
+        state,
+      }).toString();
 
-      return new Response(JSON.stringify({ token, username, userId }), { status: 200, headers });
-    }
-
-    // ── Login ──
-    if (action === "login") {
-      const username = (body.username || "").trim();
-      const password = body.password || "";
-
-      const key = username.toLowerCase();
-      const user = await users.get(key, { type: "json" });
-      if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-        return new Response(JSON.stringify({ error: "Benutzername oder Passwort falsch" }), { status: 401, headers });
-      }
-
-      const token = randomUUID();
-      const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000).toISOString();
-      await sessions.setJSON(token, { userId: user.id, username: user.username, createdAt: new Date().toISOString(), expiresAt });
-
-      return new Response(JSON.stringify({ token, username: user.username, userId: user.id }), { status: 200, headers });
+      return new Response(JSON.stringify({ url: authUrl }), { status: 200, headers });
     }
 
     // ── Logout ──
@@ -88,7 +84,180 @@ export default async (req) => {
       if (!session) {
         return new Response(JSON.stringify({ error: "Sitzung ungültig" }), { status: 401, headers });
       }
-      return new Response(JSON.stringify({ username: session.username, userId: session.userId }), { status: 200, headers });
+
+      // Look up user record for Discord link status
+      const users = getStore({ name: "users", consistency: "strong" });
+      let discordLinked = false;
+      let discordUsername = null;
+      let discordGuildMember = false;
+
+      // Find user by bnetId or userId
+      const auth = req.headers.get("authorization");
+      const token = auth?.slice(7);
+      const sess = token ? await sessions.get(token, { type: "json" }) : null;
+      if (sess) {
+        const userKey = sess.bnetId ? `bnet_${sess.bnetId}` : null;
+        if (userKey) {
+          const user = await users.get(userKey, { type: "json" });
+          if (user?.discordId) {
+            discordLinked = true;
+            discordUsername = user.discordUsername || null;
+            discordGuildMember = user.discordGuildMember || false;
+          }
+        }
+      }
+
+      return new Response(JSON.stringify({
+        username: session.username,
+        userId: session.userId,
+        isAdmin: session.isAdmin || false,
+        discordLinked,
+        discordUsername,
+        discordGuildMember,
+      }), { status: 200, headers });
+    }
+
+    // ── Purge users — admin only ──
+    if (action === "purge-users") {
+      const session = await validateSession(req);
+      if (!session || !session.isAdmin) {
+        return new Response(JSON.stringify({ error: "Nur Admins erlaubt" }), { status: 403, headers });
+      }
+
+      const users = getStore({ name: "users", consistency: "strong" });
+      const { blobs: userBlobs } = await users.list();
+      let deletedUsers = 0;
+      for (const blob of userBlobs) {
+        const user = await users.get(blob.key, { type: "json" });
+        if (user && !isSiteAdmin(user.username) && !isSiteAdmin(user.battleTag)) {
+          await users.delete(blob.key);
+          deletedUsers++;
+        }
+      }
+
+      // Delete all non-admin sessions
+      const { blobs: sessionBlobs } = await sessions.list();
+      let deletedSessions = 0;
+      for (const blob of sessionBlobs) {
+        const sess = await sessions.get(blob.key, { type: "json" });
+        if (sess && !isSiteAdmin(sess.username)) {
+          await sessions.delete(blob.key);
+          deletedSessions++;
+        }
+      }
+
+      return new Response(JSON.stringify({
+        ok: true,
+        deletedUsers,
+        deletedSessions,
+      }), { status: 200, headers });
+    }
+
+    // ── Discord Link — generate Discord OAuth URL ──
+    if (action === "discord-link") {
+      const session = await validateSession(req);
+      if (!session) {
+        return new Response(JSON.stringify({ error: "Nicht angemeldet" }), { status: 401, headers });
+      }
+
+      const clientId = process.env.DISCORD_CLIENT_ID || process.env.DISCORD_APPLICATION_ID;
+      if (!clientId) {
+        return new Response(JSON.stringify({ error: "Discord OAuth nicht konfiguriert" }), { status: 500, headers });
+      }
+
+      const origin = new URL(req.url).origin;
+      const redirectUri = `${origin}/api/discord-callback`;
+      const state = randomUUID();
+
+      // Get session token to pass to callback
+      const auth = req.headers.get("authorization");
+      const sessionToken = auth?.slice(7);
+      const sess = sessionToken ? await sessions.get(sessionToken, { type: "json" }) : null;
+      const userKey = sess?.bnetId ? `bnet_${sess.bnetId}` : null;
+
+      if (!userKey) {
+        return new Response(JSON.stringify({ error: "Benutzer nicht gefunden" }), { status: 400, headers });
+      }
+
+      // Store state with session reference
+      const discordStates = getStore({ name: "discord-oauth-states", consistency: "strong" });
+
+      // Purge expired states (older than 10 min)
+      try {
+        const { blobs } = await discordStates.list();
+        const expiry = Date.now() - 10 * 60 * 1000;
+        for (const blob of blobs) {
+          const s = await discordStates.get(blob.key, { type: "json" });
+          if (s && new Date(s.createdAt).getTime() < expiry) {
+            await discordStates.delete(blob.key);
+          }
+        }
+      } catch (e) {
+        console.error("Discord state cleanup error:", e);
+      }
+
+      await discordStates.setJSON(state, {
+        createdAt: new Date().toISOString(),
+        sessionToken,
+        userKey,
+      });
+
+      const authUrl = `https://discord.com/oauth2/authorize?` + new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        response_type: "code",
+        scope: "identify guilds.members.read",
+        state,
+      }).toString();
+
+      return new Response(JSON.stringify({ url: authUrl }), { status: 200, headers });
+    }
+
+    // ── Discord Unlink — remove Discord account ──
+    if (action === "discord-unlink") {
+      const session = await validateSession(req);
+      if (!session) {
+        return new Response(JSON.stringify({ error: "Nicht angemeldet" }), { status: 401, headers });
+      }
+
+      const auth = req.headers.get("authorization");
+      const sessionToken = auth?.slice(7);
+      const sess = sessionToken ? await sessions.get(sessionToken, { type: "json" }) : null;
+      const userKey = sess?.bnetId ? `bnet_${sess.bnetId}` : null;
+
+      if (!userKey) {
+        return new Response(JSON.stringify({ error: "Benutzer nicht gefunden" }), { status: 400, headers });
+      }
+
+      const users = getStore({ name: "users", consistency: "strong" });
+      const user = await users.get(userKey, { type: "json" });
+      if (user) {
+        // Remove discord-user-map entry for slash command lookup
+        if (user.discordId) {
+          const discordMap = getStore({ name: "discord-user-map", consistency: "strong" });
+          await discordMap.delete(user.discordId).catch(() => {});
+        }
+        delete user.discordId;
+        delete user.discordUsername;
+        delete user.discordAvatar;
+        delete user.discordAccessToken;
+        delete user.discordGuildMember;
+        delete user.discordGuildNickname;
+        delete user.discordGuildRoles;
+        delete user.discordLinkedAt;
+        user.updatedAt = new Date().toISOString();
+        await users.setJSON(userKey, user);
+      }
+
+      // Clear Discord info from session
+      if (sess) {
+        delete sess.discordId;
+        delete sess.discordUsername;
+        delete sess.discordGuildMember;
+        await sessions.setJSON(sessionToken, sess);
+      }
+
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }
 
     return new Response(JSON.stringify({ error: "Unbekannte Aktion" }), { status: 400, headers });

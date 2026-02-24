@@ -55,22 +55,27 @@ input[type=text]{
 }
 input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 
+/* WoW icons */
+.wow-ico{width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:4px;flex-shrink:0}
+.wow-ico-sm{width:16px;height:16px;border-radius:3px;vertical-align:middle;margin-right:3px;flex-shrink:0}
+.wow-ico-lg{width:28px;height:28px;border-radius:5px;vertical-align:middle;margin-right:6px;flex-shrink:0}
+
 /* Class chips */
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{
   padding:6px 13px;border-radius:6px;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;
   border:2px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx3);transition:all .15s;user-select:none;
-  min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+  min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:4px;
 }
 .chip:hover{border-color:rgba(255,255,255,.12)}
 
-/* Role chips */
-.rchips{display:flex;gap:8px}
+/* Spec chips */
+.rchips{display:flex;flex-wrap:wrap;gap:8px}
 .rchip{
-  padding:10px 0;border-radius:8px;cursor:pointer;font:600 14px 'Nunito Sans',sans-serif;
+  padding:8px 12px;border-radius:8px;cursor:pointer;font:600 13px 'Nunito Sans',sans-serif;
   border:2px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx3);
-  transition:all .15s;flex:1;text-align:center;user-select:none;
-  min-height:44px;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;user-select:none;
+  min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;
 }
 
 /* Timeline grid */
@@ -238,23 +243,28 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .auth-bar button{background:none;border:1px solid rgba(255,255,255,.1);color:var(--tx2);padding:5px 14px;border-radius:6px;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;transition:all .2s}
 .auth-bar button:hover{border-color:rgba(201,168,76,.4);color:var(--gold)}
 .auth-bar .btn-logout{border-color:rgba(255,255,255,.06);color:var(--tx3);font-weight:400}
+.admin-badge{background:var(--gold);color:#1a1a2e;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px}
+.btn-admin-purge{border-color:rgba(220,53,69,.3)!important;color:rgba(220,53,69,.8)!important}
+.btn-admin-purge:hover{border-color:rgba(220,53,69,.6)!important;color:#dc3545!important}
 
 /* Auth overlay */
 .auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1001;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease}
 .auth-box{background:var(--bg2);border:1px solid rgba(201,168,76,.25);border-radius:14px;padding:32px;max-width:380px;width:92%;box-shadow:0 8px 40px rgba(0,0,0,.6)}
 .auth-box h2{font-family:'Cinzel',serif;font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--gold-l));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:20px;text-align:center}
-.auth-tabs{display:flex;gap:0;margin-bottom:20px}
-.auth-tab{flex:1;padding:9px 0;text-align:center;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.2);color:var(--tx3);cursor:pointer;font:600 13px 'Nunito Sans',sans-serif;transition:all .15s}
-.auth-tab:first-child{border-radius:6px 0 0 6px}
-.auth-tab:last-child{border-radius:0 6px 6px 0;border-left:none}
-.auth-tab.active{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg);border-color:var(--gold-d)}
-.auth-input{display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;margin-bottom:12px;transition:border-color .2s}
-.auth-input:focus{border-color:rgba(201,168,76,.3)}
-.auth-err{color:#e57373;font-size:12px;margin-bottom:10px;min-height:16px}
 .auth-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--tx3);font-size:20px;cursor:pointer;padding:4px}
 .auth-close:hover{color:var(--tx)}
 .auth-hint{text-align:center;padding:20px;color:var(--tx3);font-size:14px}
-.auth-hint button{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg);border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font:600 13px 'Nunito Sans',sans-serif;margin-top:8px}
+.auth-hint .btn-bnet{margin-top:8px}
+.btn-bnet{display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border-radius:8px;border:1px solid #148eff;background:linear-gradient(135deg,#0074e0,#00a0ff);color:#fff;cursor:pointer;font:600 14px 'Nunito Sans',sans-serif;transition:all .2s;text-decoration:none}
+.btn-bnet:hover{background:linear-gradient(135deg,#005bb5,#0088dd);border-color:#0088dd}
+.btn-bnet svg{width:18px;height:18px;fill:currentColor}
+.auth-err{color:#e57373;font-size:12px;margin-bottom:10px;min-height:16px}
+
+/* Character picker */
+.char-picker{margin-bottom:16px}
+.char-picker select{display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:14px 'Nunito Sans',sans-serif;outline:none;cursor:pointer;transition:border-color .2s;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a8098' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+.char-picker select:focus{border-color:rgba(201,168,76,.3)}
+.char-picker select option{background:var(--bg2);color:var(--tx)}
 
 /* CSV export button */
 .btn-export{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:8px;border:1px solid rgba(201,168,76,.3);background:rgba(201,168,76,.08);color:var(--gold);cursor:pointer;font:600 13px 'Nunito Sans',sans-serif;transition:all .2s;margin-bottom:16px}
@@ -287,7 +297,7 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 /* Raids */
 .raid-list{display:flex;flex-direction:column;gap:10px}
 .raid-card{background:var(--card);border-radius:12px;border:1px solid var(--bdr);padding:18px 20px;animation:fadeIn .3s ease}
-.raid-card.past{opacity:.5}
+.raid-card.past{opacity:.55}
 .raid-hdr{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
 .raid-inst{font-family:'Cinzel',serif;font-weight:700;font-size:17px;color:var(--gold)}
 .raid-tier{font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(201,168,76,.12);color:var(--gold-d);font-weight:700;letter-spacing:1px}
@@ -325,6 +335,66 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .btn-discord .dc-ico{display:inline-block;width:14px;height:14px;vertical-align:middle;margin-right:4px}
 .discord-posted{font-size:11px;color:#5865F2;margin-top:4px;display:flex;align-items:center;gap:4px}
 .discord-posted .dc-ico{display:inline-block;width:12px;height:12px}
+.btn-dc-link{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:6px;border:1px solid rgba(88,101,242,.4);background:none;color:#5865F2;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;transition:all .2s}
+.btn-dc-link:hover{background:rgba(88,101,242,.1);border-color:#5865F2}
+.btn-dc-link svg{width:14px;height:14px}
+.dc-verified{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#5865F2;padding:2px 8px;border-radius:4px;background:rgba(88,101,242,.1);font-weight:600}
+.dc-verified svg{width:12px;height:12px}
+.dc-unverified{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--dps);padding:2px 8px;border-radius:4px;background:rgba(229,115,115,.1);font-weight:600}
+.dc-gate-hint{text-align:center;padding:12px 16px;color:var(--tx3);font-size:13px;border:1px dashed rgba(88,101,242,.3);border-radius:8px;margin:8px 0;background:rgba(88,101,242,.04)}
+.dc-gate-hint .btn-dc-link{margin-top:8px}
+
+/* Raid composition panel */
+.raid-comp{margin-top:14px;border-top:1px solid rgba(255,255,255,.04);padding-top:14px}
+.raid-comp-toggle{font-size:12px;color:var(--gold);cursor:pointer;background:none;border:none;font-family:inherit;font-weight:600;display:inline-flex;align-items:center;gap:4px;padding:0;transition:color .15s}
+.raid-comp-toggle:hover{color:var(--gold-l)}
+.raid-comp-body{margin-top:12px;animation:fadeIn .25s ease}
+
+/* Role targets grid */
+.rc-targets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.rc-target{padding:10px 12px;border-radius:8px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.04);text-align:center}
+.rc-target-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;display:flex;align-items:center;justify-content:center;gap:4px}
+.rc-target-count{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.rc-target-max{font-size:11px;color:var(--tx4);margin-top:2px}
+.rc-target.ok .rc-target-count{color:var(--grn)}
+.rc-target.warn .rc-target-count{color:var(--ylw)}
+.rc-target.low .rc-target-count{color:var(--dps)}
+
+/* Class distribution mini bar */
+.rc-classes{margin-bottom:14px}
+.rc-cls-row{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px}
+.rc-cls-bar{height:6px;border-radius:3px;min-width:2px;transition:width .3s}
+.rc-cls-name{min-width:100px;display:flex;align-items:center;gap:5px;font-weight:600}
+.rc-cls-ct{min-width:28px;text-align:right;color:var(--tx3);font-variant-numeric:tabular-nums}
+
+/* Bench / lineup section */
+.rc-section{margin-bottom:12px}
+.rc-section-t{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--tx3);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.rc-lineup{display:flex;flex-wrap:wrap;gap:4px}
+.rc-player{font-size:12px;padding:4px 10px;border-radius:5px;display:inline-flex;align-items:center;gap:4px;font-weight:600;border:1px solid rgba(255,255,255,.04)}
+.rc-player.in{background:rgba(102,187,106,.06);border-color:rgba(102,187,106,.15)}
+.rc-player.bench{background:rgba(229,194,68,.06);border-color:rgba(229,194,68,.15);color:var(--ylw)}
+.rc-player.tentative{opacity:.7;font-style:italic}
+.rc-player .wow-ico-sm{width:14px;height:14px}
+.rc-note{font-size:11px;color:var(--tx4);margin-top:6px;font-style:italic}
+
+/* Karazhan group suggestions */
+.kara-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:12px}
+.kara-group{background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px}
+.kara-group-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.04)}
+.kara-group-title{font-size:14px;font-weight:700;color:var(--gold)}
+.kara-group-count{font-size:12px;color:var(--tx3);font-variant-numeric:tabular-nums}
+.kara-roles{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.kara-role{font-size:11px;padding:3px 8px;border-radius:5px;background:rgba(255,255,255,.04);font-weight:600;font-variant-numeric:tabular-nums}
+.kara-role.ok{background:rgba(102,187,106,.1);outline:1px solid rgba(102,187,106,.2)}
+.kara-player{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px}
+.kara-player.tentative{opacity:.65;font-style:italic}
+.kara-player-spec{font-size:10px;margin-left:auto;font-weight:600}
+@media(max-width:640px){.kara-groups{grid-template-columns:1fr}}
+
+/* Signup groups improved */
+.raid-signups-group{margin-top:6px;padding:8px 12px;border-radius:8px;background:rgba(0,0,0,.12);border:1px solid rgba(255,255,255,.03)}
+
 .raid-form{max-width:500px;margin:0 auto 20px}
 .raid-form .fld{margin-bottom:14px}
 .raid-form select{display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;transition:border-color .2s;appearance:none;-webkit-appearance:none;cursor:pointer}
@@ -465,6 +535,47 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
 .dkp-detail-stats{display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap}
 .dkp-detail-stat{padding:8px 14px;border-radius:8px;background:rgba(0,0,0,.2);font-size:12px;color:var(--tx3)}
 .dkp-detail-stat strong{display:block;font-size:16px;color:var(--tx);margin-bottom:2px;font-variant-numeric:tabular-nums}
+/* DKP transaction actions */
+.dkp-tx-actions{display:flex;gap:4px;margin-left:4px;flex-shrink:0}
+.dkp-tx-btn{padding:2px 8px;border-radius:4px;cursor:pointer;font:600 10px 'Nunito Sans',sans-serif;border:1px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx4);transition:all .15s}
+.dkp-tx-btn:hover{border-color:rgba(255,255,255,.12);color:var(--tx)}
+.dkp-tx-btn.dkp-tx-del{border-color:rgba(229,115,115,.2);color:var(--dps)}
+.dkp-tx-btn.dkp-tx-del:hover{border-color:rgba(229,115,115,.4);background:rgba(229,115,115,.05)}
+.dkp-tx-adjust{background:rgba(201,168,76,.15);color:var(--gold);font-style:italic}
+
+/* DKP edit modal */
+.dkp-edit-form{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.dkp-edit-form .fld{margin-bottom:0}
+.dkp-edit-form label{font-size:12px;color:var(--tx3);margin-bottom:4px;display:block}
+.dkp-edit-form input,.dkp-edit-form select{display:block;width:100%;padding:8px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:14px 'Nunito Sans',sans-serif;outline:none}
+.dkp-edit-form input:focus,.dkp-edit-form select:focus{border-color:rgba(201,168,76,.3)}
+
+/* DKP player detail actions */
+.dkp-detail-actions{display:flex;gap:6px;margin:12px 0;flex-wrap:wrap}
+.dkp-detail-action{padding:6px 14px;border-radius:6px;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;border:1px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx3);transition:all .15s}
+.dkp-detail-action:hover{border-color:rgba(255,255,255,.12);color:var(--tx)}
+.dkp-detail-action.danger{border-color:rgba(229,115,115,.2);color:var(--dps)}
+.dkp-detail-action.danger:hover{border-color:rgba(229,115,115,.4);background:rgba(229,115,115,.05)}
+
+/* DKP search */
+.dkp-search{margin-bottom:14px}
+.dkp-search input{display:block;width:100%;padding:10px 14px 10px 36px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:14px 'Nunito Sans',sans-serif;outline:none;transition:border-color .2s}
+.dkp-search input:focus{border-color:rgba(201,168,76,.3)}
+.dkp-search{position:relative}
+.dkp-search::before{content:"🔍";position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.4}
+
+/* DKP My DKP button */
+.dkp-my-btn{background:linear-gradient(135deg,var(--gold),var(--gold-d))!important;color:var(--bg)!important;border-color:var(--gold-d)!important;font-weight:700!important}
+
+/* DKP tx filter */
+.dkp-tx-filters{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.dkp-tx-filter{padding:4px 12px;border-radius:4px;cursor:pointer;font:600 11px 'Nunito Sans',sans-serif;border:1px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx4);transition:all .15s}
+.dkp-tx-filter:hover{border-color:rgba(255,255,255,.12);color:var(--tx)}
+.dkp-tx-filter.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08)}
+
+/* DKP edited badge */
+.dkp-tx-edited{font-size:9px;color:var(--ylw);opacity:.6;font-style:italic}
+
 @media(max-width:640px){
   .dkp-tx{flex-wrap:wrap;gap:6px}
   .dkp-tx-meta{min-width:auto;text-align:left;width:100%;margin-top:2px}
@@ -473,6 +584,54 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
   .dkp-detail-stats{gap:8px}
   .dkp-role-add{flex-wrap:wrap}
   .dkp-role-add input{width:100%}
+  .dkp-tx-actions{width:100%;justify-content:flex-end}
+  .dkp-detail-actions{gap:4px}
+}
+
+/* Admin Dashboard */
+.adm-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.adm-stat{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:16px;text-align:center}
+.adm-stat-val{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--gold)}
+.adm-stat-lbl{font-size:11px;color:var(--tx4);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.adm-users-table{width:100%;border-collapse:separate;border-spacing:0 4px}
+.adm-users-table th{font-size:11px;color:var(--tx4);text-transform:uppercase;letter-spacing:1px;padding:6px 10px;text-align:left;font-weight:500}
+.adm-users-table td{padding:10px;background:var(--card);font-size:14px}
+.adm-users-table tr td:first-child{border-radius:8px 0 0 8px}
+.adm-users-table tr td:last-child{border-radius:0 8px 8px 0}
+.adm-role-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.adm-role-admin{background:rgba(201,168,76,.15);color:var(--gold)}
+.adm-role-officer{background:rgba(100,149,237,.15);color:#6495ed}
+.adm-role-site{background:rgba(229,115,115,.15);color:var(--dps)}
+.adm-role-none{color:var(--tx4);font-size:12px;font-style:italic}
+.adm-danger{margin-top:20px;padding:20px;border:1px solid rgba(220,53,69,.2);border-radius:10px;background:rgba(220,53,69,.03)}
+.adm-danger-t{font-size:12px;color:rgba(220,53,69,.8);text-transform:uppercase;letter-spacing:2px;margin-bottom:14px;font-weight:700}
+.adm-danger-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.adm-danger-row:last-child{border-bottom:none}
+.adm-danger-info{flex:1}
+.adm-danger-info strong{display:block;font-size:14px;color:var(--tx);margin-bottom:2px}
+.adm-danger-info small{font-size:12px;color:var(--tx4)}
+.adm-danger-btn{padding:8px 18px;border-radius:6px;cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;border:1px solid rgba(220,53,69,.3);background:rgba(220,53,69,.08);color:rgba(220,53,69,.8);transition:all .15s;white-space:nowrap}
+.adm-danger-btn:hover{border-color:rgba(220,53,69,.6);background:rgba(220,53,69,.12);color:#dc3545}
+.adm-role-actions{display:flex;gap:6px;align-items:center}
+.adm-role-btn{padding:4px 10px;border-radius:4px;cursor:pointer;font:600 11px 'Nunito Sans',sans-serif;border:1px solid var(--bdr);background:rgba(0,0,0,.2);color:var(--tx4);transition:all .15s}
+.adm-role-btn:hover{border-color:rgba(255,255,255,.12);color:var(--tx)}
+.adm-role-del{border-color:rgba(229,115,115,.2);color:var(--dps)}
+.adm-role-del:hover{border-color:rgba(229,115,115,.4);background:rgba(229,115,115,.05)}
+.adm-entries-table{width:100%;border-collapse:separate;border-spacing:0 4px}
+.adm-entries-table th{font-size:11px;color:var(--tx4);text-transform:uppercase;letter-spacing:1px;padding:6px 10px;text-align:left;font-weight:500}
+.adm-entries-table td{padding:10px;background:var(--card);font-size:14px}
+.adm-entries-table tr td:first-child{border-radius:8px 0 0 8px}
+.adm-entries-table tr td:last-child{border-radius:0 8px 8px 0}
+.adm-entry-del{padding:4px 10px;border-radius:4px;cursor:pointer;font:600 11px 'Nunito Sans',sans-serif;border:1px solid rgba(229,115,115,.2);background:rgba(0,0,0,.2);color:var(--dps);transition:all .15s}
+.adm-entry-del:hover{border-color:rgba(229,115,115,.4);background:rgba(229,115,115,.05)}
+.adm-section{margin-bottom:20px}
+.adm-no-access{text-align:center;padding:40px;color:var(--tx3);font-size:14px}
+@media(max-width:640px){
+  .adm-stats{grid-template-columns:repeat(2,1fr)}
+  .adm-danger-row{flex-direction:column;align-items:flex-start;gap:8px}
+  .adm-users-table,.adm-entries-table{font-size:12px}
+  .adm-users-table td,.adm-entries-table td{padding:8px 6px}
+  .adm-role-actions{flex-wrap:wrap}
 }
 
 /* Hidden */
@@ -509,6 +668,7 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
     <button class="tab" data-v="heatmap" role="tab" aria-selected="false" aria-controls="v-heatmap" id="tab-heatmap">Heatmap</button>
     <button class="tab" data-v="analytics" role="tab" aria-selected="false" aria-controls="v-analytics" id="tab-analytics">Auswertung</button>
     <button class="tab" data-v="dkp" role="tab" aria-selected="false" aria-controls="v-dkp" id="tab-dkp">DKP</button>
+    <button class="tab hidden" data-v="admin" role="tab" aria-selected="false" aria-controls="v-admin" id="tab-admin">Admin</button>
   </div>
 
   <!-- VIEWS -->
@@ -518,6 +678,7 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
   <div id="v-heatmap" class="hidden" role="tabpanel" aria-labelledby="tab-heatmap"></div>
   <div id="v-analytics" class="hidden" role="tabpanel" aria-labelledby="tab-analytics"></div>
   <div id="v-dkp" class="hidden" role="tabpanel" aria-labelledby="tab-dkp"></div>
+  <div id="v-admin" class="hidden" role="tabpanel" aria-labelledby="tab-admin"></div>
 </div>
 <div id="auth-overlay"></div>
 <div class="toast" id="toast"></div>
@@ -525,14 +686,52 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
 
 <script>
 // ── Constants ──
+const WOW_ICONS="https://cdn.jsdelivr.net/gh/orourkek/Wow-Icons@master/images";
 const CLS=[
-  {n:"Druide",c:"#FF7C0A"},{n:"Hexenmeister",c:"#8788EE"},{n:"Jäger",c:"#AAD372"},
-  {n:"Krieger",c:"#C69B6D"},{n:"Magier",c:"#3FC7EB"},{n:"Paladin",c:"#F48CBA"},
-  {n:"Priester",c:"#FFFFFF"},{n:"Schamane",c:"#0070DD"},{n:"Schurke",c:"#FFF468"},
+  {n:"Druide",c:"#FF7C0A",i:"druid"},{n:"Hexenmeister",c:"#8788EE",i:"warlock"},{n:"Jäger",c:"#AAD372",i:"hunter"},
+  {n:"Krieger",c:"#C69B6D",i:"warrior"},{n:"Magier",c:"#3FC7EB",i:"mage"},{n:"Paladin",c:"#F48CBA",i:"paladin"},
+  {n:"Priester",c:"#FFFFFF",i:"priest"},{n:"Schamane",c:"#0070DD",i:"shaman"},{n:"Schurke",c:"#FFF468",i:"rogue"},
 ];
+function clsIcon(cls){const c=CLS.find(x=>x.n===cls);return c?`${WOW_ICONS}/class/64/${c.i}.png`:""}
 const ROLES=["Tank","Heiler","DPS"];
 const RI={Tank:"\u{1F6E1}\uFE0F",Heiler:"\u{1F49A}",DPS:"\u2694\uFE0F"};
 const RC={Tank:"#5b9bd5",Heiler:"#66bb6a",DPS:"#e57373"};
+// Class-specific specs: each spec maps to a role + icon path
+const CLASS_SPECS={
+  "Druide":[{n:"Balance",r:"DPS",i:"druid/balance"},{n:"Feral Tank",r:"Tank",i:"druid/feral"},{n:"Feral DPS",r:"DPS",i:"druid/feral"},{n:"Resto",r:"Heiler",i:"druid/restoration"}],
+  "Hexenmeister":[{n:"Affliction",r:"DPS",i:"warlock/affliction"},{n:"Demonologie",r:"DPS",i:"warlock/demonology"},{n:"Destruction",r:"DPS",i:"warlock/destruction"}],
+  "Jäger":[{n:"Beast Mastery",r:"DPS",i:"hunter/beastmastery"},{n:"Marksmanship",r:"DPS",i:"hunter/marksman"},{n:"Survival",r:"DPS",i:"hunter/survival"}],
+  "Krieger":[{n:"Prot",r:"Tank",i:"warrior/protection"},{n:"Arms",r:"DPS",i:"warrior/arms"},{n:"Fury",r:"DPS",i:"warrior/fury"}],
+  "Magier":[{n:"Arcane",r:"DPS",i:"mage/arcane"},{n:"Fire",r:"DPS",i:"mage/fire"},{n:"Frost",r:"DPS",i:"mage/frost"}],
+  "Paladin":[{n:"Holy",r:"Heiler",i:"paladin/holy"},{n:"Prot",r:"Tank",i:"paladin/protection"},{n:"Retri",r:"DPS",i:"paladin/retribution"}],
+  "Priester":[{n:"Disc",r:"Heiler",i:"priest/discipline"},{n:"Holy",r:"Heiler",i:"priest/holy"},{n:"Shadow",r:"DPS",i:"priest/shadow"}],
+  "Schamane":[{n:"Elemental",r:"DPS",i:"shaman/elemental"},{n:"Enhancement",r:"DPS",i:"shaman/enhancement"},{n:"Resto",r:"Heiler",i:"shaman/restoration"}],
+  "Schurke":[{n:"Assassination",r:"DPS",i:"rogue/assassination"},{n:"Combat",r:"DPS",i:"rogue/combat"},{n:"Subtlety",r:"DPS",i:"rogue/subtlety"}],
+};
+function specIcon(cls,specName){const sp=(CLASS_SPECS[cls]||[]).find(s=>s.n===specName);return sp?`${WOW_ICONS}/spec/${sp.i}.png`:""}
+function specsToRoles(cls,specs){
+  const cspecs=CLASS_SPECS[cls]||[];
+  const rs=new Set();
+  (specs||[]).forEach(s=>{const sp=cspecs.find(c=>c.n===s);if(sp)rs.add(sp.r)});
+  return ROLES.filter(r=>rs.has(r));
+}
+function specRole(cls,specName){
+  const cspecs=CLASS_SPECS[cls]||[];
+  const sp=cspecs.find(c=>c.n===specName);
+  return sp?sp.r:"DPS";
+}
+// Infer specs from roles for legacy entries without specs field
+function inferSpecs(cls,roles){
+  const cspecs=CLASS_SPECS[cls]||[];
+  if(!roles||!roles.length)return[];
+  const out=[];
+  roles.forEach(r=>{
+    const matching=cspecs.filter(s=>s.r===r);
+    // If only one spec for this role, auto-select it
+    if(matching.length===1)out.push(matching[0].n);
+  });
+  return out;
+}
 const WD=["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
 const WE=["Samstag","Sonntag"];
 const DAYS=[...WD,...WE];
@@ -579,8 +778,8 @@ const RR_TANK=2, RR_HEAL=5, RR_DPS=18;
 
 // ── State ──
 let entries=[], view="form", editId=null, heatMode="1h", rosterSort="name";
-let form={name:"",cls:"",roles:[],avail:{},notes:""};
-let currentUser=null; // { token, username, userId }
+let form={name:"",cls:"",specs:[],roles:[],avail:{},notes:""};
+let currentUser=null; // { token, username, userId, discordLinked, discordUsername, discordGuildMember }
 
 // Raids state
 const TBC_RAIDS=[
@@ -611,6 +810,13 @@ let dkpConfig={roles:{},defaultDecayPercent:15,maxDkpAmount:10000,allowNegativeB
 let dkpSortCol="balance", dkpSortDir="desc";
 let dkpPlayerDetail=null, dkpPlayerTx=[];
 let dkpRoleAddUser="", dkpRoleAddRole="officer";
+let dkpSearchQuery="", dkpTxFilter="all";
+let dkpEditingTx=null; // transaction being edited
+
+// Admin state
+const ADMIN_API="/api/admin";
+let adminUsers=[], adminView="overview", adminLoaded=false;
+let adminRoleAddUser="", adminRoleAddRole="officer";
 
 // ── Auth API ──
 async function authApi(action,data){
@@ -626,78 +832,206 @@ function authHeader(){
   return{};
 }
 
+// ── Battle.net SSO SVG icon ──
+const BNET_ICON=`<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.82 16.12c-.32.5-.87.82-1.5.87-.12.01-.25 0-.37-.02.04-.14.07-.28.09-.43.15-.92-.12-2.08-.72-3.26l-.18-.35c-.36.83-.96 1.75-1.76 2.6-1.22 1.3-2.61 2.14-3.67 2.35.18.12.37.22.58.28-.37.3-.82.47-1.3.47-.48 0-.94-.17-1.3-.49a1.94 1.94 0 01-.6-1.63l.04-.27c.78.42 1.87.56 3.1.32 1.45-.28 2.98-1.07 4.28-2.27a12.5 12.5 0 002.4-2.92c-.62-.98-1.47-1.85-2.52-2.52l-.32-.19c.52-.69 1.17-1.3 1.9-1.75-.63-.35-1.33-.6-2.08-.72l-.28-.04c.48-.32 1.05-.52 1.67-.52.63 0 1.22.2 1.7.56a1.94 1.94 0 01.72 1.53c0 .1-.01.2-.03.3-.86-.23-1.88-.16-2.95.24-1.26.47-2.46 1.33-3.4 2.42a12.5 12.5 0 00-1.97 3.17c1.08.63 2.33 1.01 3.68 1.01h.38c-.2.14-.41.27-.63.38l.03.02c.52.14 1.12.1 1.68-.16.7-.33 1.3-.97 1.58-1.73z" fill="currentColor"/></svg>`;
+
 // ── Auth UI ──
+let bnetCharacters=[]; // cached characters from Battle.net API
+
 function renderAuthBar(){
   const el=document.getElementById("auth-bar");
   if(currentUser){
-    el.innerHTML=`<div class="auth-bar">Eingeloggt als <span class="auth-user">${h(currentUser.username)}</span> <button class="btn-logout" onclick="doLogout()">Abmelden</button></div>`;
+    const roleBadge=isAdminUser()?' <span class="admin-badge">Admin</span>':isOfficerUser()?' <span class="admin-badge" style="background:#6495ed">Offizier</span>':"";
+    let dcBadge="";
+    if(currentUser.discordLinked&&currentUser.discordGuildMember){
+      dcBadge=` <span class="dc-verified">${dcIco(12)} ${h(currentUser.discordUsername)}</span>`;
+    }else if(currentUser.discordLinked){
+      dcBadge=` <span class="dc-unverified" title="Nicht auf dem Gilden-Discord">${dcIco(12)} Kein Gildenmitglied</span>`;
+    }else{
+      dcBadge=` <button class="btn-dc-link" onclick="doDiscordLink()">${dcIco(14)} Discord verknüpfen</button>`;
+    }
+    el.innerHTML=`<div class="auth-bar">Eingeloggt als <span class="auth-user">${h(currentUser.username)}</span>${roleBadge}${dcBadge} <button class="btn-logout" onclick="doLogout()">Abmelden</button></div>`;
   }else{
-    el.innerHTML=`<div class="auth-bar"><button onclick="renderAuthOverlay(true)">Anmelden</button></div>`;
+    el.innerHTML=`<div class="auth-bar"><button class="btn-bnet" onclick="doBnetLogin()">${BNET_ICON} Mit Battle.net anmelden</button></div>`;
   }
+  updateAdminTabVisibility();
 }
-let authMode="login";
 function renderAuthOverlay(show){
   const el=document.getElementById("auth-overlay");
   if(!show){el.innerHTML="";return}
-  const isReg=authMode==="register";
   el.innerHTML=`<div class="auth-overlay">
-    <div class="auth-box" style="position:relative">
+    <div class="auth-box" style="position:relative;text-align:center">
       <button class="auth-close" onclick="renderAuthOverlay(false)">&times;</button>
-      <h2>${isReg?"Registrieren":"Anmelden"}</h2>
-      <div class="auth-tabs">
-        <button class="auth-tab${!isReg?" active":""}" onclick="authMode='login';renderAuthOverlay(true)">Anmelden</button>
-        <button class="auth-tab${isReg?" active":""}" onclick="authMode='register';renderAuthOverlay(true)">Registrieren</button>
-      </div>
-      <input class="auth-input" id="auth-user" type="text" placeholder="Benutzername" autocomplete="username">
-      <input class="auth-input" id="auth-pass" type="password" placeholder="Passwort" autocomplete="${isReg?"new-password":"current-password"}">
-      ${isReg?'<input class="auth-input" id="auth-pass2" type="password" placeholder="Passwort wiederholen" autocomplete="new-password">':""}
+      <h2>Anmelden</h2>
+      <p style="color:var(--tx2);font-size:14px;margin-bottom:20px">Melde dich mit deinem Battle.net-Konto an, um Eintr\u00E4ge zu erstellen und deine WoW-Charaktere zu importieren.</p>
       <div class="auth-err" id="auth-err"></div>
-      <button class="btn-p" style="width:100%" onclick="doAuth()">${isReg?"Registrieren":"Anmelden"}</button>
+      <button class="btn-bnet" onclick="doBnetLogin()" style="width:100%;justify-content:center">${BNET_ICON} Mit Battle.net anmelden</button>
     </div>
   </div>`;
-  document.getElementById("auth-user").focus();
-  // Allow Enter to submit
-  el.querySelectorAll(".auth-input").forEach(inp=>{
-    inp.addEventListener("keydown",e=>{if(e.key==="Enter")doAuth()});
-  });
-  // Click overlay bg to close
   el.querySelector(".auth-overlay").addEventListener("click",e=>{if(e.target===e.currentTarget)renderAuthOverlay(false)});
 }
-window.doAuth=async function(){
-  const user=document.getElementById("auth-user")?.value.trim();
-  const pass=document.getElementById("auth-pass")?.value;
-  const errEl=document.getElementById("auth-err");
-  if(!user||!pass){if(errEl)errEl.textContent="Bitte alle Felder ausfüllen";return}
-  if(authMode==="register"){
-    const pass2=document.getElementById("auth-pass2")?.value;
-    if(pass!==pass2){if(errEl)errEl.textContent="Passwörter stimmen nicht überein";return}
-  }
+window.doBnetLogin=async function(){
   try{
-    const res=await authApi(authMode==="register"?"register":"login",{username:user,password:pass});
-    currentUser={token:res.token,username:res.username,userId:res.userId};
-    localStorage.setItem("raid-auth",JSON.stringify(currentUser));
-    renderAuthOverlay(false);
+    const res=await authApi("bnet-login");
+    if(res.url) window.location.href=res.url;
+  }catch(e){
+    const errEl=document.getElementById("auth-err");
+    if(errEl)errEl.textContent=e.message;
+    else toast("Login-Fehler: "+e.message);
+  }
+};
+window.doDiscordLink=async function(){
+  try{
+    const res=await authApi("discord-link");
+    if(res.url) window.location.href=res.url;
+  }catch(e){
+    toast("Discord-Fehler: "+e.message);
+  }
+};
+window.doDiscordUnlink=async function(){
+  try{
+    await authApi("discord-unlink");
+    if(currentUser){
+      currentUser.discordLinked=false;
+      currentUser.discordUsername=null;
+      currentUser.discordGuildMember=false;
+      localStorage.setItem("raid-auth",JSON.stringify(currentUser));
+    }
     renderAuthBar();
-    updateAll();
-    toast(authMode==="register"?"Registrierung erfolgreich ✓":"Angemeldet ✓");
-  }catch(e){if(errEl)errEl.textContent=e.message}
+    toast("Discord-Verknüpfung aufgehoben");
+  }catch(e){
+    toast("Fehler: "+e.message);
+  }
 };
 window.doLogout=async function(){
   try{await authApi("logout")}catch(e){}
   currentUser=null;
+  bnetCharacters=[];
   localStorage.removeItem("raid-auth");
   renderAuthBar();
   updateAll();
   toast("Abgemeldet");
 };
+window.doPurgeUsers=function(){
+  showModal("Accounts zurücksetzen","Alle Accounts außer Admins werden gelöscht. Nutzer müssen sich neu anmelden. Raid-Einträge bleiben erhalten.<br><br>Wirklich fortfahren?",async()=>{
+    try{
+      const r=await authApi("purge-users");
+      toast(`${r.deletedUsers} Accounts und ${r.deletedSessions} Sitzungen gelöscht`);
+    }catch(e){
+      toast("Fehler: "+e.message);
+    }
+  });
+};
+window.doPurgeEntries=function(){
+  showModal("Alle Raider entfernen",`Alle <strong>${entries.length}</strong> Einträge werden unwiderruflich gelöscht.<br><br>Wirklich fortfahren?`,async()=>{
+    try{
+      const r=await fetch(API+"?all=true",{method:"DELETE",headers:{...authHeader()}});
+      const d=await r.json();
+      if(!r.ok)throw new Error(d.error||"Fehler");
+      toast(`${d.deleted} Einträge gelöscht`);
+      await load();
+    }catch(e){
+      if(e.message==="Nicht angemeldet"||e.message==="Sitzung ungültig"){
+        currentUser=null;localStorage.removeItem("raid-auth");renderAuthBar();updateAll();
+        toast("Sitzung abgelaufen — bitte erneut anmelden");
+      }else{toast("Fehler: "+e.message)}
+    }
+  });
+};
+async function loadBnetCharacters(){
+  if(!currentUser?.token)return;
+  try{
+    const r=await fetch("/api/bnet-characters",{headers:{Authorization:"Bearer "+currentUser.token}});
+    if(r.ok){
+      const data=await r.json();
+      bnetCharacters=data.characters||[];
+      if(bnetCharacters.length>0)renderForm();
+    }
+  }catch(e){
+    console.error("Character load error:",e);
+  }
+}
+function applyDiscordInfo(target,res){
+  target.discordLinked=res.discordLinked||false;
+  target.discordUsername=res.discordUsername||null;
+  target.discordGuildMember=res.discordGuildMember||false;
+}
 async function initAuth(){
+  // Handle Battle.net OAuth callback token in URL fragment (preferred) or query param (legacy)
+  const hashParams=new URLSearchParams(window.location.hash.slice(1));
+  const queryParams=new URLSearchParams(window.location.search);
+  const bnetToken=hashParams.get("bnet_token")||queryParams.get("bnet_token");
+  const authError=queryParams.get("auth_error");
+  const discordLinked=hashParams.get("discord_linked");
+  const discordError=queryParams.get("discord_error");
+  if(bnetToken){
+    // Clean URL — remove both hash and query params
+    window.history.replaceState({},"",window.location.pathname);
+    currentUser={token:bnetToken,username:"...",userId:""};
+    localStorage.setItem("raid-auth",JSON.stringify(currentUser));
+    try{
+      const res=await authApi("validate");
+      currentUser={token:bnetToken,username:res.username,userId:res.userId,isAdmin:res.isAdmin||false};
+      applyDiscordInfo(currentUser,res);
+      localStorage.setItem("raid-auth",JSON.stringify(currentUser));
+      toast("Angemeldet als "+res.username);
+      await loadBnetCharacters();
+    }catch(e){
+      currentUser=null;
+      localStorage.removeItem("raid-auth");
+      toast("Anmeldung fehlgeschlagen");
+    }
+    renderAuthBar();
+    renderForm();
+    load();
+    return;
+  }
+  // Handle Discord link callback
+  if(discordLinked){
+    window.history.replaceState({},"",window.location.pathname);
+    // Re-validate to pick up Discord data
+    const stored=localStorage.getItem("raid-auth");
+    if(stored){
+      try{
+        const data=JSON.parse(stored);
+        currentUser=data;
+        const res=await authApi("validate");
+        currentUser={...data,username:res.username,userId:res.userId,isAdmin:res.isAdmin||false};
+        applyDiscordInfo(currentUser,res);
+        localStorage.setItem("raid-auth",JSON.stringify(currentUser));
+        if(currentUser.discordGuildMember){
+          toast("Discord verknüpft — Gildenmitglied bestätigt ✓");
+        }else if(currentUser.discordLinked){
+          toast("Discord verknüpft — aber nicht auf dem Gilden-Discord");
+        }
+      }catch(e){
+        currentUser=null;
+        localStorage.removeItem("raid-auth");
+      }
+    }
+    renderAuthBar();
+    renderForm();
+    load();
+    return;
+  }
+  if(discordError){
+    window.history.replaceState({},"",window.location.pathname);
+    toast("Discord-Verknüpfung fehlgeschlagen");
+  }
+  if(authError){
+    window.history.replaceState({},"",window.location.pathname);
+    toast("Battle.net-Anmeldung fehlgeschlagen");
+  }
   const stored=localStorage.getItem("raid-auth");
   if(stored){
     try{
       const data=JSON.parse(stored);
       currentUser=data;
       const res=await authApi("validate");
-      currentUser={...data,username:res.username,userId:res.userId};
+      currentUser={...data,username:res.username,userId:res.userId,isAdmin:res.isAdmin||false};
+      applyDiscordInfo(currentUser,res);
+      localStorage.setItem("raid-auth",JSON.stringify(currentUser));
+      await loadBnetCharacters();
     }catch(e){
       currentUser=null;
       localStorage.removeItem("raid-auth");
@@ -757,23 +1091,25 @@ function toast(msg){
 }
 
 // ── Modal ──
+// title: plain text (escaped internally), msg: trusted HTML from call sites
 function showModal(title,msg,onConfirm){
   const bg=document.createElement("div");
   bg.className="modal-bg";
   bg.innerHTML=`<div class="modal">
-    <div class="modal-title">${title}</div>
+    <div class="modal-title"></div>
     <div class="modal-msg">${msg}</div>
     <div class="modal-btns">
       <button class="modal-cancel">Abbrechen</button>
       <button class="modal-confirm">Bestätigen</button>
     </div>
   </div>`;
+  bg.querySelector(".modal-title").textContent=title;
   document.body.appendChild(bg);
   const cancelBtn=bg.querySelector(".modal-cancel");
   const confirmBtn=bg.querySelector(".modal-confirm");
   function close(){bg.remove()}
   cancelBtn.addEventListener("click",close);
-  confirmBtn.addEventListener("click",()=>{close();onConfirm()});
+  confirmBtn.addEventListener("click",()=>{onConfirm();close()});
   bg.addEventListener("click",e=>{if(e.target===bg)close()});
   document.addEventListener("keydown",function esc(e){if(e.key==="Escape"){close();document.removeEventListener("keydown",esc)}});
   confirmBtn.focus();
@@ -788,7 +1124,7 @@ document.getElementById("tabs").addEventListener("click",e=>{
     t.classList.toggle("on",isOn);
     t.setAttribute("aria-selected",isOn?"true":"false");
   });
-  ["form","raids","roster","heatmap","analytics","dkp"].forEach(v=>{
+  ["form","raids","roster","heatmap","analytics","dkp","admin"].forEach(v=>{
     document.getElementById("v-"+v).classList.toggle("hidden",v!==view);
   });
   document.getElementById('htooltip')?.classList.remove('show','arrow-down','arrow-up');
@@ -798,6 +1134,7 @@ document.getElementById("tabs").addEventListener("click",e=>{
   if(view==="heatmap")renderHeatmap();
   if(view==="analytics")renderAnalytics();
   if(view==="dkp")renderDkp();
+  if(view==="admin")renderAdmin();
 });
 
 function switchTab(v){
@@ -808,7 +1145,7 @@ function switchTab(v){
     t.setAttribute("aria-selected",isOn?"true":"false");
     if(isOn && v==="form") t.textContent=editId?"Bearbeiten":"Eintragen";
   });
-  ["form","raids","roster","heatmap","analytics","dkp"].forEach(x=>{
+  ["form","raids","roster","heatmap","analytics","dkp","admin"].forEach(x=>{
     document.getElementById("v-"+x).classList.toggle("hidden",x!==v);
   });
 }
@@ -821,11 +1158,13 @@ function updateAll(){
   if(view==="heatmap")renderHeatmap();
   if(view==="analytics")renderAnalytics();
   if(view==="dkp")renderDkp();
+  if(view==="admin")renderAdmin();
+  updateAdminTabVisibility();
 }
 
 // ── Helpers ──
 function cc(n){return CLS.find(c=>c.n===n)?.c||"#ccc"}
-function h(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
+function h(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
 
 // Item linking: converts [Item Name] to Wowhead TBC search links with icon
 function linkItems(text){
@@ -971,10 +1310,24 @@ function renderForm(skipSync){
   if(!skipSync)syncInputs();
   const el=document.getElementById("v-form");
   if(!currentUser){
-    el.innerHTML=`<div class="auth-hint">Bitte melde dich an, um einen Eintrag zu erstellen.<br><button onclick="renderAuthOverlay(true)">Anmelden</button></div>`;
+    el.innerHTML=`<div class="auth-hint">Bitte melde dich an, um einen Eintrag zu erstellen.<br><button class="btn-bnet" onclick="doBnetLogin()">${BNET_ICON} Mit Battle.net anmelden</button></div>`;
     return;
   }
-  const canSave=form.name.trim()&&form.cls&&form.roles.length>0;
+  form.roles=specsToRoles(form.cls,form.specs);
+  const canSave=form.name.trim()&&form.cls&&form.specs.length>0;
+
+  // Character picker from Battle.net
+  let charPickerHtml="";
+  if(bnetCharacters.length>0&&!editId){
+    charPickerHtml=`<div class="fld char-picker">
+      <span class="lbl">Charakter importieren</span>
+      <span class="lbl-s">W\u00E4hle einen Charakter aus deinem Battle.net-Konto</span>
+      <select id="f-char-pick" onchange="pickBnetChar(this.value)">
+        <option value="">— Manuell eingeben —</option>
+        ${bnetCharacters.map((c,i)=>`<option value="${i}">${h(c.name)} — ${h(c.className)} (${h(c.realm)}, Lv.${c.level})</option>`).join("")}
+      </select>
+    </div>`;
+  }
 
   // Build timeline grid (7 days × 48 quarter-hour cells)
   let gridRows="";
@@ -993,21 +1346,23 @@ function renderForm(skipSync){
 
   el.innerHTML=`
     <div class="card" style="padding:28px">
+      ${charPickerHtml}
       <div class="fld">
         <span class="lbl">Charaktername</span>
         <input type="text" id="f-name" value="${h(form.name)}" placeholder="z.B. Thrallm\u00E4chtig" oninput="form.name=this.value;updBtn()">
       </div>
       <div class="fld">
         <span class="lbl">Klasse</span>
-        <div class="chips" role="radiogroup" aria-label="Klasse">${CLS.map(c=>`<div class="chip${form.cls===c.n?" active":""}" role="radio" aria-checked="${form.cls===c.n}" style="${form.cls===c.n?`border-color:${c.c};color:${c.c};background:${c.c}18`:""}" onclick="pickCls('${c.n}')" tabindex="0" onkeydown="if(event.key===' '||event.key==='Enter'){pickCls('${c.n}');event.preventDefault()}">${c.n}</div>`).join("")}</div>
+        <div class="chips" role="radiogroup" aria-label="Klasse">${CLS.map(c=>`<div class="chip${form.cls===c.n?" active":""}" role="radio" aria-checked="${form.cls===c.n}" style="${form.cls===c.n?`border-color:${c.c};color:${c.c};background:${c.c}18`:""}" onclick="pickCls('${c.n}')" tabindex="0" onkeydown="if(event.key===' '||event.key==='Enter'){pickCls('${c.n}');event.preventDefault()}"><img class="wow-ico" src="${WOW_ICONS}/class/64/${c.i}.png" alt="" loading="lazy">${c.n}</div>`).join("")}</div>
       </div>
       <div class="fld">
-        <span class="lbl">Rolle(n)</span>
-        <span class="lbl-s">Mehrfachauswahl m\u00F6glich</span>
-        <div class="rchips" role="group" aria-label="Rollen">${ROLES.map(r=>{
-          const on=form.roles.includes(r);
-          return`<div class="rchip${on?" active":""}" role="checkbox" aria-checked="${on}" style="${on?`border-color:${RC[r]};color:${RC[r]};background:${RC[r]}18`:""}" onclick="toggleRole('${r}')" tabindex="0" onkeydown="if(event.key===' '||event.key==='Enter'){toggleRole('${r}');event.preventDefault()}">${RI[r]} ${r}</div>`;
-        }).join("")}</div>
+        <span class="lbl">Spezialisierung(en)</span>
+        <span class="lbl-s">W\u00E4hle alle Specs, die du spielen kannst</span>
+        ${form.cls?`<div class="rchips" role="group" aria-label="Specs">${(CLASS_SPECS[form.cls]||[]).map(sp=>{
+          const on=form.specs.includes(sp.n);
+          const col=RC[sp.r];
+          return`<div class="rchip${on?" active":""}" role="checkbox" aria-checked="${on}" style="${on?`border-color:${col};color:${col};background:${col}18`:""}" onclick="toggleSpec('${sp.n}')" tabindex="0" onkeydown="if(event.key===' '||event.key==='Enter'){toggleSpec('${sp.n}');event.preventDefault()}"><img class="wow-ico" src="${WOW_ICONS}/spec/${sp.i}.png" alt="" loading="lazy">${sp.n}<span style="font-size:10px;opacity:.7">${sp.r}</span></div>`;
+        }).join("")}</div>`:`<div style="font-size:12px;color:var(--tx4)">W\u00E4hle zuerst eine Klasse</div>`}
       </div>
       <div class="fld">
         <span class="lbl">Verf\u00FCgbarkeit</span>
@@ -1023,7 +1378,7 @@ function renderForm(skipSync){
         <span class="lbl">Anmerkungen (optional)</span>
         <input type="text" id="f-notes" value="${h(form.notes)}" placeholder="z.B. Erste Woche im Monat nicht verf\u00FCgbar" oninput="form.notes=this.value">
       </div>
-      ${!canSave?`<div style="font-size:12px;color:#e57373;margin-bottom:8px">Bitte ausf\u00FCllen: ${[!form.name.trim()&&"Charaktername",!form.cls&&"Klasse",!form.roles.length&&"Rolle"].filter(Boolean).join(", ")}</div>`:""}
+      ${!canSave?`<div style="font-size:12px;color:#e57373;margin-bottom:8px">Bitte ausf\u00FCllen: ${[!form.name.trim()&&"Charaktername",!form.cls&&"Klasse",!form.specs.length&&"Spezialisierung"].filter(Boolean).join(", ")}</div>`:""}
       <div class="brow">
         <button class="btn-p" id="f-submit" ${canSave?"":"disabled"} onclick="submitForm()">${editId?"Aktualisieren":"Eintragen"}</button>
         ${editId?`<button class="btn-s" onclick="cancelEdit()">Abbrechen</button>`:""}
@@ -1031,10 +1386,20 @@ function renderForm(skipSync){
     </div>`;
 }
 
-window.pickCls=function(n){form.cls=n;renderForm()};
-window.toggleRole=function(r){
-  if(form.roles.includes(r))form.roles=form.roles.filter(x=>x!==r);
-  else form.roles=[...form.roles,r];
+window.pickCls=function(n){form.cls=n;form.specs=[];form.roles=[];renderForm()};
+window.pickBnetChar=function(idx){
+  if(idx===""){form.name="";form.cls="";form.specs=[];form.roles=[];renderForm(true);return}
+  const c=bnetCharacters[parseInt(idx)];
+  if(!c)return;
+  form.name=c.name;
+  form.cls=c.className;
+  form.specs=[];form.roles=[];
+  renderForm(true);
+};
+window.toggleSpec=function(s){
+  if(form.specs.includes(s))form.specs=form.specs.filter(x=>x!==s);
+  else form.specs=[...form.specs,s];
+  form.roles=specsToRoles(form.cls,form.specs);
   renderForm();
 };
 // Drag-to-paint for timeline cells
@@ -1089,15 +1454,15 @@ function applyPaint(k,cell){
 })();
 window.updBtn=function(){
   const b=document.getElementById("f-submit");
-  if(b)b.disabled=!(form.name.trim()&&form.cls&&form.roles.length>0);
+  if(b)b.disabled=!(form.name.trim()&&form.cls&&form.specs.length>0);
 };
 window.submitForm=async function(){
   const btn=document.getElementById("f-submit");
   btn.disabled=true;btn.textContent="Speichern...";
   try{
-    await save({id:editId||undefined,charName:form.name,className:form.cls,roles:form.roles,availability:form.avail,notes:form.notes});
+    await save({id:editId||undefined,charName:form.name,className:form.cls,specs:form.specs,roles:specsToRoles(form.cls,form.specs),availability:form.avail,notes:form.notes});
     toast(editId?"Eintrag aktualisiert \u2713":"Eintrag gespeichert \u2713");
-    editId=null;form={name:"",cls:"",roles:[],avail:{},notes:""};
+    editId=null;form={name:"",cls:"",specs:[],roles:[],avail:{},notes:""};
     document.querySelector('[data-v="form"]').textContent="Eintragen";
     await load();
     switchTab("roster");renderRoster();
@@ -1112,14 +1477,16 @@ window.submitForm=async function(){
   }
 };
 window.cancelEdit=function(){
-  editId=null;form={name:"",cls:"",roles:[],avail:{},notes:""};
+  editId=null;form={name:"",cls:"",specs:[],roles:[],avail:{},notes:""};
   document.querySelector('[data-v="form"]').textContent="Eintragen";
   renderForm();
 };
 window.startEdit=function(id){
   const e=entries.find(x=>x.id===id);if(!e)return;
   editId=id;
-  form={name:e.charName,cls:e.className,roles:e.roles||[e.role].filter(Boolean),avail:migrateLegacyAvail(e.availability),notes:e.notes||""};
+  const oldRoles=e.roles||[e.role].filter(Boolean);
+  const specs=e.specs&&e.specs.length?e.specs:inferSpecs(e.className,oldRoles);
+  form={name:e.charName,cls:e.className,specs:specs,roles:specsToRoles(e.className,specs),avail:migrateLegacyAvail(e.availability),notes:e.notes||""};
   document.querySelector('[data-v="form"]').textContent="Bearbeiten";
   switchTab("form");renderForm(true);
 };
@@ -1196,13 +1563,13 @@ function renderRoster(){
     }));
     html+=`<div class="entry">
       <div class="e-info">
-        <div class="e-name" style="color:${cc(e.className)}">${h(e.charName)}</div>
+        <div class="e-name" style="color:${cc(e.className)}"><img class="wow-ico-sm" src="${clsIcon(e.className)}" alt="" loading="lazy">${h(e.charName)}</div>
         <div class="e-class">${h(e.className)}</div>
-        <div class="e-roles">${roles.map(r=>`<span class="rbadge" style="background:${RC[r]}18;color:${RC[r]}">${RI[r]} ${r}</span>`).join("")}</div>
+        <div class="e-roles">${e.specs&&e.specs.length?e.specs.map(s=>{const r=specRole(e.className,s);const ico=specIcon(e.className,s);return`<span class="rbadge" style="background:${RC[r]}18;color:${RC[r]}">${ico?`<img class="wow-ico-sm" src="${ico}" alt="">`:RI[r]} ${s}</span>`}).join(""):roles.map(r=>`<span class="rbadge" style="background:${RC[r]}18;color:${RC[r]}">${RI[r]} ${r}</span>`).join("")}</div>
       </div>
       <div class="e-slots">${slotTags.length?slotTags.join(""):`<span style="font-size:11px;color:var(--tx5)">Keine Zeiten</span>`}</div>
       ${e.notes?`<div class="e-notes">\u201E${h(e.notes)}\u201C</div>`:""}
-      ${currentUser&&(!e.userId||e.userId===currentUser.userId)?`<div class="e-actions">
+      ${currentUser&&(currentUser.isAdmin||!e.userId||e.userId===currentUser.userId)?`<div class="e-actions">
         <button class="btn-edit" data-edit="${h(e.id)}">Bearbeiten</button>
         <button class="btn-del" data-del="${h(e.id)}" aria-label="Eintrag von ${h(e.charName)} l\u00F6schen">\u2715</button>
       </div>`:""}
@@ -1335,6 +1702,7 @@ function renderAnalytics(){
 
   // Roles
   const rc=ROLES.map(r=>({r,c:entries.filter(e=>(e.roles||[]).includes(r)).length}));
+  const multiSpec=entries.filter(e=>(e.specs||[]).length>1).length;
   const multi=entries.filter(e=>(e.roles||[]).length>1).length;
   const single=entries.length-multi;
 
@@ -1348,7 +1716,7 @@ function renderAnalytics(){
         <div style="font-size:10px;color:var(--tx4);margin-top:3px">${pct}%</div>
       </div>`;
     }).join("")}</div>
-    <div class="flex-info">${multi} Spieler mit Mehrfachrolle \u00B7 ${single} nur eine Rolle</div>
+    <div class="flex-info">${multiSpec||multi} Spieler mit Mehrfach-Spec \u00B7 ${entries.length-(multiSpec||multi)} nur ein Spec</div>
   </div>`;
 
   // Classes
@@ -1650,6 +2018,8 @@ window.scrollToRaid=function(id){
 function renderRaidCard(raid,isPast){
   const signups=(raid.signups||[]).filter(s=>s.status!=="declined");
   const declined=(raid.signups||[]).filter(s=>s.status==="declined");
+  const tentative=signups.filter(s=>s.status==="tentative");
+  const confirmed=signups.filter(s=>s.status==="accepted");
   const total=signups.length;
   const pct=Math.min(100,Math.round(total/raid.maxPlayers*100));
   const barCls=total>raid.maxPlayers?"over":total===raid.maxPlayers?"full":"";
@@ -1660,6 +2030,10 @@ function renderRaidCard(raid,isPast){
     if(s.role==="Heiler")hl++;
     if(s.role==="DPS")dp++;
   });
+
+  // Role targets based on raid size
+  const is10=raid.maxPlayers<=10;
+  const tgtTank=is10?2:RR_TANK, tgtHeal=is10?2:RR_HEAL, tgtDps=is10?6:RR_DPS;
 
   const inst=TBC_RAIDS.find(i=>i.n===raid.instance)||{n:raid.instance,tier:"?"};
   const mySignup=(raid.signups||[]).find(s=>s.userId===currentUser?.userId);
@@ -1672,25 +2046,41 @@ function renderRaidCard(raid,isPast){
     ROLES.forEach(role=>{
       const rs=signups.filter(s=>s.role===role);
       if(!rs.length)return;
-      signupHtml+=`<div class="raid-signups-t" style="color:${RC[role]};margin-top:8px">${RI[role]} ${role} (${rs.length})</div>`;
+      signupHtml+=`<div class="raid-signups-group">`;
+      signupHtml+=`<div class="raid-signups-t" style="color:${RC[role]}">${RI[role]} ${role} (${rs.length})</div>`;
       rs.forEach(s=>{
         const isTent=s.status==="tentative";
+        const specBadges=(s.offeredSpecs||[]).map(sp=>{
+          const r=specRole(s.className,sp);
+          const ico=specIcon(s.className,sp);
+          const isAssigned=s.assignedSpec===sp;
+          return`<span style="font-size:10px;padding:1px 5px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;background:${RC[r]}${isAssigned?"30":"10"};color:${RC[r]};${isAssigned?"font-weight:600;border:1px solid "+RC[r]:""}">${ico?`<img style="width:14px;height:14px;border-radius:2px" src="${ico}" alt="">`:""} ${sp}</span>`;
+        }).join(" ");
         signupHtml+=`<div class="raid-signup-row">
-          <span class="raid-signup-name" style="color:${s.className?cc(s.className):"var(--tx)"}">${h(s.charName)}</span>
+          <span class="raid-signup-name" style="color:${s.className?cc(s.className):"var(--tx)"}">${s.className?`<img class="wow-ico-sm" src="${clsIcon(s.className)}" alt="" loading="lazy">`:""} ${h(s.charName)}</span>
           ${s.className?`<span style="font-size:11px;color:var(--tx4)">${h(s.className)}</span>`:""}
+          ${specBadges?`<span>${specBadges}</span>`:""}
+          ${s.assignedSpec?`<span style="font-size:10px;color:var(--grn)">\u2713 ${h(s.assignedSpec)}</span>`:""}
           ${isTent?`<span class="raid-signup-status tent">Vielleicht</span>`:""}
           ${s.note?`<span style="font-size:11px;color:var(--tx4);font-style:italic">${h(s.note)}</span>`:""}
+          ${isOwner&&s.offeredSpecs&&s.offeredSpecs.length>1&&!isPast?`<select style="font-size:11px;padding:2px 4px;margin-left:4px" onchange="assignSpec('${raid.id}','${s.userId}',this.value)">
+            <option value="">— Spec zuweisen —</option>
+            ${s.offeredSpecs.map(sp=>`<option value="${h(sp)}"${s.assignedSpec===sp?" selected":""}>${sp} (${specRole(s.className,sp)})</option>`).join("")}
+          </select>`:""}
         </div>`;
       });
+      signupHtml+=`</div>`;
     });
     if(declined.length){
-      signupHtml+=`<div class="raid-signups-t" style="color:var(--dps);margin-top:8px">Abgesagt (${declined.length})</div>`;
+      signupHtml+=`<div class="raid-signups-group" style="border-color:rgba(229,115,115,.08)">`;
+      signupHtml+=`<div class="raid-signups-t" style="color:var(--dps)">\u274C Abgesagt (${declined.length})</div>`;
       declined.forEach(s=>{
         signupHtml+=`<div class="raid-signup-row">
           <span class="raid-signup-name" style="color:var(--tx4);text-decoration:line-through">${h(s.charName)}</span>
           ${s.note?`<span style="font-size:11px;color:var(--tx4);font-style:italic">${h(s.note)}</span>`:""}
         </div>`;
       });
+      signupHtml+=`</div>`;
     }
     signupHtml+=`</div>`;
   }
@@ -1698,13 +2088,24 @@ function renderRaidCard(raid,isPast){
   // Signup form for current user
   let signupForm="";
   if(currentUser&&!isPast){
-    // Get user's characters from entries
-    const myChars=entries.filter(e=>e.userId===currentUser.userId);
     if(mySignup){
       const statusLbl=mySignup.status==="accepted"?"Angemeldet":mySignup.status==="tentative"?"Vielleicht":"Abgesagt";
       const statusColor=mySignup.status==="accepted"?"var(--grn)":mySignup.status==="tentative"?"var(--ylw)":"var(--dps)";
-      signupForm=`<div style="font-size:12px;color:${statusColor};margin-top:8px">Du bist als <strong>${h(mySignup.charName)}</strong> (${mySignup.role}) ${statusLbl.toLowerCase()}</div>`;
+      const mySpecInfo=mySignup.assignedSpec?mySignup.assignedSpec:mySignup.offeredSpecs?mySignup.offeredSpecs.join(", "):mySignup.role;
+      signupForm=`<div style="font-size:12px;color:${statusColor};margin-top:8px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,.15)">Du bist als <strong>${h(mySignup.charName)}</strong> (${h(mySpecInfo)}) ${statusLbl.toLowerCase()}${mySignup.assignedSpec?` \u2014 <span style="color:var(--grn)">Zugewiesen: ${h(mySignup.assignedSpec)}</span>`:""}</div>`;
     }
+  }
+
+  // Composition suggestion panel (only for raids with signups)
+  let compHtml="";
+  if(signups.length&&!isPast){
+    compHtml=renderRaidComp(raid,signups,declined,{t,hl,dp,tgtTank,tgtHeal,tgtDps});
+  }
+
+  // Karazhan group suggestion (when >10 signups for a 10-man raid)
+  let karaHtml="";
+  if(raid.instance==="Karazhan"&&signups.length>KARA_SIZE&&!isPast){
+    karaHtml=renderKaraGroups(raid,signups);
   }
 
   // Action buttons
@@ -1734,25 +2135,297 @@ function renderRaidCard(raid,isPast){
     <div class="raid-hdr">
       <span class="raid-inst">${h(raid.instance)}</span>
       <span class="raid-tier">${h(inst.tier)}</span>
+      ${tentative.length?`<span style="font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(229,194,68,.1);color:var(--ylw);font-weight:600">${tentative.length} unsicher</span>`:""}
     </div>
     <div class="raid-meta">
       <span>\u{1F4C5} ${fmtDate(raid.date)}</span>
       <span>\u{1F552} ${raid.time} Uhr</span>
-      <span>\u{1F465} ${total}/${raid.maxPlayers}</span>
+      <span>\u{1F465} <strong>${confirmed.length}</strong>${tentative.length?`<span style="color:var(--ylw)">+${tentative.length}</span>`:""} / ${raid.maxPlayers}</span>
       <span style="font-size:11px;color:var(--tx4)">von ${h(raid.createdByName)}</span>
     </div>
     <div class="raid-bar"><div class="raid-bar-fill ${barCls}" style="width:${pct}%"></div></div>
     <div class="raid-roles">
-      <span style="background:rgba(91,155,213,.12);color:var(--tank)">\u{1F6E1}\uFE0F ${t} Tank</span>
-      <span style="background:rgba(102,187,106,.12);color:var(--heal)">\u{1F49A} ${hl} Heiler</span>
-      <span style="background:rgba(229,115,115,.12);color:var(--dps)">\u2694\uFE0F ${dp} DPS</span>
+      <span style="background:rgba(91,155,213,.12);color:var(--tank)">\u{1F6E1}\uFE0F ${t}${is10?"":"/"+tgtTank} Tank</span>
+      <span style="background:rgba(102,187,106,.12);color:var(--heal)">\u{1F49A} ${hl}${is10?"":"/"+tgtHeal} Heiler</span>
+      <span style="background:rgba(229,115,115,.12);color:var(--dps)">\u2694\uFE0F ${dp}${is10?"":"/"+tgtDps} DPS</span>
     </div>
-    ${raid.notes?`<div style="font-size:12px;color:var(--tx3);font-style:italic;margin-bottom:6px">\u201E${h(raid.notes)}\u201C</div>`:""}
+    ${raid.notes?`<div style="font-size:12px;color:var(--tx3);font-style:italic;margin-bottom:6px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,.1)">\u{1F4DD} \u201E${h(raid.notes)}\u201C</div>`:""}
     ${signupHtml}
     ${signupForm}
+    ${compHtml}
+    ${karaHtml}
     <div id="signup-form-${raid.id}"></div>
     ${actions}
   </div>`;
+}
+
+// ── Raid composition suggestion ──
+const _compOpen={};
+function renderRaidComp(raid,signups,declined,counts){
+  const {t,hl,dp,tgtTank,tgtHeal,tgtDps}=counts;
+  const rid=raid.id;
+  const isOpen=_compOpen[rid];
+
+  // Build suggestion: who's in, who's on bench
+  const comp=buildRaidComp(raid,signups);
+
+  let html=`<div class="raid-comp">`;
+  html+=`<button class="raid-comp-toggle" onclick="_compOpen['${rid}']=!_compOpen['${rid}'];renderRaids()">${isOpen?"\u25BE":"\u25B8"} Aufstellung &amp; Zusammensetzung${comp.bench.length?` <span style="color:var(--ylw)">(${comp.bench.length} auf der Bank)</span>`:""}</button>`;
+
+  if(isOpen){
+    html+=`<div class="raid-comp-body">`;
+
+    // Role target gauges
+    const tState=t>=tgtTank?"ok":t>=tgtTank-1?"warn":"low";
+    const hState=hl>=tgtHeal?"ok":hl>=tgtHeal-2?"warn":"low";
+    const dState=dp>=tgtDps?"ok":dp>=tgtDps-4?"warn":"low";
+    html+=`<div class="rc-targets">
+      <div class="rc-target ${tState}">
+        <div class="rc-target-label" style="color:var(--tank)">\u{1F6E1}\uFE0F Tank</div>
+        <div class="rc-target-count">${t}</div>
+        <div class="rc-target-max">von ${tgtTank} ben\u00F6tigt</div>
+      </div>
+      <div class="rc-target ${hState}">
+        <div class="rc-target-label" style="color:var(--heal)">\u{1F49A} Heiler</div>
+        <div class="rc-target-count">${hl}</div>
+        <div class="rc-target-max">von ${tgtHeal} ben\u00F6tigt</div>
+      </div>
+      <div class="rc-target ${dState}">
+        <div class="rc-target-label" style="color:var(--dps)">\u2694\uFE0F DPS</div>
+        <div class="rc-target-count">${dp}</div>
+        <div class="rc-target-max">von ${tgtDps} ben\u00F6tigt</div>
+      </div>
+    </div>`;
+
+    // Class distribution
+    const clsCounts={};
+    signups.forEach(s=>{if(s.className)clsCounts[s.className]=(clsCounts[s.className]||0)+1});
+    const clsEntries=Object.entries(clsCounts).sort((a,b)=>b[1]-a[1]);
+    if(clsEntries.length){
+      const maxCt=clsEntries[0][1];
+      html+=`<div class="rc-classes">`;
+      clsEntries.forEach(([cls,ct])=>{
+        const w=Math.max(4,Math.round(ct/maxCt*100));
+        html+=`<div class="rc-cls-row">
+          <span class="rc-cls-name" style="color:${cc(cls)}"><img class="wow-ico-sm" src="${clsIcon(cls)}" alt="" loading="lazy"> ${h(cls)}</span>
+          <div style="flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.04)"><div class="rc-cls-bar" style="width:${w}%;background:${cc(cls)}"></div></div>
+          <span class="rc-cls-ct">${ct}</span>
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+
+    // Lineup suggestion
+    if(comp.lineup.length){
+      html+=`<div class="rc-section">
+        <div class="rc-section-t"><span style="color:var(--grn)">\u2705</span> Aufstellung (${comp.lineup.length}/${raid.maxPlayers})</div>
+        <div class="rc-lineup">${comp.lineup.map(s=>`<span class="rc-player in${s.status==="tentative"?" tentative":""}" style="color:${s.className?cc(s.className):"var(--tx)"}">${s.className?`<img class="wow-ico-sm" src="${clsIcon(s.className)}" alt="" loading="lazy">`:""} ${h(s.charName)} <span style="font-size:10px;color:var(--tx4)">${s.assignedSpec||s.role}</span></span>`).join("")}</div>
+      </div>`;
+    }
+
+    // Bench
+    if(comp.bench.length){
+      html+=`<div class="rc-section">
+        <div class="rc-section-t"><span style="color:var(--ylw)">\u{1F4A4}</span> Bank (${comp.bench.length})</div>
+        <div class="rc-lineup">${comp.bench.map(s=>`<span class="rc-player bench" style="color:${s.className?cc(s.className):"var(--ylw)"}">${s.className?`<img class="wow-ico-sm" src="${clsIcon(s.className)}" alt="" loading="lazy">`:""} ${h(s.charName)} <span style="font-size:10px;color:var(--tx4)">${s.role}</span></span>`).join("")}</div>
+        <div class="rc-note">\u{1F4A1} Vorschlag basiert auf Rollenverteilung — finale Entscheidung liegt beim Raidleiter.</div>
+      </div>`;
+    }
+
+    html+=`</div>`;
+  }
+
+  html+=`</div>`;
+  return html;
+}
+
+// Build raid composition: suggest who's in and who's benched
+function buildRaidComp(raid,signups){
+  const max=raid.maxPlayers;
+  const is10=max<=10;
+  const tgtTank=is10?2:RR_TANK, tgtHeal=is10?2:RR_HEAL, tgtDps=is10?6:RR_DPS;
+
+  // Separate confirmed vs tentative (confirmed get priority)
+  const conf=signups.filter(s=>s.status==="accepted");
+  const tent=signups.filter(s=>s.status==="tentative");
+
+  const lineup=[];
+  const bench=[];
+  const roleFilled={Tank:0,Heiler:0,DPS:0};
+
+  // Priority: fill role targets with confirmed first, then tentative
+  function tryPlace(player){
+    const role=player.assignedSpec?specRole(player.className,player.assignedSpec):player.role;
+    const tgt=role==="Tank"?tgtTank:role==="Heiler"?tgtHeal:tgtDps;
+    if(roleFilled[role]<tgt&&lineup.length<max){
+      lineup.push(player);
+      roleFilled[role]++;
+      return true;
+    }
+    return false;
+  }
+
+  // Pass 1: place confirmed into their primary roles
+  const confRemaining=[];
+  conf.forEach(s=>{
+    if(!tryPlace(s))confRemaining.push(s);
+  });
+
+  // Pass 2: place tentative into primary roles
+  const tentRemaining=[];
+  tent.forEach(s=>{
+    if(!tryPlace(s))tentRemaining.push(s);
+  });
+
+  // Pass 3: fill remaining spots with overflow (up to max)
+  [...confRemaining,...tentRemaining].forEach(s=>{
+    if(lineup.length<max){
+      lineup.push(s);
+      roleFilled[s.role]++;
+    }else{
+      bench.push(s);
+    }
+  });
+
+  return{lineup,bench};
+}
+
+// ── Karazhan group suggestion ──
+// When a Karazhan raid has >10 signups, suggest balanced 10-man groups
+const _karaGroupsOpen={};
+const KARA_TANKS=2, KARA_HEALERS=2, KARA_DPS=6, KARA_SIZE=10;
+
+function suggestKaraGroups(signups){
+  // Separate by role
+  const tanks=[], healers=[], dps=[];
+  // Confirmed first, then tentative
+  const sorted=[...signups.filter(s=>s.status==="accepted"),...signups.filter(s=>s.status==="tentative")];
+  sorted.forEach(s=>{
+    const role=s.assignedSpec?specRole(s.className,s.assignedSpec):s.role;
+    if(role==="Tank")tanks.push(s);
+    else if(role==="Heiler")healers.push(s);
+    else dps.push(s);
+  });
+
+  const numGroups=Math.max(1,Math.ceil(sorted.length/KARA_SIZE));
+  const groups=Array.from({length:numGroups},()=>({players:[],tanks:0,healers:0,dps:0}));
+
+  // Round-robin distribute, smallest group first, respecting role targets
+  function distribute(pool,role,perGroup){
+    pool.forEach(player=>{
+      // Find group with fewest of this role, then fewest total
+      const eligible=[...groups].sort((a,b)=>{
+        const ra=role==="Tank"?a.tanks:role==="Heiler"?a.healers:a.dps;
+        const rb=role==="Tank"?b.tanks:role==="Heiler"?b.healers:b.dps;
+        if(ra!==rb)return ra-rb;
+        return a.players.length-b.players.length;
+      });
+      const g=eligible[0];
+      g.players.push(player);
+      if(role==="Tank")g.tanks++;
+      else if(role==="Heiler")g.healers++;
+      else g.dps++;
+    });
+  }
+
+  distribute(tanks,"Tank",KARA_TANKS);
+  distribute(healers,"Heiler",KARA_HEALERS);
+  distribute(dps,"DPS",KARA_DPS);
+
+  // Diversify classes within groups: try swapping same-role players between groups
+  // to avoid duplicate classes in one group
+  for(let pass=0;pass<3;pass++){
+    for(let gi=0;gi<groups.length;gi++){
+      for(let gj=gi+1;gj<groups.length;gj++){
+        const ga=groups[gi], gb=groups[gj];
+        for(let ai=0;ai<ga.players.length;ai++){
+          for(let bi=0;bi<gb.players.length;bi++){
+            const pa=ga.players[ai], pb=gb.players[bi];
+            const ra=pa.assignedSpec?specRole(pa.className,pa.assignedSpec):pa.role;
+            const rb=pb.assignedSpec?specRole(pb.className,pb.assignedSpec):pb.role;
+            if(ra!==rb)continue; // only swap same-role
+            // Count class duplicates before/after swap
+            const dupsBefore=classDupes(ga.players)+classDupes(gb.players);
+            ga.players[ai]=pb; gb.players[bi]=pa;
+            const dupsAfter=classDupes(ga.players)+classDupes(gb.players);
+            if(dupsAfter>=dupsBefore){
+              ga.players[ai]=pa; gb.players[bi]=pb; // revert
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return groups;
+}
+
+function classDupes(players){
+  const counts={};
+  players.forEach(p=>{if(p.className)counts[p.className]=(counts[p.className]||0)+1});
+  return Object.values(counts).reduce((sum,c)=>sum+Math.max(0,c-1),0);
+}
+
+function renderKaraGroups(raid,signups){
+  const rid=raid.id;
+  const isOpen=_karaGroupsOpen[rid];
+  const groups=suggestKaraGroups(signups);
+  const numGroups=groups.length;
+
+  let html=`<div class="raid-comp" style="border-top:1px solid rgba(201,168,76,.15)">`;
+  html+=`<button class="raid-comp-toggle" onclick="_karaGroupsOpen['${rid}']=!_karaGroupsOpen['${rid}'];renderRaids()">
+    ${isOpen?"\u25BE":"\u25B8"} Gruppenvorschlag (${numGroups} Gruppen \u00E0 max. ${KARA_SIZE})
+  </button>`;
+
+  if(isOpen){
+    html+=`<div class="raid-comp-body">`;
+    html+=`<div class="rc-note" style="margin-bottom:12px">\u2139\uFE0F Automatischer Vorschlag f\u00FCr ${numGroups} Karazhan-Gruppe${numGroups>1?"n":""}. Jede Gruppe ben\u00F6tigt ${KARA_TANKS} Tanks + ${KARA_HEALERS} Heiler + ${KARA_DPS} DPS.</div>`;
+
+    html+=`<div class="kara-groups">`;
+    groups.forEach((g,i)=>{
+      const tankOk=g.tanks>=KARA_TANKS, healOk=g.healers>=KARA_HEALERS;
+      const statusIcon=tankOk&&healOk&&g.players.length>=KARA_SIZE?"\u2705":"\u26A0\uFE0F";
+
+      html+=`<div class="kara-group">`;
+      html+=`<div class="kara-group-hdr">
+        <span class="kara-group-title">${statusIcon} Gruppe ${i+1}</span>
+        <span class="kara-group-count">${g.players.length}/${KARA_SIZE}</span>
+      </div>`;
+
+      // Role gauges
+      html+=`<div class="kara-roles">
+        <span class="kara-role${g.tanks>=KARA_TANKS?" ok":""}" style="color:var(--tank)">\u{1F6E1}\uFE0F ${g.tanks}/${KARA_TANKS}</span>
+        <span class="kara-role${g.healers>=KARA_HEALERS?" ok":""}" style="color:var(--heal)">\u{1F49A} ${g.healers}/${KARA_HEALERS}</span>
+        <span class="kara-role" style="color:var(--dps)">\u2694\uFE0F ${g.dps}/${KARA_DPS}</span>
+      </div>`;
+
+      // Player list grouped by role
+      ["Tank","Heiler","DPS"].forEach(role=>{
+        const rs=g.players.filter(s=>{
+          const r=s.assignedSpec?specRole(s.className,s.assignedSpec):s.role;
+          return r===role;
+        });
+        if(!rs.length)return;
+        rs.forEach(s=>{
+          const tent=s.status==="tentative";
+          html+=`<div class="kara-player${tent?" tentative":""}">
+            ${s.className?`<img class="wow-ico-sm" src="${clsIcon(s.className)}" alt="" loading="lazy">`:""}
+            <span style="color:${s.className?cc(s.className):"var(--tx)"};font-weight:600">${h(s.charName)}</span>
+            <span class="kara-player-spec" style="color:${RC[role]}">${s.assignedSpec||role}</span>
+          </div>`;
+        });
+      });
+
+      html+=`</div>`;
+    });
+    html+=`</div>`;
+
+    html+=`<div class="rc-note">\u{1F4A1} Vorschlag basiert auf Rollenverteilung und Klassenvielfalt — finale Entscheidung liegt beim Raidleiter.</div>`;
+    html+=`</div>`;
+  }
+
+  html+=`</div>`;
+  return html;
 }
 
 function renderRaidForm(el){
@@ -1773,11 +2446,11 @@ function renderRaidForm(el){
     </div>
     <div class="fld">
       <span class="lbl">Datum</span>
-      <input type="date" id="rf-date" value="${raidForm.date}" min="${todayStr()}" onchange="raidForm.date=this.value">
+      <input type="date" id="rf-date" value="${raidForm.date}" min="${todayStr()}" onchange="raidForm.date=this.value;updRaidBtn()">
     </div>
     <div class="fld">
       <span class="lbl">Uhrzeit</span>
-      <input type="time" id="rf-time" value="${raidForm.time}" onchange="raidForm.time=this.value">
+      <input type="time" id="rf-time" value="${raidForm.time}" onchange="raidForm.time=this.value;updRaidBtn()">
     </div>
     <div class="fld">
       <span class="lbl">Max. Spieler</span>
@@ -1799,6 +2472,10 @@ window.autoMaxPlayers=function(){
   if(inst){
     raidForm.maxPlayers=inst.max;
   }
+};
+window.updRaidBtn=function(){
+  const b=document.getElementById("rf-submit");
+  if(b)b.disabled=!(raidForm.instance&&raidForm.date&&raidForm.time);
 };
 
 window.submitRaid=async function(){
@@ -1848,6 +2525,9 @@ window.confirmDelRaid=function(id){
   });
 };
 
+// Signup spec state per raid
+const _suSpecs={};
+
 window.showSignupForm=function(raidId){
   const el=document.getElementById("signup-form-"+raidId);
   if(!el)return;
@@ -1857,9 +2537,27 @@ window.showSignupForm=function(raidId){
 
   const preChar=mySignup?.charName||"";
   const preClass=mySignup?.className||"";
-  const preRole=mySignup?.role||"";
   const preStatus=mySignup?.status||"accepted";
   const preNote=mySignup?.note||"";
+
+  // Initialize offered specs from existing signup or character entry
+  let initSpecs=mySignup?.offeredSpecs||[];
+  if(!initSpecs.length&&preChar){
+    const ch=myChars.find(c=>c.charName===preChar);
+    if(ch&&ch.specs)initSpecs=[...ch.specs];
+  }
+  if(!initSpecs.length&&myChars.length&&!preChar){
+    const ch=myChars[0];
+    if(ch&&ch.specs)initSpecs=[...ch.specs];
+  }
+  _suSpecs[raidId]=initSpecs;
+
+  // Determine class for spec display
+  let cls=preClass;
+  if(!cls&&myChars.length){
+    const ch=preChar?myChars.find(c=>c.charName===preChar):myChars[0];
+    if(ch)cls=ch.className;
+  }
 
   let charOptions="";
   if(myChars.length){
@@ -1873,18 +2571,19 @@ window.showSignupForm=function(raidId){
         <option value="">— Charakter —</option>
         ${charOptions}
       </select>`:`<input type="text" id="su-charname-${raidId}" value="${h(preChar)}" placeholder="Charaktername" style="padding:6px 10px;width:120px;font-size:13px">`}
-      ${!myChars.length?`<select id="su-class-${raidId}" style="font-size:13px">
+      ${!myChars.length?`<select id="su-class-${raidId}" style="font-size:13px" onchange="suClassChanged('${raidId}')">
         <option value="">— Klasse —</option>
         ${CLS.map(c=>`<option value="${h(c.n)}"${c.n===preClass?" selected":""}>${h(c.n)}</option>`).join("")}
-      </select>`:`<input type="hidden" id="su-class-${raidId}" value="${h(myChars.length&&!preClass?myChars[0].className:preClass)}">`}
-      <select id="su-role-${raidId}" style="font-size:13px">
-        ${ROLES.map(r=>`<option value="${r}"${r===preRole?" selected":""}>${RI[r]} ${r}</option>`).join("")}
-      </select>
+      </select>`:`<input type="hidden" id="su-class-${raidId}" value="${h(cls)}">`}
       <select id="su-status-${raidId}" style="font-size:13px">
         <option value="accepted"${preStatus==="accepted"?" selected":""}>Dabei</option>
         <option value="tentative"${preStatus==="tentative"?" selected":""}>Vielleicht</option>
         <option value="declined"${preStatus==="declined"?" selected":""}>Absage</option>
       </select>
+    </div>
+    <div style="margin-top:8px">
+      <span style="font-size:12px;color:var(--tx3)">Angebotene Specs (Mehrfachauswahl):</span>
+      <div class="rchips" id="su-specs-${raidId}" style="margin-top:4px">${renderSuSpecs(raidId,cls)}</div>
     </div>
     <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
       <input type="text" id="su-note-${raidId}" value="${h(preNote)}" placeholder="Anmerkung (optional)" style="flex:1;padding:6px 10px;font-size:12px">
@@ -1898,9 +2597,31 @@ window.showSignupForm=function(raidId){
     const sel=document.getElementById("su-char-"+raidId);
     if(sel&&sel.value){
       const ch=myChars.find(c=>c.charName===sel.value);
-      if(ch)document.getElementById("su-class-"+raidId).value=ch.className;
+      if(ch){
+        document.getElementById("su-class-"+raidId).value=ch.className;
+        document.getElementById("su-specs-"+raidId).innerHTML=renderSuSpecs(raidId,ch.className);
+      }
     }
   }
+};
+
+function renderSuSpecs(raidId,cls){
+  const specs=CLASS_SPECS[cls]||[];
+  const sel=_suSpecs[raidId]||[];
+  if(!specs.length)return`<span style="font-size:12px;color:var(--tx4)">Klasse w\u00E4hlen</span>`;
+  return specs.map(sp=>{
+    const on=sel.includes(sp.n);
+    const col=RC[sp.r];
+    return`<div class="rchip${on?" active":""}" style="font-size:12px;padding:6px 8px;${on?`border-color:${col};color:${col};background:${col}18`:""}" onclick="toggleSuSpec('${raidId}','${sp.n}')"><img class="wow-ico-sm" src="${WOW_ICONS}/spec/${sp.i}.png" alt="" loading="lazy">${sp.n}</div>`;
+  }).join("");
+}
+
+window.toggleSuSpec=function(raidId,specName){
+  if(!_suSpecs[raidId])_suSpecs[raidId]=[];
+  if(_suSpecs[raidId].includes(specName))_suSpecs[raidId]=_suSpecs[raidId].filter(s=>s!==specName);
+  else _suSpecs[raidId].push(specName);
+  const cls=document.getElementById("su-class-"+raidId)?.value||"";
+  document.getElementById("su-specs-"+raidId).innerHTML=renderSuSpecs(raidId,cls);
 };
 
 window.suCharChanged=function(raidId){
@@ -1910,7 +2631,15 @@ window.suCharChanged=function(raidId){
   if(ch){
     const clsEl=document.getElementById("su-class-"+raidId);
     if(clsEl)clsEl.value=ch.className;
+    _suSpecs[raidId]=ch.specs?[...ch.specs]:[];
+    document.getElementById("su-specs-"+raidId).innerHTML=renderSuSpecs(raidId,ch.className);
   }
+};
+
+window.suClassChanged=function(raidId){
+  const cls=document.getElementById("su-class-"+raidId)?.value||"";
+  _suSpecs[raidId]=[];
+  document.getElementById("su-specs-"+raidId).innerHTML=renderSuSpecs(raidId,cls);
 };
 
 window.doSignup=async function(raidId){
@@ -1920,20 +2649,22 @@ window.doSignup=async function(raidId){
     const sel=document.getElementById("su-char-"+raidId);
     charName=sel?sel.value:"";
     className=document.getElementById("su-class-"+raidId)?.value||"";
-    // If char not selected, use first
     if(!charName&&myChars.length){charName=myChars[0].charName;className=myChars[0].className}
   }else{
     charName=document.getElementById("su-charname-"+raidId)?.value.trim()||"";
     className=document.getElementById("su-class-"+raidId)?.value||"";
   }
-  const role=document.getElementById("su-role-"+raidId)?.value||"DPS";
+  const offeredSpecs=_suSpecs[raidId]||[];
+  if(!offeredSpecs.length){toast("Bitte mindestens einen Spec w\u00E4hlen");return}
+  // Derive role from first offered spec
+  const role=specRole(className,offeredSpecs[0]);
   const status=document.getElementById("su-status-"+raidId)?.value||"accepted";
   const note=document.getElementById("su-note-"+raidId)?.value?.trim()||"";
 
   if(!charName){toast("Bitte Charakter angeben");return}
 
   try{
-    await saveRaid({action:"signup",raidId,charName,className,role,status,note});
+    await saveRaid({action:"signup",raidId,charName,className,offeredSpecs,role,status,note});
     const statusLbl=status==="accepted"?"Angemeldet":status==="tentative"?"Vielleicht":"Abgesagt";
     toast(statusLbl+" \u2713");
     await loadRaids();
@@ -1950,6 +2681,15 @@ window.unsignRaid=async function(raidId){
   try{
     await saveRaid({action:"unsignup",raidId});
     toast("Abgemeldet");
+    await loadRaids();
+    renderRaids();
+  }catch(e){toast("Fehler: "+e.message)}
+};
+
+window.assignSpec=async function(raidId,targetUserId,assignedSpec){
+  try{
+    await saveRaid({action:"assign-spec",raidId,targetUserId,assignedSpec:assignedSpec||null});
+    toast(assignedSpec?"Spec zugewiesen: "+assignedSpec:"Zuweisung entfernt");
     await loadRaids();
     renderRaids();
   }catch(e){toast("Fehler: "+e.message)}
@@ -1975,6 +2715,29 @@ function getDkpRole(){
 function isDkpAdmin(){return getDkpRole()==="admin"}
 function isDkpOfficer(){const r=getDkpRole();return r==="admin"||r==="officer"}
 
+function syncDkpAwardUi(){
+  const btn=document.getElementById("dkp-award-btn");
+  if(btn){
+    if(dkpAwardPlayers.length&&dkpAwardAmount&&dkpAwardReason)btn.removeAttribute("disabled");
+    else btn.setAttribute("disabled","");
+  }
+  const prev=document.getElementById("dkp-award-preview");
+  if(prev){
+    if(dkpAwardPlayers.length&&dkpAwardAmount){
+      prev.innerHTML=dkpAwardPlayers.length+' Spieler × '+h(dkpAwardAmount)+' DKP = <strong style="color:var(--grn)">'+dkpAwardPlayers.length*Number(dkpAwardAmount)+' DKP</strong> gesamt';
+      prev.style.display="";
+    }else{prev.style.display="none"}
+  }
+}
+
+function syncDkpSpendUi(){
+  const btn=document.getElementById("dkp-spend-btn");
+  if(btn){
+    if(dkpSpendPlayer&&dkpSpendAmount)btn.removeAttribute("disabled");
+    else btn.setAttribute("disabled","");
+  }
+}
+
 function dkpSortedBalances(){
   const list=[...dkpBalances];
   const dir=dkpSortDir==="asc"?1:-1;
@@ -1991,8 +2754,16 @@ function renderDkp(){
   const admin=isDkpAdmin();
   const officer=isDkpOfficer();
 
+  // Find current user's DKP entry for "Mein DKP" button
+  const myDkp=currentUser?dkpBalances.find(b=>{
+    const lower=b.playerName.toLowerCase();
+    const uLower=currentUser.username.toLowerCase();
+    return lower===uLower||lower===uLower.split("#")[0];
+  })||entries.find(e=>e.userId===currentUser.userId):null;
+
   let html=`<div class="dkp-actions-bar">
     <button class="ht-btn${dkpView==="overview"?" active":""}" onclick="dkpView='overview';dkpPlayerDetail=null;renderDkp()">Übersicht</button>
+    ${currentUser&&myDkp?`<button class="ht-btn dkp-my-btn${dkpView==="mydkp"?" active":""}" onclick="dkpShowMyDkp()">Mein DKP</button>`:""}
     ${officer?`<button class="ht-btn${dkpView==="award"?" active":""}" onclick="dkpView='award';renderDkp()">Vergeben</button>
     <button class="ht-btn${dkpView==="spend"?" active":""}" onclick="dkpView='spend';renderDkp()">Beute</button>`:""}
     ${admin?`<button class="ht-btn${dkpView==="decay"?" active":""}" onclick="dkpView='decay';renderDkp()">Verfall</button>
@@ -2028,10 +2799,18 @@ function renderDkpOverview(){
     return html;
   }
 
+  // Search bar
+  html+=`<div class="dkp-search"><input type="text" id="dkp-search-input" value="${h(dkpSearchQuery)}" placeholder="Spieler suchen…" oninput="dkpSearchQuery=this.value;renderDkp()"></div>`;
+
+  // Filter standings by search
+  const filtered=dkpSearchQuery?sorted.filter(b=>b.playerName.toLowerCase().includes(dkpSearchQuery.toLowerCase())||((b.className||"").toLowerCase().includes(dkpSearchQuery.toLowerCase()))):sorted;
+
   // Standings table
-  html+=`<div class="card"><div class="card-t">DKP-Übersicht</div>`;
+  html+=`<div class="card"><div class="card-t">DKP-Übersicht${filtered.length!==sorted.length?` <span style="font-size:12px;color:var(--tx4);font-weight:400">(${filtered.length} von ${sorted.length})</span>`:""}</div>`;
   if(!sorted.length){
     html+=`<div class="empty">Noch keine DKP-Einträge. Vergib DKP über den "Vergeben"-Tab.</div>`;
+  }else if(!filtered.length){
+    html+=`<div class="empty">Keine Treffer für „${h(dkpSearchQuery)}"</div>`;
   }else{
     const sortArrow=c=>dkpSortCol===c?(dkpSortDir==="asc"?"▲":"▼"):"";
     const sortCls=c=>dkpSortCol===c?" dkp-sort-active":"";
@@ -2042,7 +2821,7 @@ function renderDkpOverview(){
         <th class="${sortCls("class")}" onclick="dkpSortBy('class')">Klasse<span class="dkp-sort-arrow">${sortArrow("class")}</span></th>
         <th class="${sortCls("balance")}" style="text-align:right" onclick="dkpSortBy('balance')">DKP<span class="dkp-sort-arrow">${sortArrow("balance")}</span></th>
       </tr></thead>
-      <tbody>${sorted.map((b,i)=>{
+      <tbody>${filtered.map((b,i)=>{
         const balCls=b.balance>0?"dkp-pos":b.balance<0?"dkp-neg":"dkp-zero";
         const clr=cc(b.className);
         return`<tr onclick="showDkpPlayerDetail('${h(b.playerName).replace(/'/g,"\\'")}')">
@@ -2056,31 +2835,46 @@ function renderDkpOverview(){
   }
   html+=`</div>`;
 
-  // Recent transactions
+  // Recent transactions with filter
   if(dkpTransactions.length){
     html+=`<div class="card"><div class="card-t">Letzte Transaktionen</div>`;
-    html+=renderDkpTxList(dkpTransactions.slice(0,20));
+    html+=`<div class="dkp-tx-filters">
+      <button class="dkp-tx-filter${dkpTxFilter==="all"?" active":""}" onclick="dkpTxFilter='all';renderDkp()">Alle</button>
+      <button class="dkp-tx-filter${dkpTxFilter==="earn"?" active":""}" onclick="dkpTxFilter='earn';renderDkp()">Verdient</button>
+      <button class="dkp-tx-filter${dkpTxFilter==="spend"?" active":""}" onclick="dkpTxFilter='spend';renderDkp()">Beute</button>
+      <button class="dkp-tx-filter${dkpTxFilter==="decay"?" active":""}" onclick="dkpTxFilter='decay';renderDkp()">Verfall</button>
+      <button class="dkp-tx-filter${dkpTxFilter==="adjust"?" active":""}" onclick="dkpTxFilter='adjust';renderDkp()">Anpassung</button>
+    </div>`;
+    const filteredTx=dkpTxFilter==="all"?dkpTransactions:dkpTransactions.filter(t=>t.type===dkpTxFilter);
+    html+=renderDkpTxList(filteredTx.slice(0,20));
+    if(!filteredTx.length)html+=`<div class="empty" style="padding:12px 0">Keine Transaktionen in dieser Kategorie.</div>`;
     html+=`</div>`;
   }
 
   return html;
 }
 
-function renderDkpTxList(txList){
+function renderDkpTxList(txList,showActions){
+  const admin=showActions!==false&&isDkpAdmin();
   return txList.map(tx=>{
-    const typeCls=tx.type==="earn"?"dkp-tx-earn":tx.type==="spend"?"dkp-tx-spend":"dkp-tx-decay";
-    const typeLabel=tx.type==="earn"?"Verdient":tx.type==="spend"?"Beute":"Verfall";
+    const typeCls=tx.type==="earn"?"dkp-tx-earn":tx.type==="spend"?"dkp-tx-spend":tx.type==="adjust"?"dkp-tx-adjust":"dkp-tx-decay";
+    const typeLabel=tx.type==="earn"?"Verdient":tx.type==="spend"?"Beute":tx.type==="adjust"?"Anpassung":"Verfall";
     const amtCls=tx.amount>0?"dkp-pos":tx.amount<0?"dkp-neg":"dkp-zero";
     const amtStr=tx.amount>0?"+"+tx.amount:String(tx.amount);
     const clr=cc(dkpBalances.find(b=>b.playerName===tx.playerName)?.className);
     const date=new Date(tx.timestamp);
     const dateStr=String(date.getDate()).padStart(2,"0")+"."+String(date.getMonth()+1).padStart(2,"0")+". "+String(date.getHours()).padStart(2,"0")+":"+String(date.getMinutes()).padStart(2,"0");
+    const edited=tx.editedAt?` <span class="dkp-tx-edited">(bearbeitet)</span>`:"";
     return`<div class="dkp-tx">
       <span class="dkp-tx-type ${typeCls}">${typeLabel}</span>
       <span class="dkp-tx-name" style="color:${clr}">${h(tx.playerName)}</span>
-      <span class="dkp-tx-reason">${tx.type==="spend"?linkItems(tx.reason):h(tx.reason)}</span>
+      <span class="dkp-tx-reason">${tx.type==="spend"?linkItems(tx.reason):h(tx.reason)}${edited}</span>
       <span class="dkp-tx-amount ${amtCls}">${amtStr}</span>
       <span class="dkp-tx-meta">${h(tx.createdBy||"")} · ${dateStr}</span>
+      ${admin?`<span class="dkp-tx-actions">
+        <button class="dkp-tx-btn" onclick="event.stopPropagation();dkpEditTx('${tx.id}')">✎</button>
+        <button class="dkp-tx-btn dkp-tx-del" onclick="event.stopPropagation();dkpDeleteTx('${tx.id}')">✕</button>
+      </span>`:""}
     </div>`;
   }).join("");
 }
@@ -2093,6 +2887,8 @@ function renderDkpPlayerDetail(){
   const earned=dkpPlayerTx.filter(t=>t.type==="earn").reduce((s,t)=>s+t.amount,0);
   const spent=dkpPlayerTx.filter(t=>t.type==="spend").reduce((s,t)=>s+Math.abs(t.amount),0);
   const decayed=dkpPlayerTx.filter(t=>t.type==="decay").reduce((s,t)=>s+Math.abs(t.amount),0);
+  const adjusted=dkpPlayerTx.filter(t=>t.type==="adjust").reduce((s,t)=>s+t.amount,0);
+  const admin=isDkpAdmin();
 
   let html=`<div class="card dkp-player-detail">
     <div class="dkp-detail-header">
@@ -2107,12 +2903,36 @@ function renderDkpPlayerDetail(){
       <div class="dkp-detail-stat"><strong style="color:var(--grn)">+${earned}</strong>Verdient</div>
       <div class="dkp-detail-stat"><strong style="color:var(--dps)">−${spent}</strong>Beute</div>
       <div class="dkp-detail-stat"><strong style="color:var(--ylw)">−${decayed}</strong>Verfall</div>
+      ${adjusted?`<div class="dkp-detail-stat"><strong style="color:var(--gold)">${adjusted>0?"+":""}${adjusted}</strong>Anpassung</div>`:""}
       <div class="dkp-detail-stat"><strong>${dkpPlayerTx.length}</strong>Transaktionen</div>
     </div>`;
 
+  // Admin player management actions
+  if(admin){
+    const eName=h(bal.playerName).replace(/'/g,"\\'");
+    html+=`<div class="dkp-detail-actions">
+      <button class="dkp-detail-action" onclick="dkpAdjustBalance('${eName}',${bal.balance})">DKP anpassen</button>
+      <button class="dkp-detail-action" onclick="dkpEditPlayer('${eName}','${h(bal.className||"").replace(/'/g,"\\'")}')">Bearbeiten</button>
+      <button class="dkp-detail-action danger" onclick="dkpDeletePlayer('${eName}')">Spieler löschen</button>
+    </div>`;
+  }
+
   if(dkpPlayerTx.length){
+    // Transaction type filter
     html+=`<div class="card-t" style="margin-bottom:8px">Alle Transaktionen</div>`;
-    html+=renderDkpTxList(dkpPlayerTx);
+    html+=`<div class="dkp-tx-filters">
+      <button class="dkp-tx-filter${dkpTxFilter==="all"?" active":""}" onclick="dkpTxFilter='all';renderDkp()">Alle</button>
+      <button class="dkp-tx-filter${dkpTxFilter==="earn"?" active":""}" onclick="dkpTxFilter='earn';renderDkp()">Verdient</button>
+      <button class="dkp-tx-filter${dkpTxFilter==="spend"?" active":""}" onclick="dkpTxFilter='spend';renderDkp()">Beute</button>
+      <button class="dkp-tx-filter${dkpTxFilter==="decay"?" active":""}" onclick="dkpTxFilter='decay';renderDkp()">Verfall</button>
+      <button class="dkp-tx-filter${dkpTxFilter==="adjust"?" active":""}" onclick="dkpTxFilter='adjust';renderDkp()">Anpassung</button>
+    </div>`;
+    const filteredPlayerTx=dkpTxFilter==="all"?dkpPlayerTx:dkpPlayerTx.filter(t=>t.type===dkpTxFilter);
+    if(filteredPlayerTx.length){
+      html+=renderDkpTxList(filteredPlayerTx);
+    }else{
+      html+=`<div class="empty" style="padding:12px 0">Keine Transaktionen in dieser Kategorie.</div>`;
+    }
   }else{
     html+=`<div class="empty">Keine Transaktionen</div>`;
   }
@@ -2151,15 +2971,15 @@ function renderDkpAward(){
     </div>
     <div class="fld">
       <span class="lbl">DKP-Betrag</span>
-      <input type="number" id="dkp-award-amount" value="${h(dkpAwardAmount)}" placeholder="z.B. 10" min="1" max="${dkpConfig.maxDkpAmount}" oninput="dkpAwardAmount=this.value">
+      <input type="number" id="dkp-award-amount" value="${h(dkpAwardAmount)}" placeholder="z.B. 10" min="1" max="${dkpConfig.maxDkpAmount}" oninput="dkpAwardAmount=this.value;syncDkpAwardUi()">
     </div>
     <div class="fld">
       <span class="lbl">Grund</span>
-      <input type="text" id="dkp-award-reason" value="${h(dkpAwardReason)}" placeholder="z.B. Gruul Kill, Pünktlichkeitsbonus" maxlength="${dkpConfig.reasonMaxLength||200}" oninput="dkpAwardReason=this.value">
+      <input type="text" id="dkp-award-reason" value="${h(dkpAwardReason)}" placeholder="z.B. Gruul Kill, Pünktlichkeitsbonus" maxlength="${dkpConfig.reasonMaxLength||200}" oninput="dkpAwardReason=this.value;syncDkpAwardUi()">
     </div>
-    ${dkpAwardPlayers.length&&dkpAwardAmount?`<div style="font-size:12px;color:var(--tx3);margin-bottom:12px">${dkpAwardPlayers.length} Spieler × ${h(dkpAwardAmount)} DKP = <strong style="color:var(--grn)">${dkpAwardPlayers.length*Number(dkpAwardAmount)} DKP</strong> gesamt</div>`:""}
+    <div id="dkp-award-preview" style="font-size:12px;color:var(--tx3);margin-bottom:12px;${dkpAwardPlayers.length&&dkpAwardAmount?"":"display:none"}">${dkpAwardPlayers.length&&dkpAwardAmount?`${dkpAwardPlayers.length} Spieler × ${h(dkpAwardAmount)} DKP = <strong style="color:var(--grn)">${dkpAwardPlayers.length*Number(dkpAwardAmount)} DKP</strong> gesamt`:""}</div>
     <div class="brow">
-      <button class="btn-p" ${dkpAwardPlayers.length&&dkpAwardAmount&&dkpAwardReason?"":"disabled"} onclick="doDkpAward()">Vergeben</button>
+      <button class="btn-p" id="dkp-award-btn" ${dkpAwardPlayers.length&&dkpAwardAmount&&dkpAwardReason?"":"disabled"} onclick="doDkpAward()">Vergeben</button>
     </div>
   </div>`;
   return html;
@@ -2172,14 +2992,14 @@ function renderDkpSpend(){
     <div class="card-t">Beute verteilen (DKP ausgeben)</div>
     <div class="fld">
       <span class="lbl">Spieler</span>
-      <select id="dkp-spend-player" style="display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer" onchange="dkpSpendPlayer=this.value">
+      <select id="dkp-spend-player" style="display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:15px 'Nunito Sans',sans-serif;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer" onchange="dkpSpendPlayer=this.value;syncDkpSpendUi()">
         <option value="">— Spieler wählen —</option>
         ${playersWithDkp.map(b=>`<option value="${h(b.playerName)}"${dkpSpendPlayer===b.playerName?" selected":""}>${h(b.playerName)} (${b.balance} DKP)</option>`).join("")}
       </select>
     </div>
     <div class="fld">
       <span class="lbl">DKP-Kosten</span>
-      <input type="number" id="dkp-spend-amount" value="${h(dkpSpendAmount)}" placeholder="z.B. 25" min="1" max="${dkpConfig.maxDkpAmount}" oninput="dkpSpendAmount=this.value">
+      <input type="number" id="dkp-spend-amount" value="${h(dkpSpendAmount)}" placeholder="z.B. 25" min="1" max="${dkpConfig.maxDkpAmount}" oninput="dkpSpendAmount=this.value;syncDkpSpendUi()">
     </div>
     <div class="fld">
       <span class="lbl">Gegenstand</span>
@@ -2187,7 +3007,7 @@ function renderDkpSpend(){
       <span class="lbl-s" style="margin-top:4px">[Item Name] in Klammern = Wowhead-Link mit Icon</span>
     </div>
     <div class="brow">
-      <button class="btn-p" ${dkpSpendPlayer&&dkpSpendAmount?"":"disabled"} onclick="doDkpSpend()">Beute verbuchen</button>
+      <button class="btn-p" id="dkp-spend-btn" ${dkpSpendPlayer&&dkpSpendAmount?"":"disabled"} onclick="doDkpSpend()">Beute verbuchen</button>
     </div>
   </div>`;
   return html;
@@ -2433,6 +3253,147 @@ window.dkpSelectAll=function(){
   renderDkp();
 };
 
+// ── Mein DKP (My DKP quick-view) ──
+window.dkpShowMyDkp=async function(){
+  if(!currentUser)return;
+  // Try to find the player by matching username to DKP balance or roster entry
+  const uLower=currentUser.username.toLowerCase();
+  const uPrefix=uLower.split("#")[0];
+  let match=dkpBalances.find(b=>{
+    const lower=b.playerName.toLowerCase();
+    return lower===uLower||lower===uPrefix;
+  });
+  if(!match){
+    // Try matching via roster entries linked to this userId
+    const myEntry=entries.find(e=>e.userId===currentUser.userId);
+    if(myEntry)match=dkpBalances.find(b=>b.playerName===myEntry.charName);
+  }
+  if(match){
+    dkpView="overview";dkpTxFilter="all";
+    showDkpPlayerDetail(match.playerName);
+  }else{
+    toast("Kein DKP-Eintrag für deinen Account gefunden");
+  }
+};
+
+// ── Edit transaction ──
+window.dkpEditTx=function(txId){
+  const tx=dkpTransactions.find(t=>t.id===txId);
+  if(!tx){// May be in player detail view
+    const ptx=dkpPlayerTx.find(t=>t.id===txId);
+    if(!ptx)return;
+    dkpEditingTx={...ptx};
+  }else{
+    dkpEditingTx={...tx};
+  }
+  const absAmount=Math.abs(dkpEditingTx.amount);
+  const typeLabel=dkpEditingTx.type==="earn"?"Verdient":dkpEditingTx.type==="spend"?"Beute":dkpEditingTx.type==="adjust"?"Anpassung":"Verfall";
+  showModal("Transaktion bearbeiten",
+    `<strong>${typeLabel}</strong> — ${h(dkpEditingTx.playerName)}
+    <div class="dkp-edit-form">
+      <div class="fld"><label>Betrag</label><input type="number" id="dkp-edit-amount" value="${absAmount}" min="1" max="${dkpConfig.maxDkpAmount}"></div>
+      <div class="fld"><label>Grund</label><input type="text" id="dkp-edit-reason" value="${h(dkpEditingTx.reason)}" maxlength="${dkpConfig.reasonMaxLength||200}"></div>
+    </div>`,
+    async()=>{
+      const newAmount=Number(document.getElementById("dkp-edit-amount").value);
+      const newReason=document.getElementById("dkp-edit-reason").value;
+      if(!newAmount||newAmount<=0){toast("Ungültiger Betrag");return}
+      try{
+        const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"edit-transaction",transactionId:dkpEditingTx.id,amount:newAmount,reason:newReason})});
+        if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+        toast("Transaktion aktualisiert");
+        dkpEditingTx=null;
+        await loadDkp();
+        if(dkpPlayerDetail)await showDkpPlayerDetail(dkpPlayerDetail);
+        else renderDkp();
+      }catch(e){handleDkpError(e)}
+    });
+};
+
+// ── Delete transaction ──
+window.dkpDeleteTx=function(txId){
+  const tx=dkpTransactions.find(t=>t.id===txId)||dkpPlayerTx.find(t=>t.id===txId);
+  if(!tx)return;
+  const typeLabel=tx.type==="earn"?"Verdient":tx.type==="spend"?"Beute":tx.type==="adjust"?"Anpassung":"Verfall";
+  const amtStr=tx.amount>0?"+"+tx.amount:String(tx.amount);
+  showModal("Transaktion löschen",
+    `<strong>${typeLabel}</strong>: ${h(tx.playerName)} ${amtStr} DKP — „${tx.type==="spend"?linkItems(tx.reason):h(tx.reason)}"<br><br>Der DKP-Stand wird automatisch korrigiert.`,
+    async()=>{
+      try{
+        const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"delete-transaction",transactionId:txId})});
+        if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+        toast("Transaktion gelöscht");
+        await loadDkp();
+        if(dkpPlayerDetail)await showDkpPlayerDetail(dkpPlayerDetail);
+        else renderDkp();
+      }catch(e){handleDkpError(e)}
+    });
+};
+
+// ── Adjust balance ──
+window.dkpAdjustBalance=function(playerName,currentBalance){
+  showModal("DKP anpassen",
+    `<strong>${h(playerName)}</strong> — Aktuell: <span class="${currentBalance>0?"dkp-pos":currentBalance<0?"dkp-neg":"dkp-zero"}">${currentBalance>0?"+":""}${currentBalance} DKP</span>
+    <div class="dkp-edit-form">
+      <div class="fld"><label>Neuer DKP-Stand</label><input type="number" id="dkp-adj-balance" value="${currentBalance}"></div>
+      <div class="fld"><label>Grund (optional)</label><input type="text" id="dkp-adj-reason" value="" placeholder="z.B. Korrektur, Bonus" maxlength="${dkpConfig.reasonMaxLength||200}"></div>
+    </div>`,
+    async()=>{
+      const newBal=Number(document.getElementById("dkp-adj-balance").value);
+      const reason=document.getElementById("dkp-adj-reason").value||"Manuelle Anpassung";
+      if(isNaN(newBal)){toast("Ungültiger Betrag");return}
+      try{
+        const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"adjust-balance",playerName,newBalance:newBal,reason})});
+        if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+        toast(`DKP von ${playerName} auf ${newBal} gesetzt`);
+        await loadDkp();
+        if(dkpPlayerDetail)await showDkpPlayerDetail(dkpPlayerDetail);
+        else renderDkp();
+      }catch(e){handleDkpError(e)}
+    });
+};
+
+// ── Edit player ──
+window.dkpEditPlayer=function(playerName,currentClass){
+  const clsOptions=CLS.map(c=>`<option value="${h(c.n)}"${c.n===currentClass?" selected":""}>${h(c.n)}</option>`).join("");
+  showModal("Spieler bearbeiten",
+    `<div class="dkp-edit-form">
+      <div class="fld"><label>Name</label><input type="text" id="dkp-edit-name" value="${h(playerName)}" maxlength="50"></div>
+      <div class="fld"><label>Klasse</label><select id="dkp-edit-class"><option value="">— Keine —</option>${clsOptions}</select></div>
+    </div>`,
+    async()=>{
+      const newName=document.getElementById("dkp-edit-name").value.trim();
+      const newClass=document.getElementById("dkp-edit-class").value;
+      if(!newName){toast("Name darf nicht leer sein");return}
+      try{
+        const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"edit-player",playerName,newName:newName!==playerName?newName:undefined,newClassName:newClass})});
+        if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+        toast(`Spieler aktualisiert`);
+        if(dkpPlayerDetail===playerName)dkpPlayerDetail=newName||playerName;
+        await loadDkp();
+        if(dkpPlayerDetail)await showDkpPlayerDetail(dkpPlayerDetail);
+        else renderDkp();
+      }catch(e){handleDkpError(e)}
+    });
+};
+
+// ── Delete player ──
+window.dkpDeletePlayer=function(playerName){
+  showModal("Spieler aus DKP löschen",
+    `<strong>${h(playerName)}</strong> komplett aus dem DKP-System entfernen?<br><br>
+    <label style="font-size:13px;color:var(--tx3);cursor:pointer"><input type="checkbox" id="dkp-del-tx" checked style="margin-right:6px;vertical-align:middle"> Alle Transaktionen ebenfalls löschen</label>`,
+    async()=>{
+      const deleteTx=document.getElementById("dkp-del-tx").checked;
+      try{
+        const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"delete-player",playerName,deleteTransactions:deleteTx})});
+        if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+        toast(`${playerName} aus DKP entfernt`);
+        dkpPlayerDetail=null;
+        await loadDkp();renderDkp();
+      }catch(e){handleDkpError(e)}
+    });
+};
+
 window.dkpSelectRaid=function(raidId){
   dkpAwardRaidId=raidId;
   if(!raidId){dkpAwardPlayers=[];dkpAwardReason="";renderDkp();return}
@@ -2494,6 +3455,302 @@ window.doDkpDecay=async function(){
 };
 
 // ══════════════════════════════
+//  ADMIN DASHBOARD
+// ══════════════════════════════
+
+function isAdminUser(){
+  if(!currentUser)return false;
+  if(currentUser.isAdmin)return true;
+  if(!dkpConfig.roles)return false;
+  const lower=currentUser.username.toLowerCase();
+  const role=dkpConfig.roles[lower];
+  if(role)return role==="admin";
+  const prefix=lower.split("#")[0];
+  if(prefix!==lower&&dkpConfig.roles[prefix])return dkpConfig.roles[prefix]==="admin";
+  return false;
+}
+
+function isOfficerUser(){
+  if(isAdminUser())return true;
+  if(!currentUser||!dkpConfig.roles)return false;
+  const lower=currentUser.username.toLowerCase();
+  const role=dkpConfig.roles[lower];
+  if(role)return role==="admin"||role==="officer";
+  const prefix=lower.split("#")[0];
+  if(prefix!==lower&&dkpConfig.roles[prefix]){const r=dkpConfig.roles[prefix];return r==="admin"||r==="officer"}
+  return false;
+}
+
+function updateAdminTabVisibility(){
+  const tab=document.getElementById("tab-admin");
+  if(tab){
+    const show=isOfficerUser();
+    tab.classList.toggle("hidden",!show);
+    // If admin tab was active but user lost access, switch to form
+    if(!show&&view==="admin"){switchTab("form");renderForm()}
+  }
+}
+
+async function loadAdminUsers(){
+  if(!isOfficerUser())return;
+  try{
+    const r=await fetch(ADMIN_API,{headers:authHeader()});
+    if(!r.ok)throw new Error("Laden fehlgeschlagen");
+    const d=await r.json();
+    adminUsers=d.users||[];
+    adminLoaded=true;
+  }catch(e){console.error("Admin users load error:",e)}
+}
+
+function renderAdmin(){
+  const el=document.getElementById("v-admin");
+  if(!isOfficerUser()){
+    el.innerHTML=`<div class="adm-no-access">Nur für Admins und Offiziere sichtbar.</div>`;
+    return;
+  }
+  const admin=isAdminUser();
+
+  let html=`<div class="dkp-actions-bar">
+    <button class="ht-btn${adminView==="overview"?" active":""}" onclick="adminView='overview';renderAdmin()">Übersicht</button>
+    <button class="ht-btn${adminView==="users"?" active":""}" onclick="adminView='users';if(!adminLoaded)loadAdminUsers().then(()=>renderAdmin());renderAdmin()">Benutzer</button>
+    <button class="ht-btn${adminView==="entries"?" active":""}" onclick="adminView='entries';renderAdmin()">Einträge</button>
+    ${admin?`<button class="ht-btn${adminView==="manage"?" active":""}" onclick="adminView='manage';renderAdmin()">Verwaltung</button>`:""}
+  </div>`;
+
+  if(adminView==="users")html+=renderAdminUsers();
+  else if(adminView==="entries")html+=renderAdminEntries();
+  else if(adminView==="manage"&&admin)html+=renderAdminManage();
+  else html+=renderAdminOverview();
+
+  el.innerHTML=html;
+}
+
+function renderAdminOverview(){
+  const totalEntries=entries.length;
+  const totalUsers=adminLoaded?adminUsers.length:"—";
+  const classCounts={};
+  const roleCounts={Tank:0,Heiler:0,DPS:0};
+  entries.forEach(e=>{
+    classCounts[e.className]=(classCounts[e.className]||0)+1;
+    (e.roles||[]).forEach(r=>{if(roleCounts[r]!==undefined)roleCounts[r]++});
+  });
+
+  let html=`<div class="adm-stats">
+    <div class="adm-stat"><div class="adm-stat-val">${totalEntries}</div><div class="adm-stat-lbl">Raider</div></div>
+    <div class="adm-stat"><div class="adm-stat-val">${totalUsers}</div><div class="adm-stat-lbl">Benutzer</div></div>
+    <div class="adm-stat"><div class="adm-stat-val" style="color:var(--tank)">${roleCounts.Tank}</div><div class="adm-stat-lbl">Tanks</div></div>
+    <div class="adm-stat"><div class="adm-stat-val" style="color:var(--heal)">${roleCounts.Heiler}</div><div class="adm-stat-lbl">Heiler</div></div>
+    <div class="adm-stat"><div class="adm-stat-val" style="color:var(--dps)">${roleCounts.DPS}</div><div class="adm-stat-lbl">DPS</div></div>
+  </div>`;
+
+  // Class distribution
+  html+=`<div class="card"><div class="card-t">Klassenverteilung</div>`;
+  const sortedClasses=CLS.map(c=>({name:c.n,color:c.c,count:classCounts[c.n]||0})).sort((a,b)=>b.count-a.count);
+  const maxCount=Math.max(...sortedClasses.map(c=>c.count),1);
+  sortedClasses.forEach(c=>{
+    const pct=Math.round(c.count/maxCount*100);
+    html+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <span style="min-width:100px;font-size:13px;color:${c.color};font-weight:600">${h(c.name)}</span>
+      <div style="flex:1;height:20px;background:rgba(0,0,0,.2);border-radius:4px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${c.color};opacity:.6;border-radius:4px;transition:width .3s"></div>
+      </div>
+      <span style="min-width:30px;text-align:right;font-size:13px;font-weight:600;color:var(--tx2)">${c.count}</span>
+    </div>`;
+  });
+  html+=`</div>`;
+
+  // Role readiness
+  const rr={Tank:{have:roleCounts.Tank,need:2},Heiler:{have:roleCounts.Heiler,need:5},DPS:{have:roleCounts.DPS,need:18}};
+  html+=`<div class="card"><div class="card-t">Raidbereitschaft (25er)</div>`;
+  ["Tank","Heiler","DPS"].forEach(r=>{
+    const d=rr[r];
+    const ok=d.have>=d.need;
+    const color=ok?"var(--grn)":"var(--dps)";
+    const pct=Math.min(Math.round(d.have/d.need*100),100);
+    html+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="min-width:60px;font-size:13px;font-weight:600;color:var(--tx2)">${r}</span>
+      <div style="flex:1;height:20px;background:rgba(0,0,0,.2);border-radius:4px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${color};opacity:.6;border-radius:4px"></div>
+      </div>
+      <span style="min-width:60px;text-align:right;font-size:13px;font-weight:600;color:${color}">${d.have} / ${d.need}</span>
+    </div>`;
+  });
+  html+=`</div>`;
+
+  return html;
+}
+
+function renderAdminUsers(){
+  if(!adminLoaded){
+    return`<div class="card" style="text-align:center;padding:30px"><div class="spinner"></div> Lade Benutzer...</div>`;
+  }
+  const admin=isAdminUser();
+  const roles=dkpConfig.roles||{};
+
+  let html=`<div class="card"><div class="card-t">Registrierte Benutzer (${adminUsers.length})</div>`;
+
+  if(!adminUsers.length){
+    html+=`<div style="color:var(--tx4);font-size:13px">Keine Benutzer gefunden.</div>`;
+  }else{
+    html+=`<div style="overflow-x:auto"><table class="adm-users-table"><thead><tr>
+      <th>Benutzer</th><th>Rolle</th><th>Registriert</th>${admin?`<th>Aktionen</th>`:""}</tr></thead><tbody>`;
+    adminUsers.forEach(u=>{
+      const uname=u.username||u.battleTag||"—";
+      const isMe=currentUser&&uname.toLowerCase()===currentUser.username.toLowerCase();
+      let roleBadge="";
+      if(u.isSiteAdmin)roleBadge=`<span class="adm-role-badge adm-role-site">Site-Admin</span>`;
+      else if(u.role==="admin")roleBadge=`<span class="adm-role-badge adm-role-admin">Admin</span>`;
+      else if(u.role==="officer")roleBadge=`<span class="adm-role-badge adm-role-officer">Offizier</span>`;
+      else roleBadge=`<span class="adm-role-none">—</span>`;
+
+      const created=u.createdAt?new Date(u.createdAt).toLocaleDateString("de-DE"):"—";
+
+      let actions="";
+      if(admin&&!isMe&&!u.isSiteAdmin){
+        const escapedName=h(uname).replace(/'/g,"\\'");
+        const currentRole=u.role;
+        actions=`<div class="adm-role-actions">`;
+        if(currentRole==="admin")actions+=`<button class="adm-role-btn" onclick="adminSetRole('${escapedName}','officer')">→ Offizier</button>`;
+        else if(currentRole==="officer")actions+=`<button class="adm-role-btn" onclick="adminSetRole('${escapedName}','admin')">→ Admin</button>`;
+        else actions+=`<button class="adm-role-btn" onclick="adminSetRole('${escapedName}','officer')">→ Offizier</button><button class="adm-role-btn" onclick="adminSetRole('${escapedName}','admin')">→ Admin</button>`;
+        if(currentRole)actions+=`<button class="adm-role-btn adm-role-del" onclick="adminRemoveRole('${escapedName}')">Entfernen</button>`;
+        actions+=`</div>`;
+      }
+
+      html+=`<tr>
+        <td><strong>${h(uname)}</strong>${isMe?" (Du)":""}</td>
+        <td>${roleBadge}</td>
+        <td style="color:var(--tx4);font-size:12px">${created}</td>
+        ${admin?`<td>${actions}</td>`:""}
+      </tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  }
+
+  // Add role section for admin
+  if(admin){
+    html+=`<div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.04)">
+      <div style="font-size:12px;color:var(--tx4);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Rolle zuweisen</div>
+      <div class="dkp-role-add">
+        <input type="text" id="adm-role-user" placeholder="Benutzername" value="${h(adminRoleAddUser)}" oninput="adminRoleAddUser=this.value">
+        <select id="adm-role-type" onchange="adminRoleAddRole=this.value">
+          <option value="officer"${adminRoleAddRole==="officer"?" selected":""}>Offizier</option>
+          <option value="admin"${adminRoleAddRole==="admin"?" selected":""}>Admin</option>
+        </select>
+        <button class="btn-p" style="padding:8px 16px;font-size:13px" onclick="adminAddRole()">Hinzufügen</button>
+      </div>
+    </div>`;
+  }
+
+  html+=`</div>`;
+  return html;
+}
+
+function renderAdminEntries(){
+  let html=`<div class="card"><div class="card-t">Alle Einträge (${entries.length})</div>`;
+  if(!entries.length){
+    html+=`<div style="color:var(--tx4);font-size:13px">Keine Einträge vorhanden.</div>`;
+  }else{
+    html+=`<div style="overflow-x:auto"><table class="adm-entries-table"><thead><tr>
+      <th>Charakter</th><th>Klasse</th><th>Rollen</th><th>Erstellt</th><th></th></tr></thead><tbody>`;
+    entries.forEach(e=>{
+      const color=cc(e.className);
+      const roles=(e.roles||[]).join(", ");
+      const date=e.timestamp?new Date(e.timestamp).toLocaleDateString("de-DE"):"—";
+      html+=`<tr>
+        <td><strong>${h(e.charName)}</strong></td>
+        <td style="color:${color}">${h(e.className)}</td>
+        <td style="font-size:12px;color:var(--tx3)">${h(roles)}</td>
+        <td style="color:var(--tx4);font-size:12px">${date}</td>
+        <td><button class="adm-entry-del" onclick="adminDelEntry('${h(e.id)}')">Löschen</button></td>
+      </tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  }
+  html+=`</div>`;
+  return html;
+}
+
+function renderAdminManage(){
+  let html=`<div class="card">
+    <div class="card-t">Verwaltung</div>
+    <p style="font-size:13px;color:var(--tx3);margin-bottom:16px">Administrative Aktionen. Diese Aktionen können nicht rückgängig gemacht werden.</p>
+    <div class="adm-danger">
+      <div class="adm-danger-t">Gefahrenzone</div>
+      <div class="adm-danger-row">
+        <div class="adm-danger-info">
+          <strong>Accounts zurücksetzen</strong>
+          <small>Alle Accounts außer Admins werden gelöscht. Nutzer müssen sich neu anmelden. Raid-Einträge bleiben erhalten.</small>
+        </div>
+        <button class="adm-danger-btn" onclick="doPurgeUsers()">Zurücksetzen</button>
+      </div>
+      <div class="adm-danger-row">
+        <div class="adm-danger-info">
+          <strong>Alle Raider entfernen</strong>
+          <small>Alle ${entries.length} Einträge werden unwiderruflich gelöscht.</small>
+        </div>
+        <button class="adm-danger-btn" onclick="doPurgeEntries()">Alle entfernen</button>
+      </div>
+    </div>
+  </div>`;
+  return html;
+}
+
+// ── Admin role management (delegates to DKP API) ──
+window.adminSetRole=async function(username,newRole){
+  try{
+    const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"manage-roles",username,role:newRole})});
+    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+    const d=await r.json();dkpConfig=d.config;
+    toast(`${username} ist jetzt ${newRole==="admin"?"Admin":"Offizier"}`);
+    await loadAdminUsers();renderAdmin();
+  }catch(e){handleAdminError(e)}
+};
+
+window.adminRemoveRole=async function(username){
+  showModal("Rolle entfernen",`Wirklich <strong>${h(username)}</strong> als Verwalter entfernen?`,async()=>{
+    try{
+      const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"manage-roles",username,remove:true})});
+      if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+      const d=await r.json();dkpConfig=d.config;
+      toast(`${username} entfernt`);
+      await loadAdminUsers();renderAdmin();
+    }catch(e){handleAdminError(e)}
+  });
+};
+
+window.adminAddRole=async function(){
+  const username=adminRoleAddUser.trim();
+  if(!username){toast("Benutzername eingeben");return}
+  try{
+    const r=await fetch(DKP_API,{method:"POST",headers:{"Content-Type":"application/json",...authHeader()},body:JSON.stringify({action:"manage-roles",username,role:adminRoleAddRole})});
+    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||"Fehler")}
+    const d=await r.json();dkpConfig=d.config;adminRoleAddUser="";
+    toast(`${username} als ${adminRoleAddRole==="admin"?"Admin":"Offizier"} hinzugefügt`);
+    await loadAdminUsers();renderAdmin();
+  }catch(e){handleAdminError(e)}
+};
+
+window.adminDelEntry=function(id){
+  const entry=entries.find(e=>e.id===id);
+  const name=entry?entry.charName:"?";
+  showModal("Eintrag löschen",`Wirklich <strong>${h(name)}</strong> löschen?`,async()=>{
+    try{
+      await del(id);
+      toast(`${name} gelöscht`);
+      await load();
+    }catch(e){handleAdminError(e)}
+  });
+};
+
+function handleAdminError(e){
+  if(e.message==="Nicht angemeldet"||e.message==="Sitzung ungültig"){
+    currentUser=null;localStorage.removeItem("raid-auth");renderAuthBar();updateAll();
+    toast("Sitzung abgelaufen — bitte erneut anmelden");
+  }else{toast("Fehler: "+e.message)}
+}
+
+// ══════════════════════════════
 //  DISCORD INTEGRATION
 // ══════════════════════════════
 const DISCORD_API="/api/discord";
@@ -2511,8 +3768,8 @@ window.postToDiscord=async function(raidId){
       headers:{"Content-Type":"application/json",...authHeader()},
       body:JSON.stringify({action:"post",raidId}),
     });
-    const data=await r.json();
-    if(!r.ok)throw new Error(data.error||"Fehler beim Senden");
+    const data=await r.json().catch(()=>null);
+    if(!r.ok)throw new Error(data?.error||`HTTP ${r.status}`);
     toast("In Discord gepostet \u2713");
   }catch(e){
     toast("Discord: "+e.message);

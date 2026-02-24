@@ -6,7 +6,7 @@ test.describe('Form', () => {
     await setupMockApi(page, []);
     await page.addInitScript(() => {
       localStorage.setItem('raid-auth', JSON.stringify({
-        token: 'mock-token', username: 'Testuser', userId: 'mock-user-1'
+        token: 'mock-token', username: 'Testuser', userId: 'mock-user-1', discordLinked: true, discordUsername: 'Testuser#1234', discordGuildMember: true
       }));
     });
     await page.goto('/');
@@ -22,16 +22,16 @@ test.describe('Form', () => {
     await expect(page.locator('#f-submit')).toBeDisabled();
   });
 
-  test('submit remains disabled with name and class but no role', async ({ page }) => {
+  test('submit remains disabled with name and class but no spec', async ({ page }) => {
     await page.fill('#f-name', 'Testchar');
     await page.locator('.chip', { hasText: 'Krieger' }).click();
     await expect(page.locator('#f-submit')).toBeDisabled();
   });
 
-  test('submit enables when name, class, and role are filled', async ({ page }) => {
+  test('submit enables when name, class, and spec are filled', async ({ page }) => {
     await page.fill('#f-name', 'Testchar');
     await page.locator('.chip', { hasText: 'Krieger' }).click();
-    await page.locator('.rchip', { hasText: 'Tank' }).click();
+    await page.locator('.rchip', { hasText: 'Prot' }).click();
     await expect(page.locator('#f-submit')).toBeEnabled();
   });
 
@@ -63,24 +63,26 @@ test.describe('Form', () => {
     await expect(page.locator('.chip', { hasText: 'Krieger' })).toHaveClass(/active/);
   });
 
-  test('role chips support multiple selection', async ({ page }) => {
-    const tank = page.locator('.rchip', { hasText: 'Tank' });
-    const healer = page.locator('.rchip', { hasText: 'Heiler' });
-    await tank.click();
-    await expect(tank).toHaveClass(/active/);
-    await healer.click();
-    await expect(tank).toHaveClass(/active/);
-    await expect(healer).toHaveClass(/active/);
-    // Deselect tank
-    await tank.click();
-    await expect(tank).not.toHaveClass(/active/);
-    await expect(healer).toHaveClass(/active/);
+  test('spec chips support multiple selection', async ({ page }) => {
+    // First select a class to show spec chips
+    await page.locator('.chip', { hasText: 'Krieger' }).click();
+    const prot = page.locator('.rchip', { hasText: 'Prot' });
+    const arms = page.locator('.rchip', { hasText: 'Arms' });
+    await prot.click();
+    await expect(prot).toHaveClass(/active/);
+    await arms.click();
+    await expect(prot).toHaveClass(/active/);
+    await expect(arms).toHaveClass(/active/);
+    // Deselect prot
+    await prot.click();
+    await expect(prot).not.toHaveClass(/active/);
+    await expect(arms).toHaveClass(/active/);
   });
 
   test('fill and submit form switches to roster', async ({ page }) => {
     await page.fill('#f-name', 'Testkrieger');
     await page.locator('.chip', { hasText: 'Krieger' }).click();
-    await page.locator('.rchip', { hasText: 'Tank' }).click();
+    await page.locator('.rchip', { hasText: 'Prot' }).click();
     await page.locator('.tl-cell').first().click();
     await page.click('#f-submit');
     // After submit, switches to roster view

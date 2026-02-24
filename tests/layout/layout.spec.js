@@ -7,7 +7,7 @@ test.describe('Layout checks', () => {
     await setupMockApi(page, [SAMPLE_ENTRY, SAMPLE_ENTRY_2]);
     await page.addInitScript(() => {
       localStorage.setItem('raid-auth', JSON.stringify({
-        token: 'mock-token', username: 'Testuser', userId: 'mock-user-1'
+        token: 'mock-token', username: 'Testuser', userId: 'mock-user-1', discordLinked: true, discordUsername: 'Testuser#1234', discordGuildMember: true
       }));
     });
     await page.goto('/');
@@ -48,17 +48,23 @@ test.describe('Layout checks', () => {
     expect(overflow).toBe(false);
   });
 
-  test('all 6 tabs are visible and clickable', async ({ page }) => {
-    const tabs = page.locator('.tab');
-    await expect(tabs).toHaveCount(6);
+  test('all tabs are visible and clickable', async ({ page }) => {
+    // 7 tabs for admin users (includes Admin tab), 6 for regular users
+    const tabs = page.locator('.tab:not(.hidden)');
+    const count = await tabs.count();
+    expect(count).toBeGreaterThanOrEqual(6);
     for (const tab of await tabs.all()) {
       await expect(tab).toBeVisible();
       await expect(tab).toBeEnabled();
     }
   });
 
-  test('form has 9 class chips and 3 role chips', async ({ page }) => {
+  test('form has 9 class chips and spec chips appear after class selection', async ({ page }) => {
     await expect(page.locator('.chip')).toHaveCount(9);
+    // Spec chips only appear after selecting a class
+    await expect(page.locator('.rchip')).toHaveCount(0);
+    await page.locator('.chip', { hasText: 'Krieger' }).click();
+    // Krieger has 3 specs: Prot, Arms, Fury
     await expect(page.locator('.rchip')).toHaveCount(3);
   });
 

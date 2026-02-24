@@ -16,7 +16,7 @@ for (const vp of viewports) {
       await setupMockApi(page, [SAMPLE_ENTRY, SAMPLE_ENTRY_2]);
       await page.addInitScript(() => {
         localStorage.setItem('raid-auth', JSON.stringify({
-          token: 'mock-token', username: 'Testuser', userId: 'mock-user-1'
+          token: 'mock-token', username: 'Testuser', userId: 'mock-user-1', discordLinked: true, discordUsername: 'Testuser#1234', discordGuildMember: true
         }));
       });
       await page.goto('/');
@@ -39,7 +39,8 @@ for (const vp of viewports) {
     test('form submit works', async ({ page }) => {
       await page.fill('#f-name', 'ResponsiveTest');
       await page.locator('.chip', { hasText: 'Magier' }).click();
-      await page.locator('.rchip', { hasText: 'DPS' }).click();
+      // Magier specs: Arcane, Fire, Frost — select one
+      await page.locator('.rchip', { hasText: 'Frost' }).click();
       await page.click('#f-submit');
       await expect(page.locator('#v-roster')).toBeVisible();
       await expect(page.locator('.e-name', { hasText: 'ResponsiveTest' })).toBeVisible();
@@ -67,8 +68,9 @@ for (const vp of viewports) {
     });
 
     test('all tabs remain visible', async ({ page }) => {
-      const tabs = page.locator('.tab');
-      await expect(tabs).toHaveCount(6);
+      // 7 tabs: Eintragen, Raids, Aufstellung, Heatmap, Auswertung, DKP, Admin (visible for admin users)
+      const tabs = page.locator('.tab:visible');
+      await expect(tabs).toHaveCount(7);
       for (const tab of await tabs.all()) {
         await expect(tab).toBeVisible();
       }

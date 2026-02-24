@@ -1,7 +1,7 @@
 import { getStore } from "@netlify/blobs";
 import { randomUUID } from "crypto";
 import { validateSession } from "./shared/auth-utils.mjs";
-import { buildRaidEmbed } from "./discord.mjs";
+import { buildRaidEmbed, buildRaidButtons } from "./discord.mjs";
 
 const VALID_INSTANCES = [
   "Karazhan", "Gruuls Unterschlupf", "Magtheridons Kammer",
@@ -10,6 +10,17 @@ const VALID_INSTANCES = [
 ];
 const VALID_ROLES = ["Tank", "Heiler", "DPS"];
 const VALID_SIGNUP_STATUS = ["accepted", "tentative", "declined"];
+const CLASS_SPECS = {
+  "Druide":      [{n:"Balance",r:"DPS"},{n:"Feral Tank",r:"Tank"},{n:"Feral DPS",r:"DPS"},{n:"Resto",r:"Heiler"}],
+  "Hexenmeister":[{n:"Affliction",r:"DPS"},{n:"Demonologie",r:"DPS"},{n:"Destruction",r:"DPS"}],
+  "Jäger":       [{n:"Beast Mastery",r:"DPS"},{n:"Marksmanship",r:"DPS"},{n:"Survival",r:"DPS"}],
+  "Krieger":     [{n:"Prot",r:"Tank"},{n:"Arms",r:"DPS"},{n:"Fury",r:"DPS"}],
+  "Magier":      [{n:"Arcane",r:"DPS"},{n:"Fire",r:"DPS"},{n:"Frost",r:"DPS"}],
+  "Paladin":     [{n:"Holy",r:"Heiler"},{n:"Prot",r:"Tank"},{n:"Retri",r:"DPS"}],
+  "Priester":    [{n:"Disc",r:"Heiler"},{n:"Holy",r:"Heiler"},{n:"Shadow",r:"DPS"}],
+  "Schamane":    [{n:"Elemental",r:"DPS"},{n:"Enhancement",r:"DPS"},{n:"Resto",r:"Heiler"}],
+  "Schurke":     [{n:"Assassination",r:"DPS"},{n:"Combat",r:"DPS"},{n:"Subtlety",r:"DPS"}],
+};
 
 export default async (req) => {
   const store = getStore({ name: "raids", consistency: "strong" });
@@ -47,12 +58,25 @@ export default async (req) => {
 
       // ── Signup ──
       if (action === "signup") {
-        const { raidId, charName, className, role, status, note } = body;
-        if (!raidId || !charName || !role) {
+        const { raidId, charName, className, role, offeredSpecs, status, note } = body;
+        if (!raidId || !charName) {
           return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
         }
-        if (!VALID_ROLES.includes(role)) {
-          return new Response(JSON.stringify({ error: "Ungültige Rolle" }), { status: 400, headers });
+        // Validate offeredSpecs if provided
+        let validSpecs = [];
+        let finalRole = role || "DPS";
+        if (Array.isArray(offeredSpecs) && offeredSpecs.length > 0) {
+          const classSpecs = CLASS_SPECS[className] || [];
+          const validNames = classSpecs.map(s => s.n);
+          if (offeredSpecs.some(s => !validNames.includes(s))) {
+            return new Response(JSON.stringify({ error: "Ungültige Spezialisierung" }), { status: 400, headers });
+          }
+          validSpecs = offeredSpecs;
+          // Derive role from first offered spec
+          const firstSpec = classSpecs.find(s => s.n === offeredSpecs[0]);
+          if (firstSpec) finalRole = firstSpec.r;
+        } else if (!role || !VALID_ROLES.includes(role)) {
+          return new Response(JSON.stringify({ error: "Rolle oder Spezialisierung fehlt" }), { status: 400, headers });
         }
         if (status && !VALID_SIGNUP_STATUS.includes(status)) {
           return new Response(JSON.stringify({ error: "Ungültiger Status" }), { status: 400, headers });
@@ -64,16 +88,62 @@ export default async (req) => {
         if (!raid.signups) raid.signups = [];
         // Remove existing signup from this user (to replace)
         raid.signups = raid.signups.filter(s => s.userId !== user.userId);
-        raid.signups.push({
+        const signup = {
           userId: user.userId,
           username: user.username,
           charName: String(charName).trim().slice(0, 50),
           className: String(className || "").slice(0, 50),
-          role,
+          role: finalRole,
           status: status || "accepted",
           note: String(note || "").trim().slice(0, 200),
           timestamp: new Date().toISOString(),
-        });
+        };
+        if (validSpecs.length) signup.offeredSpecs = validSpecs;
+        raid.signups.push(signup);
+        await store.setJSON(raidId, raid);
+        autoUpdateDiscord(raidId, raid);
+        return new Response(JSON.stringify(raid), { status: 200, headers });
+      }
+
+      // ── Assign Spec (Raid Leader) ──
+      if (action === "assign-spec") {
+        const { raidId, targetUserId, assignedSpec } = body;
+        if (!raidId || !targetUserId) {
+          return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
+        }
+        const raid = await store.get(raidId, { type: "json" });
+        if (!raid) {
+          return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
+        }
+        // Only raid creator can assign
+        if (raid.createdBy !== user.userId) {
+          return new Response(JSON.stringify({ error: "Nur der Raid-Ersteller kann Specs zuweisen" }), { status: 403, headers });
+        }
+        if (!raid.signups) raid.signups = [];
+        const signup = raid.signups.find(s => s.userId === targetUserId);
+        if (!signup) {
+          return new Response(JSON.stringify({ error: "Spieler nicht angemeldet" }), { status: 404, headers });
+        }
+        if (assignedSpec) {
+          // Validate the assigned spec is one of the offered specs
+          if (signup.offeredSpecs && !signup.offeredSpecs.includes(assignedSpec)) {
+            return new Response(JSON.stringify({ error: "Spec nicht in angebotenen Specs" }), { status: 400, headers });
+          }
+          signup.assignedSpec = assignedSpec;
+          // Update role based on assigned spec
+          const classSpecs = CLASS_SPECS[signup.className] || [];
+          const sp = classSpecs.find(s => s.n === assignedSpec);
+          if (sp) signup.role = sp.r;
+        } else {
+          // Clear assignment
+          delete signup.assignedSpec;
+          // Reset role to first offered spec
+          if (signup.offeredSpecs && signup.offeredSpecs.length) {
+            const classSpecs = CLASS_SPECS[signup.className] || [];
+            const sp = classSpecs.find(s => s.n === signup.offeredSpecs[0]);
+            if (sp) signup.role = sp.r;
+          }
+        }
         await store.setJSON(raidId, raid);
         autoUpdateDiscord(raidId, raid);
         return new Response(JSON.stringify(raid), { status: 200, headers });
@@ -196,11 +266,27 @@ async function autoUpdateDiscord(raidId, raid) {
 
     const siteUrl = process.env.URL || process.env.DEPLOY_PRIME_URL || "";
     const embed = buildRaidEmbed(raid, siteUrl);
-    const res = await fetch(`${webhookUrl}/messages/${mapping.messageId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ embeds: [embed] }),
-    });
+    const botToken = process.env.DISCORD_BOT_TOKEN;
+    const buttons = buildRaidButtons(raidId);
+
+    let res;
+    if (botToken && mapping.channelId) {
+      // Update via bot API (preserves interactive buttons)
+      res = await fetch(`https://discord.com/api/v10/channels/${mapping.channelId}/messages/${mapping.messageId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bot ${botToken}`,
+        },
+        body: JSON.stringify({ embeds: [embed], components: buttons }),
+      });
+    } else {
+      res = await fetch(`${webhookUrl}/messages/${mapping.messageId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ embeds: [embed] }),
+      });
+    }
 
     if (res.status === 404) {
       await discordStore.delete(raidId);

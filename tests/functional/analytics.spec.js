@@ -8,7 +8,7 @@ test.describe('Analytics', () => {
       await setupMockApi(page, [SAMPLE_ENTRY, SAMPLE_ENTRY_2]);
       await page.addInitScript(() => {
         localStorage.setItem('raid-auth', JSON.stringify({
-          token: 'mock-token', username: 'Testuser', userId: 'mock-user-1'
+          token: 'mock-token', username: 'Testuser', userId: 'mock-user-1', discordLinked: true, discordUsername: 'Testuser#1234', discordGuildMember: true
         }));
       });
       await page.goto('/');
@@ -55,10 +55,10 @@ test.describe('Analytics', () => {
       expect(names).toContain('Heiligschein');
     });
 
-    test('shows multi-role info', async ({ page }) => {
-      // SAMPLE_ENTRY_2 has 2 roles, SAMPLE_ENTRY has 1
-      await expect(page.locator('.flex-info')).toContainText('1 Spieler mit Mehrfachrolle');
-      await expect(page.locator('.flex-info')).toContainText('1 nur eine Rolle');
+    test('shows multi-spec info', async ({ page }) => {
+      // SAMPLE_ENTRY_2 has 2 specs, SAMPLE_ENTRY has 1
+      await expect(page.locator('.flex-info')).toContainText('1 Spieler mit Mehrfach-Spec');
+      await expect(page.locator('.flex-info')).toContainText('1 nur ein Spec');
     });
 
     test('class bars have fills within track bounds', async ({ page }) => {
@@ -80,7 +80,7 @@ test.describe('Analytics', () => {
       await setupMockApi(page, []);
       await page.addInitScript(() => {
         localStorage.setItem('raid-auth', JSON.stringify({
-          token: 'mock-token', username: 'Testuser', userId: 'mock-user-1'
+          token: 'mock-token', username: 'Testuser', userId: 'mock-user-1', discordLinked: true, discordUsername: 'Testuser#1234', discordGuildMember: true
         }));
       });
       await page.goto('/');
