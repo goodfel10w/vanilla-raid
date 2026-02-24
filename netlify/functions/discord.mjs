@@ -244,6 +244,35 @@ function buildRaidEmbed(raid, siteUrl) {
   return embed;
 }
 
+function buildRaidButtons(raidId) {
+  return [{
+    type: 1, // ACTION_ROW
+    components: [
+      {
+        type: 2, // BUTTON
+        style: 3, // SUCCESS (green)
+        label: "Anmelden",
+        emoji: { name: "✅" },
+        custom_id: `raid_signup:${raidId}:accepted`,
+      },
+      {
+        type: 2,
+        style: 2, // SECONDARY (gray)
+        label: "Vielleicht",
+        emoji: { name: "🔸" },
+        custom_id: `raid_signup:${raidId}:tentative`,
+      },
+      {
+        type: 2,
+        style: 4, // DANGER (red)
+        label: "Absagen",
+        emoji: { name: "❌" },
+        custom_id: `raid_signup:${raidId}:declined`,
+      },
+    ],
+  }];
+}
+
 export default async (req) => {
   const headers = { "Content-Type": "application/json" };
 
@@ -293,28 +322,57 @@ export default async (req) => {
       }
 
       const embed = buildRaidEmbed(raid, siteUrl);
-      const discordRes = await fetch(webhookUrl + "?wait=true", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          embeds: [embed],
-        }),
-      });
+      const botToken = process.env.DISCORD_BOT_TOKEN;
+      const channelId = process.env.DISCORD_CHANNEL_ID;
+      const buttons = buildRaidButtons(raidId);
 
-      if (!discordRes.ok) {
-        const errText = await discordRes.text();
-        console.error("Discord webhook error:", errText);
-        return new Response(JSON.stringify({ error: "Discord-Nachricht konnte nicht gesendet werden" }), { status: 502, headers });
+      let discordMsg;
+
+      if (botToken && channelId) {
+        // Post via bot API — supports interactive buttons
+        const discordRes = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bot ${botToken}`,
+          },
+          body: JSON.stringify({
+            embeds: [embed],
+            components: buttons,
+          }),
+        });
+
+        if (!discordRes.ok) {
+          const errText = await discordRes.text();
+          console.error("Discord bot post error:", errText);
+          return new Response(JSON.stringify({ error: "Discord-Nachricht konnte nicht gesendet werden" }), { status: 502, headers });
+        }
+        discordMsg = await discordRes.json();
+      } else {
+        // Fallback: webhook (no interactive buttons)
+        const discordRes = await fetch(webhookUrl + "?wait=true", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            embeds: [embed],
+          }),
+        });
+
+        if (!discordRes.ok) {
+          const errText = await discordRes.text();
+          console.error("Discord webhook error:", errText);
+          return new Response(JSON.stringify({ error: "Discord-Nachricht konnte nicht gesendet werden" }), { status: 502, headers });
+        }
+        discordMsg = await discordRes.json();
       }
-
-      const discordMsg = await discordRes.json();
 
       // Store the Discord message ID for future updates
       await discordStore.setJSON(raidId, {
         messageId: discordMsg.id,
-        channelId: discordMsg.channel_id,
+        channelId: discordMsg.channel_id || channelId,
         postedAt: new Date().toISOString(),
         postedBy: user.username,
+        usedBot: !!(botToken && channelId),
       });
 
       return new Response(JSON.stringify({ ok: true, messageId: discordMsg.id }), { status: 200, headers });
@@ -338,13 +396,34 @@ export default async (req) => {
 
 async function updateDiscordMessage(webhookUrl, messageId, raid, siteUrl, discordStore, raidId, headers) {
   const embed = buildRaidEmbed(raid, siteUrl);
-  const discordRes = await fetch(`${webhookUrl}/messages/${messageId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      embeds: [embed],
-    }),
-  });
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+  const mapping = await discordStore.get(raidId, { type: "json" });
+  const buttons = buildRaidButtons(raidId);
+
+  let discordRes;
+  if (botToken && mapping?.channelId) {
+    // Update via bot API (preserves interactive buttons)
+    discordRes = await fetch(`https://discord.com/api/v10/channels/${mapping.channelId}/messages/${messageId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bot ${botToken}`,
+      },
+      body: JSON.stringify({
+        embeds: [embed],
+        components: buttons,
+      }),
+    });
+  } else {
+    // Fallback: webhook update
+    discordRes = await fetch(`${webhookUrl}/messages/${messageId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        embeds: [embed],
+      }),
+    });
+  }
 
   if (!discordRes.ok) {
     // If message was deleted, remove the mapping
@@ -367,8 +446,8 @@ async function updateDiscordMessage(webhookUrl, messageId, raid, siteUrl, discor
   return new Response(JSON.stringify({ ok: true, messageId }), { status: 200, headers });
 }
 
-// Exported helper for raids.mjs to call
-export { buildRaidEmbed };
+// Exported helpers for raids.mjs and discord-interactions.mjs
+export { buildRaidEmbed, buildRaidButtons };
 
 export const config = {
   path: "/api/discord",

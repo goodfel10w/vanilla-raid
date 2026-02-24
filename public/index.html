@@ -1889,30 +1889,22 @@ function renderRaidCard(raid,isPast){
 
   // Action buttons
   let actions="";
-  const dcVerified=currentUser?.discordGuildMember;
-  if(currentUser&&!isPast&&!dcVerified&&!mySignup){
-    actions+=`<div class="dc-gate-hint">${dcIco(14)} Um dich für Raids anzumelden, verknüpfe deinen Discord-Account mit dem Gilden-Discord.<br><button class="btn-dc-link" onclick="doDiscordLink()">${dcIco(14)} Discord verknüpfen</button></div>`;
-  }
   if(currentUser&&!isPast){
-    const canSignup=dcVerified||mySignup;
-    const hasActions=canSignup||isOwner;
-    if(hasActions){
-      actions+=`<div class="raid-actions">`;
-      if(canSignup&&!mySignup){
-        actions+=`<button class="btn-signup" onclick="showSignupForm('${raid.id}')">Anmelden</button>`;
-      }else if(mySignup){
-        if(mySignup.status!=="declined"){
-          actions+=`<button class="btn-unsignup" onclick="unsignRaid('${raid.id}')">Abmelden</button>`;
-        }
-        actions+=`<button class="btn-raid-edit" onclick="showSignupForm('${raid.id}')">Ändern</button>`;
+    actions+=`<div class="raid-actions">`;
+    if(!mySignup){
+      actions+=`<button class="btn-signup" onclick="showSignupForm('${raid.id}')">Anmelden</button>`;
+    }else{
+      if(mySignup.status!=="declined"){
+        actions+=`<button class="btn-unsignup" onclick="unsignRaid('${raid.id}')">Abmelden</button>`;
       }
-      if(isOwner){
-        actions+=`<button class="btn-raid-edit" onclick="editRaid('${raid.id}')">Bearbeiten</button>`;
-        actions+=`<button class="btn-discord" data-discord="${raid.id}" onclick="postToDiscord('${raid.id}')">${dcIco(14)} Discord</button>`;
-        actions+=`<button class="btn-raid-del" onclick="confirmDelRaid('${raid.id}')">Löschen</button>`;
-      }
-      actions+=`</div>`;
+      actions+=`<button class="btn-raid-edit" onclick="showSignupForm('${raid.id}')">Ändern</button>`;
     }
+    if(isOwner){
+      actions+=`<button class="btn-raid-edit" onclick="editRaid('${raid.id}')">Bearbeiten</button>`;
+      actions+=`<button class="btn-discord" data-discord="${raid.id}" onclick="postToDiscord('${raid.id}')">${dcIco(14)} Discord</button>`;
+      actions+=`<button class="btn-raid-del" onclick="confirmDelRaid('${raid.id}')">Löschen</button>`;
+    }
+    actions+=`</div>`;
   }
   if(currentUser&&isPast&&isDkpOfficer()&&signups.length){
     actions+=`<div class="raid-actions"><button class="btn-raid-dkp" onclick="dkpAwardFromRaid('${raid.id}')">DKP vergeben</button></div>`;
