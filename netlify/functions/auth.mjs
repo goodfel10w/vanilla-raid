@@ -160,7 +160,7 @@ export default async (req) => {
         return new Response(JSON.stringify({ error: "Nicht angemeldet" }), { status: 401, headers });
       }
 
-      const clientId = process.env.DISCORD_CLIENT_ID;
+      const clientId = process.env.DISCORD_CLIENT_ID || process.env.DISCORD_APPLICATION_ID;
       if (!clientId) {
         return new Response(JSON.stringify({ error: "Discord OAuth nicht konfiguriert" }), { status: 500, headers });
       }
