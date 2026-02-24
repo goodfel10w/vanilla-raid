@@ -109,7 +109,8 @@ function discordErrorHint(status, body) {
 }
 
 function buildRaidEmbed(raid, siteUrl) {
-  const signups = (raid.signups || []).filter(s => s.status !== "declined");
+  const signups = (raid.signups || []).filter(s => s.status !== "declined" && s.status !== "benched");
+  const benched = (raid.signups || []).filter(s => s.status === "benched");
   const declined = (raid.signups || []).filter(s => s.status === "declined");
   const confirmed = signups.filter(s => s.status === "accepted");
   const tentative = signups.filter(s => s.status === "tentative");
@@ -145,6 +146,11 @@ function buildRaidEmbed(raid, siteUrl) {
     `${statusEmoji} **${confirmed.length}** sicher${tentative.length ? ` + **${tentative.length}** unsicher` : ""} von **${raid.maxPlayers}** Plätzen`,
     `\`${bar}\` ${pct}%`,
   ];
+
+  if (raid.description) {
+    const desc = raid.description.length > 300 ? raid.description.slice(0, 300) + "…" : raid.description;
+    descParts.push("", `📋 ${desc}`);
+  }
 
   if (raid.notes) {
     descParts.push("", `📝 *„${raid.notes}"*`);
@@ -215,7 +221,16 @@ function buildRaidEmbed(raid, siteUrl) {
     }
   }
 
-  // Full-width rows: Declined, Bench
+  // Full-width rows: Benched, Declined
+  if (benched.length) {
+    const names = benched.map(s => `💺 ${s.charName}${s.className ? ` (${s.className})` : ""}`);
+    fields.push({
+      name: `💺 Bank (${benched.length})`,
+      value: truncField(names.join(", ")),
+      inline: false,
+    });
+  }
+
   if (declined.length) {
     const names = declined.map(s => `~~${s.charName}~~`);
     fields.push({

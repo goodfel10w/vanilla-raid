@@ -309,6 +309,19 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .raid-signup-status{font-size:11px;color:var(--tx3);margin-left:auto}
 .raid-signup-status.tent{color:var(--ylw)}
 .raid-signup-status.dec{color:var(--dps)}
+.raid-signup-status.bench{color:#ff9800}
+.raid-signup-actions{display:flex;gap:4px;margin-left:auto}
+.raid-signup-actions button{font:600 10px 'Nunito Sans',sans-serif;padding:3px 8px;border-radius:4px;border:none;cursor:pointer;opacity:.6;transition:all .2s}
+.raid-signup-actions button:hover{opacity:1}
+.btn-bench{background:rgba(255,152,0,.15);color:#ff9800}
+.btn-bench:hover{background:rgba(255,152,0,.25)}
+.btn-kick{background:rgba(229,115,115,.1);color:var(--dps)}
+.btn-kick:hover{background:rgba(229,115,115,.2)}
+.raid-desc{font-size:13px;color:var(--tx2);line-height:1.5;margin-bottom:10px;padding:10px 14px;background:rgba(0,0,0,.15);border-radius:8px;border-left:3px solid var(--gold);white-space:pre-wrap}
+.raid-form textarea{display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:14px 'Nunito Sans',sans-serif;outline:none;transition:border-color .2s;resize:vertical;min-height:80px}
+.raid-form textarea:focus{border-color:rgba(201,168,76,.3)}
+.orga-signup-card{margin-top:10px;padding:14px 16px}
+.orga-signup-card .sec-l{margin-bottom:8px}
 .raid-actions{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
 .raid-actions button{font:600 12px 'Nunito Sans',sans-serif;padding:7px 16px;border-radius:6px;border:none;cursor:pointer;transition:all .2s}
 .btn-signup{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg)}
@@ -747,7 +760,7 @@ const TBC_RAIDS=[
 ];
 const RAID_API="/api/raids";
 let raids=[], raidView="list", raidEditId=null;
-let raidForm={instance:"",date:"",time:"20:00",maxPlayers:25,notes:""};
+let raidForm={instance:"",date:"",time:"20:00",maxPlayers:25,notes:"",description:""};
 
 // DKP state
 const DKP_API="/api/dkp";
@@ -1769,7 +1782,7 @@ function renderRaids(){
 
   let html=`<div class="raid-tab-toggle">
     <button class="rt-btn active" onclick="raidView='list';renderRaids()">Übersicht</button>
-    ${currentUser?`<button class="rt-btn" onclick="raidView='create';raidEditId=null;raidForm={instance:'',date:'',time:'20:00',maxPlayers:25,notes:''};renderRaids()">+ Raid erstellen</button>`:""}
+    ${currentUser?`<button class="rt-btn" onclick="raidView='create';raidEditId=null;raidForm={instance:'',date:'',time:'20:00',maxPlayers:25,notes:'',description:''};renderRaids()">+ Raid erstellen</button>`:""}
   </div>`;
 
   if(!currentUser){
@@ -1795,7 +1808,8 @@ function renderRaids(){
 }
 
 function renderRaidCard(raid,isPast){
-  const signups=(raid.signups||[]).filter(s=>s.status!=="declined");
+  const signups=(raid.signups||[]).filter(s=>s.status!=="declined"&&s.status!=="benched");
+  const benched=(raid.signups||[]).filter(s=>s.status==="benched");
   const declined=(raid.signups||[]).filter(s=>s.status==="declined");
   const tentative=signups.filter(s=>s.status==="tentative");
   const confirmed=signups.filter(s=>s.status==="accepted");
@@ -1820,7 +1834,7 @@ function renderRaidCard(raid,isPast){
 
   // Signup rows grouped by role
   let signupHtml="";
-  if(signups.length){
+  if(signups.length||benched.length||declined.length){
     signupHtml+=`<div class="raid-signups">`;
     ROLES.forEach(role=>{
       const rs=signups.filter(s=>s.role===role);
@@ -1841,15 +1855,34 @@ function renderRaidCard(raid,isPast){
           ${specBadges?`<span>${specBadges}</span>`:""}
           ${s.assignedSpec?`<span style="font-size:10px;color:var(--grn)">\u2713 ${h(s.assignedSpec)}</span>`:""}
           ${isTent?`<span class="raid-signup-status tent">Vielleicht</span>`:""}
+          ${s.addedBy?`<span style="font-size:10px;color:var(--tx4)">von ${h(s.addedBy)}</span>`:""}
           ${s.note?`<span style="font-size:11px;color:var(--tx4);font-style:italic">${h(s.note)}</span>`:""}
           ${isOwner&&s.offeredSpecs&&s.offeredSpecs.length>1&&!isPast?`<select style="font-size:11px;padding:2px 4px;margin-left:4px" onchange="assignSpec('${raid.id}','${s.userId}',this.value)">
             <option value="">— Spec zuweisen —</option>
             ${s.offeredSpecs.map(sp=>`<option value="${h(sp)}"${s.assignedSpec===sp?" selected":""}>${sp} (${specRole(s.className,sp)})</option>`).join("")}
           </select>`:""}
+          ${isOwner&&!isPast?`<span class="raid-signup-actions">
+            <button class="btn-bench" onclick="benchPlayer('${raid.id}','${s.userId}')">Bank</button>
+            <button class="btn-kick" onclick="removePlayer('${raid.id}','${s.userId}')">Entfernen</button>
+          </span>`:""}
         </div>`;
       });
       signupHtml+=`</div>`;
     });
+    if(benched.length){
+      signupHtml+=`<div class="raid-signups-t" style="color:#ff9800;margin-top:8px">\u{1F4BA} Bank (${benched.length})</div>`;
+      benched.forEach(s=>{
+        signupHtml+=`<div class="raid-signup-row">
+          <span class="raid-signup-name" style="color:var(--tx4)">${h(s.charName)}</span>
+          ${s.className?`<span style="font-size:11px;color:var(--tx4)">${h(s.className)}</span>`:""}
+          <span class="raid-signup-status bench">Gebankt</span>
+          ${s.note?`<span style="font-size:11px;color:var(--tx4);font-style:italic">${h(s.note)}</span>`:""}
+          ${isOwner&&!isPast?`<span class="raid-signup-actions">
+            <button class="btn-kick" onclick="removePlayer('${raid.id}','${s.userId}')">Entfernen</button>
+          </span>`:""}
+        </div>`;
+      });
+    }
     if(declined.length){
       signupHtml+=`<div class="raid-signups-group" style="border-color:rgba(229,115,115,.08)">`;
       signupHtml+=`<div class="raid-signups-t" style="color:var(--dps)">\u274C Abgesagt (${declined.length})</div>`;
@@ -1900,6 +1933,7 @@ function renderRaidCard(raid,isPast){
       actions+=`<button class="btn-raid-edit" onclick="showSignupForm('${raid.id}')">Ändern</button>`;
     }
     if(isOwner){
+      actions+=`<button class="btn-raid-edit" onclick="showOrgaSignupForm('${raid.id}')">Spieler anmelden</button>`;
       actions+=`<button class="btn-raid-edit" onclick="editRaid('${raid.id}')">Bearbeiten</button>`;
       actions+=`<button class="btn-discord" data-discord="${raid.id}" onclick="postToDiscord('${raid.id}')">${dcIco(14)} Discord</button>`;
       actions+=`<button class="btn-raid-del" onclick="confirmDelRaid('${raid.id}')">Löschen</button>`;
@@ -1928,12 +1962,14 @@ function renderRaidCard(raid,isPast){
       <span style="background:rgba(102,187,106,.12);color:var(--heal)">\u{1F49A} ${hl}${is10?"":"/"+tgtHeal} Heiler</span>
       <span style="background:rgba(229,115,115,.12);color:var(--dps)">\u2694\uFE0F ${dp}${is10?"":"/"+tgtDps} DPS</span>
     </div>
+    ${raid.description?`<div class="raid-desc">${h(raid.description)}</div>`:""}
     ${raid.notes?`<div style="font-size:12px;color:var(--tx3);font-style:italic;margin-bottom:6px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,.1)">\u{1F4DD} \u201E${h(raid.notes)}\u201C</div>`:""}
     ${signupHtml}
     ${signupForm}
     ${compHtml}
     ${karaHtml}
     <div id="signup-form-${raid.id}"></div>
+    <div id="orga-signup-form-${raid.id}"></div>
     ${actions}
   </div>`;
 }
@@ -2236,6 +2272,10 @@ function renderRaidForm(el){
       <input type="text" id="rf-max" value="${raidForm.maxPlayers}" oninput="raidForm.maxPlayers=parseInt(this.value)||25">
     </div>
     <div class="fld">
+      <span class="lbl">Beschreibung (optional)</span>
+      <textarea id="rf-desc" placeholder="Beschreibe den Raid — z.B. Loot-Regeln, besondere Anforderungen, Bossstrategie..." oninput="raidForm.description=this.value">${h(raidForm.description)}</textarea>
+    </div>
+    <div class="fld">
       <span class="lbl">Anmerkungen (optional)</span>
       <input type="text" id="rf-notes" value="${h(raidForm.notes)}" placeholder="z.B. Consumables mitbringen" oninput="raidForm.notes=this.value">
     </div>
@@ -2268,6 +2308,7 @@ window.submitRaid=async function(){
       time:raidForm.time,
       maxPlayers:raidForm.maxPlayers,
       notes:raidForm.notes,
+      description:raidForm.description,
     });
     toast(raidEditId?"Raid aktualisiert \u2713":"Raid erstellt \u2713");
     raidView="list";raidEditId=null;
@@ -2286,7 +2327,7 @@ window.editRaid=function(id){
   const raid=raids.find(r=>r.id===id);
   if(!raid)return;
   raidEditId=id;
-  raidForm={instance:raid.instance,date:raid.date,time:raid.time,maxPlayers:raid.maxPlayers,notes:raid.notes||""};
+  raidForm={instance:raid.instance,date:raid.date,time:raid.time,maxPlayers:raid.maxPlayers,notes:raid.notes||"",description:raid.description||""};
   raidView="edit";
   renderRaids();
 };
@@ -2469,6 +2510,116 @@ window.assignSpec=async function(raidId,targetUserId,assignedSpec){
   try{
     await saveRaid({action:"assign-spec",raidId,targetUserId,assignedSpec:assignedSpec||null});
     toast(assignedSpec?"Spec zugewiesen: "+assignedSpec:"Zuweisung entfernt");
+    await loadRaids();
+    renderRaids();
+  }catch(e){toast("Fehler: "+e.message)}
+};
+
+// ── Organizer: bench player ──
+window.benchPlayer=function(raidId,targetUserId){
+  showModal("Spieler benchen","Soll dieser Spieler auf die Bank gesetzt werden?",async()=>{
+    try{
+      await saveRaid({action:"bench",raidId,targetUserId});
+      toast("Spieler gebankt");
+      await loadRaids();
+      renderRaids();
+    }catch(e){toast("Fehler: "+e.message)}
+  });
+};
+
+// ── Organizer: remove player ──
+window.removePlayer=function(raidId,targetUserId){
+  showModal("Spieler entfernen","Soll dieser Spieler aus dem Raid entfernt werden?",async()=>{
+    try{
+      await saveRaid({action:"remove-signup",raidId,targetUserId});
+      toast("Spieler entfernt");
+      await loadRaids();
+      renderRaids();
+    }catch(e){toast("Fehler: "+e.message)}
+  });
+};
+
+// ── Organizer: sign up another player ──
+window.showOrgaSignupForm=function(raidId){
+  const el=document.getElementById("orga-signup-form-"+raidId);
+  if(!el)return;
+  // All known characters from entries
+  const allChars=entries.map(e=>({charName:e.charName,className:e.className,userId:e.userId}));
+  let charOptions=allChars.map(c=>`<option value="${h(c.charName)}" data-cls="${h(c.className)}" data-uid="${c.userId}">${h(c.charName)} (${h(c.className)})</option>`).join("");
+
+  el.innerHTML=`<div class="card orga-signup-card">
+    <div class="sec-l">Spieler anmelden (Raidleiter)</div>
+    <div class="raid-signup-form">
+      <select id="orga-char-${raidId}" onchange="orgaCharChanged('${raidId}')">
+        <option value="">— Charakter wählen —</option>
+        ${charOptions}
+        <option value="__custom__">Manuell eingeben...</option>
+      </select>
+      <input type="text" id="orga-charname-${raidId}" placeholder="Charaktername" style="padding:6px 10px;width:120px;font-size:13px;display:none">
+      <select id="orga-class-${raidId}" style="font-size:13px;display:none">
+        <option value="">— Klasse —</option>
+        ${CLS.map(c=>`<option value="${h(c.n)}">${h(c.n)}</option>`).join("")}
+      </select>
+      <input type="hidden" id="orga-uid-${raidId}" value="">
+      <input type="hidden" id="orga-cls-${raidId}" value="">
+      <select id="orga-role-${raidId}" style="font-size:13px">
+        ${ROLES.map(r=>`<option value="${r}">${RI[r]} ${r}</option>`).join("")}
+      </select>
+      <select id="orga-status-${raidId}" style="font-size:13px">
+        <option value="accepted">Dabei</option>
+        <option value="tentative">Vielleicht</option>
+      </select>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+      <input type="text" id="orga-note-${raidId}" placeholder="Anmerkung (optional)" style="flex:1;padding:6px 10px;font-size:12px">
+      <button class="btn-signup" style="padding:6px 14px" onclick="doOrgaSignup('${raidId}')">Anmelden</button>
+      <button class="btn-s" style="padding:6px 14px;font-size:12px" onclick="document.getElementById('orga-signup-form-${raidId}').innerHTML=''">Abbrechen</button>
+    </div>
+  </div>`;
+};
+
+window.orgaCharChanged=function(raidId){
+  const sel=document.getElementById("orga-char-"+raidId);
+  const nameInput=document.getElementById("orga-charname-"+raidId);
+  const classSelect=document.getElementById("orga-class-"+raidId);
+  const uidInput=document.getElementById("orga-uid-"+raidId);
+  const clsInput=document.getElementById("orga-cls-"+raidId);
+  if(!sel)return;
+  if(sel.value==="__custom__"){
+    nameInput.style.display="";
+    classSelect.style.display="";
+    uidInput.value="";
+    clsInput.value="";
+  }else{
+    nameInput.style.display="none";
+    classSelect.style.display="none";
+    const opt=sel.selectedOptions[0];
+    uidInput.value=opt?.dataset.uid||"";
+    clsInput.value=opt?.dataset.cls||"";
+  }
+};
+
+window.doOrgaSignup=async function(raidId){
+  const sel=document.getElementById("orga-char-"+raidId);
+  let charName,className,targetUserId;
+  if(sel.value==="__custom__"||!sel.value){
+    charName=(document.getElementById("orga-charname-"+raidId)?.value||"").trim();
+    className=document.getElementById("orga-class-"+raidId)?.value||"";
+    targetUserId="";
+  }else{
+    charName=sel.value;
+    className=document.getElementById("orga-cls-"+raidId)?.value||"";
+    targetUserId=document.getElementById("orga-uid-"+raidId)?.value||"";
+  }
+  const role=document.getElementById("orga-role-"+raidId)?.value||"DPS";
+  const status=document.getElementById("orga-status-"+raidId)?.value||"accepted";
+  const note=(document.getElementById("orga-note-"+raidId)?.value||"").trim();
+
+  if(!charName){toast("Bitte Charakter angeben");return}
+
+  try{
+    await saveRaid({action:"signup-other",raidId,charName,className,role,status,note,targetUserId:targetUserId||undefined});
+    toast(h(charName)+" angemeldet \u2713");
     await loadRaids();
     renderRaids();
   }catch(e){toast("Fehler: "+e.message)}
@@ -2732,7 +2883,7 @@ function renderDkpAward(){
         <select onchange="dkpSelectRaid(this.value)">
           <option value="">— Manuell auswählen —</option>
           ${pastRaids.map(r=>{
-            const signups=(r.signups||[]).filter(s=>s.status!=="declined");
+            const signups=(r.signups||[]).filter(s=>s.status!=="declined"&&s.status!=="benched");
             return`<option value="${r.id}"${dkpAwardRaidId===r.id?" selected":""}>${h(r.instance)} — ${fmtDate(r.date)} ${r.time} (${signups.length} Spieler)</option>`;
           }).join("")}
         </select>
@@ -3178,7 +3329,7 @@ window.dkpSelectRaid=function(raidId){
   if(!raidId){dkpAwardPlayers=[];dkpAwardReason="";renderDkp();return}
   const raid=raids.find(r=>r.id===raidId);
   if(!raid){renderDkp();return}
-  const signups=(raid.signups||[]).filter(s=>s.status!=="declined");
+  const signups=(raid.signups||[]).filter(s=>s.status!=="declined"&&s.status!=="benched");
   dkpAwardPlayers=signups.map(s=>({name:s.charName,className:s.className||""}));
   dkpAwardReason=raid.instance+" — "+fmtDate(raid.date);
   renderDkp();
@@ -3188,7 +3339,7 @@ window.dkpAwardFromRaid=function(raidId){
   dkpAwardRaidId=raidId;
   const raid=raids.find(r=>r.id===raidId);
   if(!raid)return;
-  const signups=(raid.signups||[]).filter(s=>s.status!=="declined");
+  const signups=(raid.signups||[]).filter(s=>s.status!=="declined"&&s.status!=="benched");
   dkpAwardPlayers=signups.map(s=>({name:s.charName,className:s.className||""}));
   dkpAwardReason=raid.instance+" — "+fmtDate(raid.date);
   dkpAwardAmount="";

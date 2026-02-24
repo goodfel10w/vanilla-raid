@@ -9,7 +9,7 @@ const VALID_INSTANCES = [
   "Hyjalgipfel", "Schwarzer Tempel", "Zul'Aman", "Sonnenbrunnenplateau",
 ];
 const VALID_ROLES = ["Tank", "Heiler", "DPS"];
-const VALID_SIGNUP_STATUS = ["accepted", "tentative", "declined"];
+const VALID_SIGNUP_STATUS = ["accepted", "tentative", "declined", "benched"];
 const CLASS_SPECS = {
   "Druide":      [{n:"Balance",r:"DPS"},{n:"Feral Tank",r:"Tank"},{n:"Feral DPS",r:"DPS"},{n:"Resto",r:"Heiler"}],
   "Hexenmeister":[{n:"Affliction",r:"DPS"},{n:"Demonologie",r:"DPS"},{n:"Destruction",r:"DPS"}],
@@ -166,8 +166,92 @@ export default async (req) => {
         return new Response(JSON.stringify(raid), { status: 200, headers });
       }
 
+      // ── Organizer: bench a player ──
+      if (action === "bench") {
+        const { raidId, targetUserId } = body;
+        if (!raidId || !targetUserId) {
+          return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
+        }
+        const raid = await store.get(raidId, { type: "json" });
+        if (!raid) {
+          return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
+        }
+        if (raid.createdBy !== user.userId) {
+          return new Response(JSON.stringify({ error: "Nur der Ersteller kann Spieler benchen" }), { status: 403, headers });
+        }
+        if (!raid.signups) raid.signups = [];
+        const signup = raid.signups.find(s => s.userId === targetUserId);
+        if (!signup) {
+          return new Response(JSON.stringify({ error: "Spieler nicht angemeldet" }), { status: 404, headers });
+        }
+        signup.status = "benched";
+        signup.benchedBy = user.username;
+        await store.setJSON(raidId, raid);
+        autoUpdateDiscord(raidId, raid);
+        return new Response(JSON.stringify(raid), { status: 200, headers });
+      }
+
+      // ── Organizer: remove a player from raid ──
+      if (action === "remove-signup") {
+        const { raidId, targetUserId } = body;
+        if (!raidId || !targetUserId) {
+          return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
+        }
+        const raid = await store.get(raidId, { type: "json" });
+        if (!raid) {
+          return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
+        }
+        if (raid.createdBy !== user.userId) {
+          return new Response(JSON.stringify({ error: "Nur der Ersteller kann Spieler entfernen" }), { status: 403, headers });
+        }
+        if (!raid.signups) raid.signups = [];
+        raid.signups = raid.signups.filter(s => s.userId !== targetUserId);
+        await store.setJSON(raidId, raid);
+        autoUpdateDiscord(raidId, raid);
+        return new Response(JSON.stringify(raid), { status: 200, headers });
+      }
+
+      // ── Organizer: sign up another player ──
+      if (action === "signup-other") {
+        const { raidId, charName, className, role, status, note, targetUserId } = body;
+        if (!raidId || !charName || !role) {
+          return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
+        }
+        const raid = await store.get(raidId, { type: "json" });
+        if (!raid) {
+          return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
+        }
+        if (raid.createdBy !== user.userId) {
+          return new Response(JSON.stringify({ error: "Nur der Ersteller kann andere Spieler anmelden" }), { status: 403, headers });
+        }
+        if (!VALID_ROLES.includes(role)) {
+          return new Response(JSON.stringify({ error: "Ungültige Rolle" }), { status: 400, headers });
+        }
+        if (status && !VALID_SIGNUP_STATUS.includes(status)) {
+          return new Response(JSON.stringify({ error: "Ungültiger Status" }), { status: 400, headers });
+        }
+        if (!raid.signups) raid.signups = [];
+        // Use targetUserId if provided (existing user), otherwise generate a placeholder
+        const uid = targetUserId || ("manual-" + randomUUID());
+        raid.signups = raid.signups.filter(s => s.userId !== uid);
+        raid.signups.push({
+          userId: uid,
+          username: "",
+          charName: String(charName).trim().slice(0, 50),
+          className: String(className || "").slice(0, 50),
+          role,
+          status: status || "accepted",
+          note: String(note || "").trim().slice(0, 200),
+          addedBy: user.username,
+          timestamp: new Date().toISOString(),
+        });
+        await store.setJSON(raidId, raid);
+        autoUpdateDiscord(raidId, raid);
+        return new Response(JSON.stringify(raid), { status: 200, headers });
+      }
+
       // ── Create or Update Raid ──
-      const { instance, date, time, maxPlayers, notes } = body;
+      const { instance, date, time, maxPlayers, notes, description } = body;
 
       if (!instance || !date || !time) {
         return new Response(JSON.stringify({ error: "Felder fehlen (Instanz, Datum, Uhrzeit)" }), { status: 400, headers });
@@ -187,6 +271,9 @@ export default async (req) => {
       }
       if (notes != null && typeof notes === "string" && notes.length > 500) {
         return new Response(JSON.stringify({ error: "Anmerkungen zu lang" }), { status: 400, headers });
+      }
+      if (description != null && typeof description === "string" && description.length > 2000) {
+        return new Response(JSON.stringify({ error: "Beschreibung zu lang (max. 2000 Zeichen)" }), { status: 400, headers });
       }
 
       let id;
@@ -212,6 +299,7 @@ export default async (req) => {
         time,
         maxPlayers: mp,
         notes: (notes || "").trim().slice(0, 500),
+        description: (description || "").trim().slice(0, 2000),
         createdBy: user.userId,
         createdByName: user.username,
         signups: existingSignups,
