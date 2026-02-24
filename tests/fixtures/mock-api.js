@@ -1,4 +1,4 @@
-const MOCK_USER = { token: 'mock-token', username: 'Testuser', userId: 'mock-user-1' };
+const MOCK_USER = { token: 'mock-token', username: 'Testuser', userId: 'mock-user-1', discordLinked: true, discordUsername: 'Testuser#1234', discordGuildMember: true };
 
 const MOCK_BNET_CHARACTERS = [
   { name: 'Thrallmächtig', realm: 'Thunderstrike', className: 'Schamane', level: 70 },
@@ -16,7 +16,25 @@ export async function setupMockApi(page, initialEntries = []) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ username: MOCK_USER.username, userId: MOCK_USER.userId }),
+        body: JSON.stringify({ username: MOCK_USER.username, userId: MOCK_USER.userId, discordLinked: MOCK_USER.discordLinked, discordUsername: MOCK_USER.discordUsername, discordGuildMember: MOCK_USER.discordGuildMember }),
+      });
+      return;
+    }
+
+    if (body.action === 'discord-link') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ url: 'https://discord.com/oauth2/authorize?mock=1' }),
+      });
+      return;
+    }
+
+    if (body.action === 'discord-unlink') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true }),
       });
       return;
     }

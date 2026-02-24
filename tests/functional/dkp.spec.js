@@ -6,7 +6,7 @@ import { SAMPLE_ENTRY, SAMPLE_ENTRY_2 } from '../fixtures/test-data.js';
 function seedAuth(page) {
   return page.addInitScript(() => {
     localStorage.setItem('raid-auth', JSON.stringify({
-      token: 'mock-token', username: 'Testuser', userId: 'mock-user-1'
+      token: 'mock-token', username: 'Testuser', userId: 'mock-user-1', discordLinked: true, discordUsername: 'Testuser#1234', discordGuildMember: true
     }));
   });
 }
