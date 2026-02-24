@@ -416,6 +416,32 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .rt-btn:last-child{border-radius:0 6px 6px 0}
 .rt-btn.active{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg);border-color:var(--gold-d)}
 
+/* Raid calendar */
+.rcal{margin-top:4px}
+.rcal-nav{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:14px}
+.rcal-nav button{background:none;border:1px solid rgba(255,255,255,.08);color:var(--tx3);width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.rcal-nav button:hover{border-color:rgba(201,168,76,.4);color:var(--gold)}
+.rcal-month{font-family:'Cinzel',serif;font-weight:700;font-size:16px;color:var(--gold);min-width:180px;text-align:center}
+.rcal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.rcal-hdr{font-size:11px;font-weight:700;color:var(--tx4);text-align:center;padding:6px 0;text-transform:uppercase;letter-spacing:1px}
+.rcal-day{min-height:80px;background:var(--card);border:1px solid rgba(255,255,255,.03);border-radius:6px;padding:4px 6px;position:relative;transition:border-color .15s}
+.rcal-day:hover{border-color:rgba(255,255,255,.08)}
+.rcal-day.other{opacity:.3}
+.rcal-day.today{border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.04)}
+.rcal-num{font-size:12px;font-weight:700;color:var(--tx3);margin-bottom:4px}
+.rcal-day.today .rcal-num{color:var(--gold)}
+.rcal-evt{font-size:10px;padding:2px 5px;border-radius:4px;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;transition:filter .15s;display:block}
+.rcal-evt:hover{filter:brightness(1.3)}
+.rcal-evt.past{opacity:.45}
+.rcal-more{font-size:9px;color:var(--tx4);text-align:center;cursor:pointer}
+.rcal-more:hover{color:var(--gold)}
+@media(max-width:640px){
+  .rcal-day{min-height:60px;padding:3px 4px}
+  .rcal-evt{font-size:9px;padding:1px 4px}
+  .rcal-hdr{font-size:9px}
+  .rcal-num{font-size:11px}
+}
+
 /* DKP */
 .dkp-standings{width:100%;border-collapse:separate;border-spacing:0 4px}
 .dkp-standings th{font-size:11px;color:var(--tx4);text-transform:uppercase;letter-spacing:1px;padding:6px 10px;text-align:left;font-weight:500;cursor:pointer;user-select:none;white-space:nowrap;transition:color .15s}
@@ -761,6 +787,7 @@ const TBC_RAIDS=[
 const RAID_API="/api/raids";
 let raids=[], raidView="list", raidEditId=null;
 let raidForm={instance:"",date:"",time:"20:00",maxPlayers:25,notes:"",description:""};
+let calMonth=new Date().getMonth(), calYear=new Date().getFullYear();
 
 // DKP state
 const DKP_API="/api/dkp";
@@ -1776,12 +1803,10 @@ function renderRaids(){
     return;
   }
 
-  // Sort: upcoming first, then past
-  const upcoming=raids.filter(r=>!isRaidPast(r));
-  const past=raids.filter(r=>isRaidPast(r));
-
+  const isCal=raidView==="calendar";
   let html=`<div class="raid-tab-toggle">
-    <button class="rt-btn active" onclick="raidView='list';renderRaids()">Übersicht</button>
+    <button class="rt-btn${!isCal?" active":""}" onclick="raidView='list';renderRaids()">Übersicht</button>
+    <button class="rt-btn${isCal?" active":""}" onclick="raidView='calendar';renderRaids()">Kalender</button>
     ${currentUser?`<button class="rt-btn" onclick="raidView='create';raidEditId=null;raidForm={instance:'',date:'',time:'20:00',maxPlayers:25,notes:'',description:''};renderRaids()">+ Raid erstellen</button>`:""}
   </div>`;
 
@@ -1789,11 +1814,21 @@ function renderRaids(){
     html+=`<div class="auth-hint">Melde dich an, um Raids zu erstellen oder dich anzumelden.<br><button onclick="renderAuthOverlay(true)">Anmelden</button></div>`;
   }
 
+  if(isCal){
+    html+=renderRaidCalendar();
+    el.innerHTML=html;
+    return;
+  }
+
   if(!raids.length){
     html+=`<div class="empty">Noch keine Raids geplant.</div>`;
     el.innerHTML=html;
     return;
   }
+
+  // Sort: upcoming first, then past
+  const upcoming=raids.filter(r=>!isRaidPast(r));
+  const past=raids.filter(r=>isRaidPast(r));
 
   if(upcoming.length){
     html+=`<div class="sec-l" style="margin-bottom:10px">Kommende Raids (${upcoming.length})</div>`;
@@ -1805,6 +1840,87 @@ function renderRaids(){
   }
 
   el.innerHTML=html;
+}
+
+const CAL_MONTH_NAMES=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const CAL_TIER_COLORS={"T4":"#66bb6a","T5":"#5b9bd5","T6":"#a335ee","T6.5":"#e57373","ZA":"#ff9800"};
+function renderRaidCalendar(){
+  const now=new Date();
+  const first=new Date(calYear,calMonth,1);
+  const startDay=(first.getDay()+6)%7; // Monday=0
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const prevDays=new Date(calYear,calMonth,0).getDate();
+  const todayD=now.getDate(),todayM=now.getMonth(),todayY=now.getFullYear();
+
+  // Build raid lookup by date string
+  const byDate={};
+  raids.forEach(r=>{
+    if(!r.date)return;
+    if(!byDate[r.date])byDate[r.date]=[];
+    byDate[r.date].push(r);
+  });
+
+  let html=`<div class="rcal">`;
+  html+=`<div class="rcal-nav">
+    <button onclick="calMonth--;if(calMonth<0){calMonth=11;calYear--}renderRaids()">\u25C0</button>
+    <span class="rcal-month">${CAL_MONTH_NAMES[calMonth]} ${calYear}</span>
+    <button onclick="calMonth++;if(calMonth>11){calMonth=0;calYear++}renderRaids()">\u25B6</button>
+  </div>`;
+
+  html+=`<div class="rcal-grid">`;
+  // Header row (Mo-So)
+  ["Mo","Di","Mi","Do","Fr","Sa","So"].forEach(d=>{
+    html+=`<div class="rcal-hdr">${d}</div>`;
+  });
+
+  // Previous month trailing days
+  for(let i=startDay-1;i>=0;i--){
+    const day=prevDays-i;
+    const pm=calMonth===0?11:calMonth-1;
+    const py=calMonth===0?calYear-1:calYear;
+    const ds=py+"-"+String(pm+1).padStart(2,"0")+"-"+String(day).padStart(2,"0");
+    const evts=byDate[ds]||[];
+    html+=`<div class="rcal-day other"><div class="rcal-num">${day}</div>${renderCalEvents(evts,2)}</div>`;
+  }
+
+  // Current month days
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=calYear+"-"+String(calMonth+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+    const isToday=d===todayD&&calMonth===todayM&&calYear===todayY;
+    const evts=byDate[ds]||[];
+    html+=`<div class="rcal-day${isToday?" today":""}"><div class="rcal-num">${d}</div>${renderCalEvents(evts,3)}</div>`;
+  }
+
+  // Next month leading days to fill grid
+  const totalCells=startDay+daysInMonth;
+  const remaining=(7-totalCells%7)%7;
+  for(let d=1;d<=remaining;d++){
+    const nm=calMonth===11?0:calMonth+1;
+    const ny=calMonth===11?calYear+1:calYear;
+    const ds=ny+"-"+String(nm+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+    const evts=byDate[ds]||[];
+    html+=`<div class="rcal-day other"><div class="rcal-num">${d}</div>${renderCalEvents(evts,2)}</div>`;
+  }
+
+  html+=`</div></div>`;
+  return html;
+}
+
+function renderCalEvents(evts,maxShow){
+  if(!evts.length)return"";
+  let html="";
+  const show=evts.slice(0,maxShow);
+  show.forEach(r=>{
+    const tier=TBC_RAIDS.find(t=>t.n===r.instance)?.tier||"";
+    const bg=CAL_TIER_COLORS[tier]||"var(--gold)";
+    const past=isRaidPast(r);
+    const count=(r.signups||[]).filter(s=>s.status!=="declined"&&s.status!=="benched").length;
+    html+=`<div class="rcal-evt${past?" past":""}" style="background:${bg}22;color:${bg};border-left:3px solid ${bg}" onclick="raidView='list';renderRaids();document.getElementById('raid-${r.id}')?.scrollIntoView({behavior:'smooth',block:'center'})" title="${h(r.instance)} — ${r.time} Uhr — ${count}/${r.maxPlayers} Spieler">${r.time} ${h(r.instance)}</div>`;
+  });
+  if(evts.length>maxShow){
+    html+=`<div class="rcal-more" onclick="raidView='list';renderRaids()">+${evts.length-maxShow} mehr</div>`;
+  }
+  return html;
 }
 
 function renderRaidCard(raid,isPast){
