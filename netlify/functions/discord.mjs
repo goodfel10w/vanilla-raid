@@ -97,11 +97,12 @@ function truncField(str, max = MAX_FIELD_VALUE) {
 
 // Map Discord HTTP status codes to actionable German hints
 function discordErrorHint(status, body) {
+  const detail = body ? ` (${body.slice(0, 150)})` : "";
   switch (status) {
-    case 400: return "Ungültige Daten (Embed zu groß oder fehlerhaft)";
-    case 401: return "Bot-Token ungültig oder abgelaufen";
-    case 403: return "Bot hat keine Berechtigung in diesem Kanal";
-    case 404: return "Kanal oder Webhook nicht gefunden";
+    case 400: return "Ungültige Daten (Embed zu groß oder fehlerhaft)" + detail;
+    case 401: return "Bot-Token ungültig oder abgelaufen" + detail;
+    case 403: return "Bot hat keine Berechtigung — prüfe: Nachrichten senden, Links einbetten, Nachrichtenverlauf lesen" + detail;
+    case 404: return "Kanal oder Webhook nicht gefunden — DISCORD_CHANNEL_ID korrekt?" + detail;
     case 429: return "Rate-Limit erreicht — bitte kurz warten";
     default: return (body || "Unbekannter Fehler").slice(0, 200);
   }
