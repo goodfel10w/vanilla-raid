@@ -326,6 +326,168 @@ export async function setupMockApi(page, initialEntries = []) {
         return;
       }
 
+      if (action === 'edit-transaction') {
+        const { transactionId, amount, reason } = body;
+        const txIdx = dkpTransactions.findIndex(t => t.id === transactionId);
+        if (txIdx < 0) {
+          await route.fulfill({
+            status: 404,
+            contentType: 'application/json',
+            body: JSON.stringify({ error: 'Transaktion nicht gefunden' }),
+          });
+          return;
+        }
+        const tx = dkpTransactions[txIdx];
+        const oldAmount = tx.amount;
+        if (amount !== undefined) {
+          const parsed = Number(amount);
+          const newAmount = tx.type === 'earn' || tx.type === 'adjust' ? parsed : -parsed;
+          const diff = newAmount - oldAmount;
+          const bal = dkpBalances.find(b => b.playerName.toLowerCase() === tx.playerName.toLowerCase());
+          if (bal) {
+            bal.balance += diff;
+            bal.lastUpdated = new Date().toISOString();
+          }
+          tx.amount = newAmount;
+        }
+        if (reason !== undefined) tx.reason = reason.trim();
+        tx.editedBy = MOCK_USER.username;
+        tx.editedAt = new Date().toISOString();
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ok: true, transaction: { ...tx } }),
+        });
+        return;
+      }
+
+      if (action === 'delete-transaction') {
+        const { transactionId } = body;
+        const txIdx = dkpTransactions.findIndex(t => t.id === transactionId);
+        if (txIdx < 0) {
+          await route.fulfill({
+            status: 404,
+            contentType: 'application/json',
+            body: JSON.stringify({ error: 'Transaktion nicht gefunden' }),
+          });
+          return;
+        }
+        const tx = dkpTransactions[txIdx];
+        const bal = dkpBalances.find(b => b.playerName.toLowerCase() === tx.playerName.toLowerCase());
+        if (bal) {
+          bal.balance -= tx.amount;
+          bal.lastUpdated = new Date().toISOString();
+        }
+        dkpTransactions.splice(txIdx, 1);
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ok: true, reversed: tx, balance: bal ? { ...bal } : null }),
+        });
+        return;
+      }
+
+      if (action === 'adjust-balance') {
+        const { playerName, newBalance, reason } = body;
+        const key = playerName.trim().toLowerCase();
+        const existing = dkpBalances.find(b => b.playerName.toLowerCase() === key);
+        if (!existing) {
+          await route.fulfill({
+            status: 404,
+            contentType: 'application/json',
+            body: JSON.stringify({ error: 'Spieler nicht im DKP-System gefunden' }),
+          });
+          return;
+        }
+        const diff = Number(newBalance) - existing.balance;
+        existing.balance = Number(newBalance);
+        existing.lastUpdated = new Date().toISOString();
+
+        const txId = `tx-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        dkpTransactions.unshift({
+          id: txId,
+          playerName: playerName.trim(),
+          type: 'adjust',
+          amount: diff,
+          reason: (reason || 'Manuelle Anpassung').trim(),
+          createdBy: MOCK_USER.username,
+          timestamp: new Date().toISOString(),
+        });
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ok: true, balance: { ...existing } }),
+        });
+        return;
+      }
+
+      if (action === 'edit-player') {
+        const { playerName, newName, newClassName } = body;
+        const key = playerName.trim().toLowerCase();
+        const existing = dkpBalances.find(b => b.playerName.toLowerCase() === key);
+        if (!existing) {
+          await route.fulfill({
+            status: 404,
+            contentType: 'application/json',
+            body: JSON.stringify({ error: 'Spieler nicht im DKP-System gefunden' }),
+          });
+          return;
+        }
+        if (newClassName !== undefined) existing.className = newClassName;
+        if (newName && newName.trim().toLowerCase() !== key) {
+          const newKey = newName.trim().toLowerCase();
+          const conflict = dkpBalances.find(b => b.playerName.toLowerCase() === newKey);
+          if (conflict) {
+            await route.fulfill({
+              status: 400,
+              contentType: 'application/json',
+              body: JSON.stringify({ error: 'Ein Spieler mit diesem Namen existiert bereits' }),
+            });
+            return;
+          }
+          // Update transactions
+          dkpTransactions.forEach(t => {
+            if (t.playerName.toLowerCase() === key) t.playerName = newName.trim();
+          });
+          existing.playerName = newName.trim();
+        }
+        existing.lastUpdated = new Date().toISOString();
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ok: true, balance: { ...existing } }),
+        });
+        return;
+      }
+
+      if (action === 'delete-player') {
+        const { playerName, deleteTransactions } = body;
+        const key = playerName.trim().toLowerCase();
+        const idx = dkpBalances.findIndex(b => b.playerName.toLowerCase() === key);
+        if (idx < 0) {
+          await route.fulfill({
+            status: 404,
+            contentType: 'application/json',
+            body: JSON.stringify({ error: 'Spieler nicht im DKP-System gefunden' }),
+          });
+          return;
+        }
+        dkpBalances.splice(idx, 1);
+        if (deleteTransactions) {
+          for (let i = dkpTransactions.length - 1; i >= 0; i--) {
+            if (dkpTransactions[i].playerName.toLowerCase() === key) {
+              dkpTransactions.splice(i, 1);
+            }
+          }
+        }
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ok: true }),
+        });
+        return;
+      }
+
       // Fallback for unknown actions
       await route.fulfill({
         status: 200,
