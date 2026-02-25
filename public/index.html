@@ -323,9 +323,21 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .raid-signup-status.tent{color:var(--ylw)}
 .raid-signup-status.dec{color:var(--dps)}
 .raid-signup-status.bench{color:#ff9800}
+.raid-signup-status.conf{color:var(--grn);font-weight:600}
+.raid-signup-row.confirmed{background:rgba(76,175,80,.06);border-left:2px solid var(--grn)}
+.raid-deadline{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx3);margin-bottom:8px;padding:6px 10px;border-radius:6px;flex-wrap:wrap}
+.raid-deadline.open{background:rgba(76,175,80,.06);border:1px solid rgba(76,175,80,.15)}
+.raid-deadline.closed{background:rgba(229,115,115,.06);border:1px solid rgba(229,115,115,.15)}
+.dl-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600}
+.dl-badge.open{background:rgba(76,175,80,.15);color:var(--grn)}
+.dl-badge.closed{background:rgba(229,115,115,.15);color:var(--dps)}
 .raid-signup-actions{display:flex;gap:4px;margin-left:auto}
 .raid-signup-actions button{font:600 10px 'Nunito Sans',sans-serif;padding:3px 8px;border-radius:4px;border:none;cursor:pointer;opacity:.6;transition:all .2s}
 .raid-signup-actions button:hover{opacity:1}
+.btn-confirm{background:rgba(76,175,80,.15);color:var(--grn)}
+.btn-confirm:hover{background:rgba(76,175,80,.25)}
+.btn-unconfirm{background:rgba(255,255,255,.05);color:var(--tx3)}
+.btn-unconfirm:hover{background:rgba(255,255,255,.1);color:var(--tx2)}
 .btn-bench{background:rgba(255,152,0,.15);color:#ff9800}
 .btn-bench:hover{background:rgba(255,152,0,.25)}
 .btn-kick{background:rgba(229,115,115,.1);color:var(--dps)}
@@ -333,6 +345,8 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .raid-desc{font-size:13px;color:var(--tx2);line-height:1.5;margin-bottom:10px;padding:10px 14px;background:rgba(0,0,0,.15);border-radius:8px;border-left:3px solid var(--gold);white-space:pre-wrap}
 .raid-form textarea{display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:14px 'Nunito Sans',sans-serif;outline:none;transition:border-color .2s;resize:vertical;min-height:80px}
 .raid-form textarea:focus{border-color:rgba(201,168,76,.3)}
+.raid-form input[type="datetime-local"]{display:block;width:100%;padding:10px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font:14px 'Nunito Sans',sans-serif;outline:none;transition:border-color .2s}
+.raid-form input[type="datetime-local"]:focus{border-color:rgba(201,168,76,.3)}
 .orga-signup-card{margin-top:10px;padding:14px 16px}
 .orga-signup-card .sec-l{margin-bottom:8px}
 .raid-actions{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
@@ -342,6 +356,8 @@ input[type=text]:focus{border-color:rgba(201,168,76,.3)}
 .btn-signup:disabled{background:rgba(255,255,255,.05);color:#4a4458;cursor:not-allowed}
 .btn-unsignup{background:none;border:1px solid rgba(255,255,255,.1)!important;color:var(--tx3)}
 .btn-unsignup:hover{border-color:var(--dps)!important;color:var(--dps)}
+.btn-confirm-all{background:rgba(76,175,80,.15);color:var(--grn);border:1px solid rgba(76,175,80,.3)!important}
+.btn-confirm-all:hover{background:rgba(76,175,80,.25)}
 .btn-raid-edit{background:none;border:1px solid rgba(255,255,255,.1)!important;color:var(--tx3)}
 .btn-raid-edit:hover{color:var(--gold);border-color:rgba(201,168,76,.4)!important}
 .btn-raid-del{background:none;border:1px solid rgba(255,255,255,.06)!important;color:#c06060}
@@ -847,7 +863,7 @@ const TBC_RAIDS=[
 ];
 const RAID_API="/api/raids";
 let raids=[], raidView="list", raidEditId=null;
-let raidForm={instance:"",date:"",time:"20:00",maxPlayers:25,notes:"",description:""};
+let raidForm={instance:"",date:"",time:"20:00",maxPlayers:25,notes:"",description:"",deadline:""};
 let raidSizeFilter="all"; // "all"|"10"|"25"
 let raidCalMode="list"; // "list"|"week"|"month"
 let raidCalDate=new Date(); // reference date for calendar navigation
@@ -1831,6 +1847,11 @@ function fmtDate(ds){
   const dn=DAY_NAMES_SHORT[d.getDay()];
   return dn+", "+String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."+d.getFullYear();
 }
+function fmtDeadline(iso){
+  const d=new Date(iso);
+  const dn=DAY_NAMES_SHORT[d.getDay()];
+  return dn+", "+String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+". "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+" Uhr";
+}
 function isRaidPast(raid){
   const now=new Date();
   const rd=new Date(raid.date+"T"+raid.time+":00");
@@ -1877,7 +1898,7 @@ function renderRaids(){
     <button class="rt-btn${raidCalMode==="list"?" active":""}" onclick="raidCalMode='list';renderRaids()">Übersicht</button>
     <button class="rt-btn${raidCalMode==="week"?" active":""}" onclick="raidCalMode='week';renderRaids()">Woche</button>
     <button class="rt-btn${raidCalMode==="month"?" active":""}" onclick="raidCalMode='month';renderRaids()">Monat</button>
-    ${currentUser?`<button class="rt-btn" onclick="raidView='create';raidEditId=null;raidForm={instance:'',date:'',time:'20:00',maxPlayers:25,notes:'',description:''};renderRaids()">+ Raid erstellen</button>`:""}
+    ${currentUser?`<button class="rt-btn" onclick="raidView='create';raidEditId=null;raidForm={instance:'',date:'',time:'20:00',maxPlayers:25,notes:'',description:'',deadline:''};renderRaids()">+ Raid erstellen</button>`:""}
   </div>`;
 
   // Size filter
@@ -2083,10 +2104,13 @@ function renderRaidCard(raid,isPast){
   const benched=(raid.signups||[]).filter(s=>s.status==="benched");
   const declined=(raid.signups||[]).filter(s=>s.status==="declined");
   const tentative=signups.filter(s=>s.status==="tentative");
-  const confirmed=signups.filter(s=>s.status==="accepted");
+  const confirmedList=signups.filter(s=>s.status==="confirmed");
+  const accepted=signups.filter(s=>s.status==="accepted");
   const total=signups.length;
   const pct=Math.min(100,Math.round(total/raid.maxPlayers*100));
   const barCls=total>raid.maxPlayers?"over":total===raid.maxPlayers?"full":"";
+  const deadlinePassed=raid.deadline&&new Date()>new Date(raid.deadline);
+  const isOwner=currentUser&&raid.createdBy===currentUser.userId;
 
   let t=0,hl=0,dp=0;
   signups.forEach(s=>{
@@ -2101,7 +2125,6 @@ function renderRaidCard(raid,isPast){
 
   const inst=TBC_RAIDS.find(i=>i.n===raid.instance)||{n:raid.instance,tier:"?"};
   const mySignup=(raid.signups||[]).find(s=>s.userId===currentUser?.userId);
-  const isOwner=currentUser&&raid.createdBy===currentUser.userId;
 
   // Signup rows grouped by role
   let signupHtml="";
@@ -2114,17 +2137,19 @@ function renderRaidCard(raid,isPast){
       signupHtml+=`<div class="raid-signups-t" style="color:${RC[role]}">${RI[role]} ${role} (${rs.length})</div>`;
       rs.forEach(s=>{
         const isTent=s.status==="tentative";
+        const isConf=s.status==="confirmed";
         const specBadges=(s.offeredSpecs||[]).map(sp=>{
           const r=specRole(s.className,sp);
           const ico=specIcon(s.className,sp);
           const isAssigned=s.assignedSpec===sp;
           return`<span style="font-size:10px;padding:1px 5px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;background:${RC[r]}${isAssigned?"30":"10"};color:${RC[r]};${isAssigned?"font-weight:600;border:1px solid "+RC[r]:""}">${ico?`<img style="width:14px;height:14px;border-radius:2px" src="${ico}" alt="">`:""} ${sp}</span>`;
         }).join(" ");
-        signupHtml+=`<div class="raid-signup-row">
+        signupHtml+=`<div class="raid-signup-row${isConf?" confirmed":""}">
           <span class="raid-signup-name" style="color:${s.className?cc(s.className):"var(--tx)"}">${s.className?`<img class="wow-ico-sm" src="${clsIcon(s.className)}" alt="" loading="lazy">`:""} ${h(s.charName)}</span>
           ${s.className?`<span style="font-size:11px;color:var(--tx4)">${h(s.className)}</span>`:""}
           ${specBadges?`<span>${specBadges}</span>`:""}
           ${s.assignedSpec?`<span style="font-size:10px;color:var(--grn)">\u2713 ${h(s.assignedSpec)}</span>`:""}
+          ${isConf?`<span class="raid-signup-status conf">Best\u00E4tigt</span>`:""}
           ${isTent?`<span class="raid-signup-status tent">Vielleicht</span>`:""}
           ${s.addedBy?`<span style="font-size:10px;color:var(--tx4)">von ${h(s.addedBy)}</span>`:""}
           ${s.note?`<span style="font-size:11px;color:var(--tx4);font-style:italic">${h(s.note)}</span>`:""}
@@ -2133,6 +2158,7 @@ function renderRaidCard(raid,isPast){
             ${s.offeredSpecs.map(sp=>`<option value="${h(sp)}"${s.assignedSpec===sp?" selected":""}>${sp} (${specRole(s.className,sp)})</option>`).join("")}
           </select>`:""}
           ${isOwner&&!isPast?`<span class="raid-signup-actions">
+            ${isConf?`<button class="btn-unconfirm" onclick="unconfirmPlayer('${raid.id}','${s.userId}')">Zur\u00FCcknehmen</button>`:`<button class="btn-confirm" onclick="confirmPlayer('${raid.id}','${s.userId}')">Best\u00E4tigen</button>`}
             <button class="btn-bench" onclick="benchPlayer('${raid.id}','${s.userId}')">Bank</button>
             <button class="btn-kick" onclick="removePlayer('${raid.id}','${s.userId}')">Entfernen</button>
           </span>`:""}
@@ -2172,10 +2198,13 @@ function renderRaidCard(raid,isPast){
   let signupForm="";
   if(currentUser&&!isPast){
     if(mySignup){
-      const statusLbl=mySignup.status==="accepted"?"Angemeldet":mySignup.status==="tentative"?"Vielleicht":"Abgesagt";
-      const statusColor=mySignup.status==="accepted"?"var(--grn)":mySignup.status==="tentative"?"var(--ylw)":"var(--dps)";
+      const statusLbl=mySignup.status==="confirmed"?"Best\u00E4tigt":mySignup.status==="accepted"?"Angemeldet":mySignup.status==="tentative"?"Vielleicht":"Abgesagt";
+      const statusColor=mySignup.status==="confirmed"?"var(--grn)":mySignup.status==="accepted"?"var(--grn)":mySignup.status==="tentative"?"var(--ylw)":"var(--dps)";
       const mySpecInfo=mySignup.assignedSpec?mySignup.assignedSpec:mySignup.offeredSpecs?mySignup.offeredSpecs.join(", "):mySignup.role;
-      signupForm=`<div style="font-size:12px;color:${statusColor};margin-top:8px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,.15)">Du bist als <strong>${h(mySignup.charName)}</strong> (${h(mySpecInfo)}) ${statusLbl.toLowerCase()}${mySignup.assignedSpec?` \u2014 <span style="color:var(--grn)">Zugewiesen: ${h(mySignup.assignedSpec)}</span>`:""}</div>`;
+      signupForm=`<div style="font-size:12px;color:${statusColor};margin-top:8px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,.15)">Du bist als <strong>${h(mySignup.charName)}</strong> (${h(mySpecInfo)}) ${statusLbl.toLowerCase()}${mySignup.status==="confirmed"?" \u2705":""}${mySignup.assignedSpec?` \u2014 <span style="color:var(--grn)">Zugewiesen: ${h(mySignup.assignedSpec)}</span>`:""}</div>`;
+    }
+    if(!mySignup&&deadlinePassed&&!isOwner){
+      signupForm=`<div style="font-size:12px;color:var(--dps);margin-top:8px;padding:6px 10px;border-radius:6px;background:rgba(229,115,115,.08)">\u23F0 Anmeldefrist abgelaufen \u2014 Anmeldung nicht mehr m\u00F6glich.</div>`;
     }
   }
 
@@ -2195,19 +2224,25 @@ function renderRaidCard(raid,isPast){
   let actions="";
   if(currentUser&&!isPast){
     actions+=`<div class="raid-actions">`;
-    if(!mySignup){
+    const canSignup=!deadlinePassed||isOwner;
+    if(!mySignup&&canSignup){
       actions+=`<button class="btn-signup" onclick="showSignupForm('${raid.id}')">Anmelden</button>`;
-    }else{
-      if(mySignup.status!=="declined"){
+    }else if(mySignup){
+      if(mySignup.status!=="declined"&&canSignup){
         actions+=`<button class="btn-unsignup" onclick="unsignRaid('${raid.id}')">Abmelden</button>`;
       }
-      actions+=`<button class="btn-raid-edit" onclick="showSignupForm('${raid.id}')">Ändern</button>`;
+      if(canSignup){
+        actions+=`<button class="btn-raid-edit" onclick="showSignupForm('${raid.id}')">\u00C4ndern</button>`;
+      }
     }
     if(isOwner){
+      if(signups.length&&signups.some(s=>s.status!=="confirmed")){
+        actions+=`<button class="btn-confirm-all" onclick="confirmLineup('${raid.id}')">Aufstellung best\u00E4tigen</button>`;
+      }
       actions+=`<button class="btn-raid-edit" onclick="showOrgaSignupForm('${raid.id}')">Spieler anmelden</button>`;
       actions+=`<button class="btn-raid-edit" onclick="editRaid('${raid.id}')">Bearbeiten</button>`;
       actions+=`<button class="btn-discord" data-discord="${raid.id}" onclick="postToDiscord('${raid.id}')">${dcIco(14)} Discord</button>`;
-      actions+=`<button class="btn-raid-del" onclick="confirmDelRaid('${raid.id}')">Löschen</button>`;
+      actions+=`<button class="btn-raid-del" onclick="confirmDelRaid('${raid.id}')">L\u00F6schen</button>`;
     }
     actions+=`</div>`;
   }
@@ -2224,7 +2259,7 @@ function renderRaidCard(raid,isPast){
     <div class="raid-meta">
       <span>\u{1F4C5} ${fmtDate(raid.date)}</span>
       <span>\u{1F552} ${raid.time} Uhr</span>
-      <span>\u{1F465} <strong>${confirmed.length}</strong>${tentative.length?`<span style="color:var(--ylw)">+${tentative.length}</span>`:""} / ${raid.maxPlayers}</span>
+      <span>\u{1F465} ${confirmedList.length?`<span style="color:var(--grn)">${confirmedList.length}\u2713</span> `:""}<strong>${accepted.length+confirmedList.length}</strong>${tentative.length?`<span style="color:var(--ylw)">+${tentative.length}</span>`:""} / ${raid.maxPlayers}</span>
       <span style="font-size:11px;color:var(--tx4)">von ${h(raid.createdByName)}</span>
     </div>
     <div class="raid-bar"><div class="raid-bar-fill ${barCls}" style="width:${pct}%"></div></div>
@@ -2233,6 +2268,10 @@ function renderRaidCard(raid,isPast){
       <span style="background:rgba(102,187,106,.12);color:var(--heal)">\u{1F49A} ${hl}${is10?"":"/"+tgtHeal} Heiler</span>
       <span style="background:rgba(229,115,115,.12);color:var(--dps)">\u2694\uFE0F ${dp}${is10?"":"/"+tgtDps} DPS</span>
     </div>
+    ${raid.deadline?`<div class="raid-deadline ${deadlinePassed?"closed":"open"}">
+      <span>\u23F0 Anmeldefrist: ${fmtDeadline(raid.deadline)}</span>
+      ${deadlinePassed?`<span class="dl-badge closed">Geschlossen</span>`:`<span class="dl-badge open">Offen</span>`}
+    </div>`:""}
     ${raid.description?`<div class="raid-desc">${h(raid.description)}</div>`:""}
     ${raid.notes?`<div style="font-size:12px;color:var(--tx3);font-style:italic;margin-bottom:6px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,.1)">\u{1F4DD} \u201E${h(raid.notes)}\u201C</div>`:""}
     ${signupHtml}
@@ -2305,7 +2344,7 @@ function renderRaidComp(raid,signups,declined,counts){
     if(comp.lineup.length){
       html+=`<div class="rc-section">
         <div class="rc-section-t"><span style="color:var(--grn)">\u2705</span> Aufstellung (${comp.lineup.length}/${raid.maxPlayers})</div>
-        <div class="rc-lineup">${comp.lineup.map(s=>`<span class="rc-player in${s.status==="tentative"?" tentative":""}" style="color:${s.className?cc(s.className):"var(--tx)"}">${s.className?`<img class="wow-ico-sm" src="${clsIcon(s.className)}" alt="" loading="lazy">`:""} ${h(s.charName)} <span style="font-size:10px;color:var(--tx4)">${s.assignedSpec||s.role}</span></span>`).join("")}</div>
+        <div class="rc-lineup">${comp.lineup.map(s=>`<span class="rc-player in${s.status==="tentative"?" tentative":""}${s.status==="confirmed"?" confirmed":""}" style="color:${s.className?cc(s.className):"var(--tx)"}">${s.status==="confirmed"?"\u2705 ":""}${s.className?`<img class="wow-ico-sm" src="${clsIcon(s.className)}" alt="" loading="lazy">`:""} ${h(s.charName)} <span style="font-size:10px;color:var(--tx4)">${s.assignedSpec||s.role}</span></span>`).join("")}</div>
       </div>`;
     }
 
@@ -2331,7 +2370,8 @@ function buildRaidComp(raid,signups){
   const is10=max<=10;
   const tgtTank=is10?2:RR_TANK, tgtHeal=is10?2:RR_HEAL, tgtDps=is10?6:RR_DPS;
 
-  // Separate confirmed vs tentative (confirmed get priority)
+  // Separate by status priority: confirmed > accepted > tentative
+  const confirmedS=signups.filter(s=>s.status==="confirmed");
   const conf=signups.filter(s=>s.status==="accepted");
   const tent=signups.filter(s=>s.status==="tentative");
 
@@ -2351,7 +2391,13 @@ function buildRaidComp(raid,signups){
     return false;
   }
 
-  // Pass 1: place confirmed into their primary roles
+  // Pass 0: place confirmed (bestätigt) players first — they always get in
+  const confirmedRemaining=[];
+  confirmedS.forEach(s=>{
+    if(!tryPlace(s))confirmedRemaining.push(s);
+  });
+
+  // Pass 1: place accepted into their primary roles
   const confRemaining=[];
   conf.forEach(s=>{
     if(!tryPlace(s))confRemaining.push(s);
@@ -2364,7 +2410,7 @@ function buildRaidComp(raid,signups){
   });
 
   // Pass 3: fill remaining spots with overflow (up to max)
-  [...confRemaining,...tentRemaining].forEach(s=>{
+  [...confirmedRemaining,...confRemaining,...tentRemaining].forEach(s=>{
     if(lineup.length<max){
       lineup.push(s);
       roleFilled[s.role]++;
@@ -2384,8 +2430,8 @@ const KARA_TANKS=2, KARA_HEALERS=2, KARA_DPS=6, KARA_SIZE=10;
 function suggestKaraGroups(signups){
   // Separate by role
   const tanks=[], healers=[], dps=[];
-  // Confirmed first, then tentative
-  const sorted=[...signups.filter(s=>s.status==="accepted"),...signups.filter(s=>s.status==="tentative")];
+  // Confirmed first, then accepted, then tentative
+  const sorted=[...signups.filter(s=>s.status==="confirmed"),...signups.filter(s=>s.status==="accepted"),...signups.filter(s=>s.status==="tentative")];
   sorted.forEach(s=>{
     const role=s.assignedSpec?specRole(s.className,s.assignedSpec):s.role;
     if(role==="Tank")tanks.push(s);
@@ -2543,6 +2589,11 @@ function renderRaidForm(el){
       <input type="text" id="rf-max" value="${raidForm.maxPlayers}" oninput="raidForm.maxPlayers=parseInt(this.value)||25">
     </div>
     <div class="fld">
+      <span class="lbl">Anmeldefrist (optional)</span>
+      <span class="lbl-s">Nach Ablauf können sich Spieler nicht mehr anmelden. Du kannst danach die Aufstellung bestätigen.</span>
+      <input type="datetime-local" id="rf-deadline" value="${raidForm.deadline||""}" onchange="raidForm.deadline=this.value">
+    </div>
+    <div class="fld">
       <span class="lbl">Beschreibung (optional)</span>
       <textarea id="rf-desc" placeholder="Beschreibe den Raid — z.B. Loot-Regeln, besondere Anforderungen, Bossstrategie..." oninput="raidForm.description=this.value">${h(raidForm.description)}</textarea>
     </div>
@@ -2580,6 +2631,7 @@ window.submitRaid=async function(){
       maxPlayers:raidForm.maxPlayers,
       notes:raidForm.notes,
       description:raidForm.description,
+      deadline:raidForm.deadline||undefined,
     });
     toast(raidEditId?"Raid aktualisiert \u2713":"Raid erstellt \u2713");
     raidView="list";raidEditId=null;
@@ -2598,7 +2650,7 @@ window.editRaid=function(id){
   const raid=raids.find(r=>r.id===id);
   if(!raid)return;
   raidEditId=id;
-  raidForm={instance:raid.instance,date:raid.date,time:raid.time,maxPlayers:raid.maxPlayers,notes:raid.notes||"",description:raid.description||""};
+  raidForm={instance:raid.instance,date:raid.date,time:raid.time,maxPlayers:raid.maxPlayers,notes:raid.notes||"",description:raid.description||"",deadline:raid.deadline?raid.deadline.slice(0,16):""};
   raidView="edit";
   renderRaids();
 };
@@ -2784,6 +2836,43 @@ window.assignSpec=async function(raidId,targetUserId,assignedSpec){
     await loadRaids();
     renderRaids();
   }catch(e){toast("Fehler: "+e.message)}
+};
+
+// ── Organizer: confirm player ──
+window.confirmPlayer=async function(raidId,targetUserId){
+  try{
+    await saveRaid({action:"confirm",raidId,targetUserId});
+    toast("Spieler best\u00E4tigt \u2713");
+    await loadRaids();
+    renderRaids();
+  }catch(e){toast("Fehler: "+e.message)}
+};
+
+// ── Organizer: unconfirm player ──
+window.unconfirmPlayer=async function(raidId,targetUserId){
+  try{
+    await saveRaid({action:"unconfirm",raidId,targetUserId});
+    toast("Best\u00E4tigung zur\u00FCckgenommen");
+    await loadRaids();
+    renderRaids();
+  }catch(e){toast("Fehler: "+e.message)}
+};
+
+// ── Organizer: confirm entire lineup ──
+window.confirmLineup=async function(raidId){
+  const raid=raids.find(r=>r.id===raidId);
+  if(!raid)return;
+  const comp=buildRaidComp(raid,(raid.signups||[]).filter(s=>s.status!=="declined"&&s.status!=="benched"));
+  const userIds=comp.lineup.map(s=>s.userId);
+  if(!userIds.length){toast("Keine Spieler in der Aufstellung");return}
+  showModal("Aufstellung best\u00E4tigen",`Sollen <strong>${userIds.length} Spieler</strong> aus der vorgeschlagenen Aufstellung best\u00E4tigt werden?`,async()=>{
+    try{
+      await saveRaid({action:"confirm-lineup",raidId,userIds});
+      toast(userIds.length+" Spieler best\u00E4tigt \u2713");
+      await loadRaids();
+      renderRaids();
+    }catch(e){toast("Fehler: "+e.message)}
+  });
 };
 
 // ── Organizer: bench player ──
