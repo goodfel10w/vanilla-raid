@@ -56,6 +56,25 @@ export default async (req) => {
       const body = await req.json();
       const { action } = body;
 
+      // ── Lock / Unlock ──
+      if (action === "lock" || action === "unlock") {
+        const { raidId } = body;
+        if (!raidId) {
+          return new Response(JSON.stringify({ error: "Raid-ID fehlt" }), { status: 400, headers });
+        }
+        const raid = await store.get(raidId, { type: "json" });
+        if (!raid) {
+          return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
+        }
+        if (raid.createdBy !== user.userId) {
+          return new Response(JSON.stringify({ error: "Nur der Ersteller kann den Raid sperren" }), { status: 403, headers });
+        }
+        raid.locked = action === "lock";
+        await store.setJSON(raidId, raid);
+        autoUpdateDiscord(raidId, raid);
+        return new Response(JSON.stringify(raid), { status: 200, headers });
+      }
+
       // ── Signup ──
       if (action === "signup") {
         const { raidId, charName, className, role, offeredSpecs, status, note } = body;
@@ -84,6 +103,10 @@ export default async (req) => {
         const raid = await store.get(raidId, { type: "json" });
         if (!raid) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
+        }
+        // Block signups when raid is locked (raid creator exempt)
+        if (raid.locked && raid.createdBy !== user.userId) {
+          return new Response(JSON.stringify({ error: "Raid ist gesperrt — Anmeldung nicht möglich" }), { status: 403, headers });
         }
         // Block signups after deadline (raid creator exempt)
         if (raid.deadline && raid.createdBy !== user.userId) {
@@ -368,6 +391,7 @@ export default async (req) => {
 
       let id;
       let existingSignups = [];
+      let existingLocked = false;
       if (body.id && typeof body.id === "string") {
         const existing = await store.get(body.id, { type: "json" });
         if (!existing) {
@@ -378,6 +402,7 @@ export default async (req) => {
         }
         id = body.id;
         existingSignups = existing.signups || [];
+        existingLocked = existing.locked || false;
       } else {
         id = randomUUID();
       }
@@ -389,6 +414,7 @@ export default async (req) => {
         time,
         maxPlayers: mp,
         deadline: cleanDeadline || undefined,
+        locked: existingLocked || undefined,
         notes: (notes || "").trim().slice(0, 500),
         description: (description || "").trim().slice(0, 2000),
         createdBy: user.userId,
@@ -446,7 +472,7 @@ async function autoUpdateDiscord(raidId, raid) {
     const siteUrl = process.env.URL || process.env.DEPLOY_PRIME_URL || "";
     const embed = buildRaidEmbed(raid, siteUrl);
     const botToken = process.env.DISCORD_BOT_TOKEN;
-    const buttons = buildRaidButtons(raidId);
+    const buttons = buildRaidButtons(raidId, raid.locked);
 
     let res;
     if (botToken && mapping.channelId) {
