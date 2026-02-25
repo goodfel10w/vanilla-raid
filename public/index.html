@@ -702,6 +702,76 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
   .adm-role-actions{flex-wrap:wrap}
 }
 
+/* Kara Groups */
+.kara-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+.kara-week-nav{display:flex;align-items:center;gap:8px}
+.kara-week-nav button{background:none;border:1px solid rgba(255,255,255,.08);color:var(--tx2);width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.kara-week-nav button:hover{border-color:rgba(201,168,76,.4);color:var(--gold)}
+.kara-week-label{font-size:14px;font-weight:600;color:var(--tx);min-width:200px;text-align:center}
+.kara-week-label small{display:block;font-size:11px;color:var(--tx3);font-weight:400}
+.kara-actions{display:flex;gap:8px;flex-wrap:wrap}
+.kara-btn{padding:8px 16px;border-radius:6px;border:1px solid rgba(201,168,76,.3);background:rgba(201,168,76,.08);color:var(--gold);cursor:pointer;font:600 12px 'Nunito Sans',sans-serif;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.kara-btn:hover{background:rgba(201,168,76,.15);border-color:rgba(201,168,76,.5)}
+.kara-btn:disabled{opacity:.4;cursor:not-allowed}
+.kara-btn.primary{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--bg);border-color:var(--gold-d)}
+.kara-btn.primary:hover{filter:brightness(1.1)}
+.kara-btn.danger{border-color:rgba(229,115,115,.3);background:rgba(229,115,115,.08);color:var(--dps)}
+.kara-btn.danger:hover{background:rgba(229,115,115,.15);border-color:rgba(229,115,115,.5)}
+.kara-filter{margin-bottom:16px}
+.kara-filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--tx3)}
+.kara-filter select{background:rgba(0,0,0,.2);color:var(--tx);border:1px solid var(--bdr);border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer}
+.kara-filter select:focus{outline:none;border-color:rgba(201,168,76,.4)}
+.kara-layout{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;min-height:400px}
+.kara-pool,.kara-group{background:var(--card);border-radius:12px;border:1px solid var(--bdr);padding:14px;min-height:300px}
+.kara-pool{grid-column:1}
+.kara-pool-title{font-size:12px;color:var(--tx2);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.kara-pool-count{font-size:11px;color:var(--tx4);font-weight:400;letter-spacing:0;text-transform:none}
+.kara-group-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.kara-group-title{font-size:13px;font-weight:700;color:var(--gold);display:flex;align-items:center;gap:6px}
+.kara-group-count{font-size:11px;color:var(--tx4);font-weight:400}
+.kara-role-bar{display:flex;gap:8px;margin-bottom:10px;font-size:11px}
+.kara-role-tag{padding:2px 8px;border-radius:4px;font-weight:600}
+.kara-role-tag.ok{opacity:1}
+.kara-role-tag.need{opacity:.5}
+.kara-dropzone{min-height:200px;border:2px dashed transparent;border-radius:8px;transition:all .15s;padding:4px}
+.kara-dropzone.drag-over{border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.04)}
+.kara-dropzone.pool-zone{min-height:100px}
+.kara-player{
+  display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;
+  background:rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.04);margin-bottom:4px;
+  cursor:grab;user-select:none;font-size:12px;transition:all .15s;position:relative;
+}
+.kara-player:active{cursor:grabbing}
+.kara-player.dragging{opacity:.4}
+.kara-player.drag-preview{opacity:1;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.kara-player .kp-name{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kara-player .kp-role{font-size:10px;padding:1px 6px;border-radius:3px;font-weight:600;flex-shrink:0}
+.kara-player .kp-spec{font-size:10px;color:var(--tx3);flex-shrink:0}
+.kara-player .kp-actions{display:flex;gap:2px;flex-shrink:0}
+.kara-player .kp-btn{background:none;border:none;cursor:pointer;font-size:12px;padding:2px 4px;color:var(--tx4);transition:color .15s;line-height:1}
+.kara-player .kp-btn:hover{color:var(--gold)}
+.kara-player.pinned{border-color:rgba(201,168,76,.3);background:rgba(201,168,76,.06)}
+.kara-player.pinned .kp-pin{color:var(--gold)}
+.kara-player.linked{border-left:3px solid}
+.kara-link-badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;margin-left:2px;flex-shrink:0}
+.kara-empty{text-align:center;color:var(--tx4);font-size:12px;padding:20px 8px}
+.kara-comp-summary{display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.kara-comp-card{text-align:center;padding:8px 16px;border-radius:8px;background:var(--card);border:1px solid var(--bdr);min-width:80px}
+.kara-comp-card .num{font-size:18px;font-weight:700}
+.kara-comp-card .lbl{font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px}
+@media(max-width:960px){
+  .kara-layout{grid-template-columns:1fr 1fr;grid-template-rows:auto auto}
+  .kara-pool{grid-column:1/3}
+}
+@media(max-width:640px){
+  .kara-layout{grid-template-columns:1fr}
+  .kara-pool{grid-column:1}
+  .kara-header{flex-direction:column;align-items:stretch}
+  .kara-week-nav{justify-content:center}
+  .kara-actions{justify-content:center}
+  .kara-role-bar{flex-wrap:wrap;gap:4px}
+}
+
 /* Hidden */
 .hidden{display:none!important}
 
@@ -735,6 +805,7 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
     <button class="tab" data-v="roster" role="tab" aria-selected="false" aria-controls="v-roster" id="tab-roster">Aufstellung</button>
     <button class="tab" data-v="heatmap" role="tab" aria-selected="false" aria-controls="v-heatmap" id="tab-heatmap">Heatmap</button>
     <button class="tab" data-v="analytics" role="tab" aria-selected="false" aria-controls="v-analytics" id="tab-analytics">Auswertung</button>
+    <button class="tab" data-v="kara" role="tab" aria-selected="false" aria-controls="v-kara" id="tab-kara">Kara Gruppen</button>
     <button class="tab" data-v="dkp" role="tab" aria-selected="false" aria-controls="v-dkp" id="tab-dkp">DKP</button>
     <button class="tab hidden" data-v="admin" role="tab" aria-selected="false" aria-controls="v-admin" id="tab-admin">Admin</button>
   </div>
@@ -745,6 +816,7 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
   <div id="v-roster" class="hidden" role="tabpanel" aria-labelledby="tab-roster"></div>
   <div id="v-heatmap" class="hidden" role="tabpanel" aria-labelledby="tab-heatmap"></div>
   <div id="v-analytics" class="hidden" role="tabpanel" aria-labelledby="tab-analytics"></div>
+  <div id="v-kara" class="hidden" role="tabpanel" aria-labelledby="tab-kara"></div>
   <div id="v-dkp" class="hidden" role="tabpanel" aria-labelledby="tab-dkp"></div>
   <div id="v-admin" class="hidden" role="tabpanel" aria-labelledby="tab-admin"></div>
 </div>
@@ -1192,7 +1264,7 @@ document.getElementById("tabs").addEventListener("click",e=>{
     t.classList.toggle("on",isOn);
     t.setAttribute("aria-selected",isOn?"true":"false");
   });
-  ["form","raids","roster","heatmap","analytics","dkp","admin"].forEach(v=>{
+  ["form","raids","roster","heatmap","analytics","kara","dkp","admin"].forEach(v=>{
     document.getElementById("v-"+v).classList.toggle("hidden",v!==view);
   });
   document.getElementById('htooltip')?.classList.remove('show','arrow-down','arrow-up');
@@ -1201,6 +1273,7 @@ document.getElementById("tabs").addEventListener("click",e=>{
   if(view==="roster")renderRoster();
   if(view==="heatmap")renderHeatmap();
   if(view==="analytics")renderAnalytics();
+  if(view==="kara")renderKara();
   if(view==="dkp")renderDkp();
   if(view==="admin")renderAdmin();
 });
@@ -1213,7 +1286,7 @@ function switchTab(v){
     t.setAttribute("aria-selected",isOn?"true":"false");
     if(isOn && v==="form") t.textContent=editId?"Bearbeiten":"Eintragen";
   });
-  ["form","raids","roster","heatmap","analytics","dkp","admin"].forEach(x=>{
+  ["form","raids","roster","heatmap","analytics","kara","dkp","admin"].forEach(x=>{
     document.getElementById("v-"+x).classList.toggle("hidden",x!==v);
   });
 }
@@ -1225,6 +1298,7 @@ function updateAll(){
   if(view==="roster")renderRoster();
   if(view==="heatmap")renderHeatmap();
   if(view==="analytics")renderAnalytics();
+  if(view==="kara")renderKara();
   if(view==="dkp")renderDkp();
   if(view==="admin")renderAdmin();
   updateAdminTabVisibility();
@@ -4067,6 +4141,630 @@ window.postToDiscord=async function(raidId){
     if(btn){btn.disabled=false;btn.innerHTML=dcIco(14)+" Discord";}
   }
 };
+
+// ══════════════════════════════
+//  KARAZHAN GROUP PLANNER
+// ══════════════════════════════
+
+// Kara group planner constants (reuses KARA_TANKS/KARA_HEALERS/KARA_DPS/KARA_SIZE from above)
+const KARA_GROUPS_COUNT=3;
+const LINK_COLORS=["#e57373","#64b5f6","#81c784","#ffb74d","#ce93d8","#4dd0e1","#fff176","#a1887f"];
+
+// Kara state
+let karaWeekOffset=0; // 0 = current ID week, -1 = last week, +1 = next week
+let karaGroups=[[],[],[]]; // 3 arrays of {entryId, pinned}
+let karaLinks=[]; // [{ids:[entryId,entryId,...], color}]
+let karaFilterDay="", karaFilterTime="";
+let karaDragEntryId=null;
+
+// ── ID Week helpers (Wed 03:00 → Tue 02:59) ──
+function getIdWeekStart(offset){
+  const now=new Date();
+  // Find current Wednesday: day 0=Sun, 3=Wed
+  const d=new Date(now.getFullYear(),now.getMonth(),now.getDate(),3,0,0);
+  const dow=d.getDay(); // 0=Sun
+  // Days since last Wednesday
+  const daysSinceWed=(dow+4)%7; // Wed=0, Thu=1, ..., Tue=6
+  d.setDate(d.getDate()-daysSinceWed);
+  // If we're before Wednesday 3:00 AM this week, we're still in last week's ID
+  if(now<d) d.setDate(d.getDate()-7);
+  // Apply offset
+  d.setDate(d.getDate()+offset*7);
+  return d;
+}
+function getIdWeekEnd(start){
+  const end=new Date(start);
+  end.setDate(end.getDate()+6);
+  return end;
+}
+function formatDate(d){
+  return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
+}
+function karaWeekKey(offset){
+  const s=getIdWeekStart(offset);
+  return 'kara_'+s.getFullYear()+'_'+String(s.getMonth()+1).padStart(2,'0')+'_'+String(s.getDate()).padStart(2,'0');
+}
+
+// ── Persistence (localStorage) ──
+function saveKaraState(){
+  const key=karaWeekKey(karaWeekOffset);
+  const data={groups:karaGroups,links:karaLinks};
+  localStorage.setItem(key,JSON.stringify(data));
+}
+function loadKaraState(){
+  const key=karaWeekKey(karaWeekOffset);
+  const raw=localStorage.getItem(key);
+  if(raw){
+    try{
+      const data=JSON.parse(raw);
+      karaGroups=data.groups||[[],[],[]];
+      karaLinks=data.links||[];
+      // Ensure 3 groups exist
+      while(karaGroups.length<KARA_GROUPS_COUNT)karaGroups.push([]);
+    }catch(e){karaGroups=[[],[],[]];karaLinks=[];}
+  }else{
+    karaGroups=[[],[],[]];
+    karaLinks=[];
+  }
+  // Prune entries that no longer exist in the roster
+  const validIds=new Set(entries.map(e=>e.id));
+  karaGroups.forEach((g,gi)=>{
+    karaGroups[gi]=g.filter(p=>validIds.has(p.entryId));
+  });
+  karaLinks=karaLinks.filter(lk=>lk.ids.every(id=>validIds.has(id)));
+}
+
+// ── Pool: entries not assigned to any group ──
+function karaAssignedIds(){
+  const s=new Set();
+  karaGroups.forEach(g=>g.forEach(p=>s.add(p.entryId)));
+  return s;
+}
+function karaPool(){
+  const assigned=karaAssignedIds();
+  let pool=entries.filter(e=>!assigned.has(e.id));
+  // Apply optional day/time filter
+  if(karaFilterDay){
+    pool=pool.filter(e=>{
+      if(!e.availability)return false;
+      if(karaFilterTime){
+        // Check if available at specific hour (all 4 quarters)
+        const qs=hourQuarters(karaFilterTime).map(q=>karaFilterDay+'_'+q);
+        return qs.every(q=>e.availability[q]==='yes'||e.availability[q]===true||e.availability[q]==='tentative');
+      }
+      // Any availability on this day
+      return SLOTS.some(s=>e.availability[karaFilterDay+'_'+s]);
+    });
+  }
+  return pool;
+}
+
+// ── Role counting for a group ──
+function karaGroupRoles(group){
+  let t=0,hl=0,dp=0;
+  group.forEach(p=>{
+    const entry=entries.find(e=>e.id===p.entryId);
+    if(!entry)return;
+    const roles=entry.roles||[];
+    if(roles.includes("Tank"))t++;
+    if(roles.includes("Heiler"))hl++;
+    if(roles.includes("DPS"))dp++;
+  });
+  return{t,hl,dp};
+}
+
+// ── Link helpers ──
+function getEntryLinkColor(entryId){
+  const lk=karaLinks.find(l=>l.ids.includes(entryId));
+  return lk?lk.color:null;
+}
+function getEntryLinkGroup(entryId){
+  return karaLinks.find(l=>l.ids.includes(entryId))||null;
+}
+function nextLinkColor(){
+  const used=new Set(karaLinks.map(l=>l.color));
+  return LINK_COLORS.find(c=>!used.has(c))||LINK_COLORS[karaLinks.length%LINK_COLORS.length];
+}
+
+// ── Player card HTML ──
+function karaPlayerHtml(entryId,inGroup,pinned){
+  const entry=entries.find(e=>e.id===entryId);
+  if(!entry)return'';
+  const roles=entry.roles||[];
+  const specs=entry.specs||[];
+  const linkColor=getEntryLinkColor(entryId);
+  const linkGroup=getEntryLinkGroup(entryId);
+  const pinnedCls=pinned?'pinned':'';
+  const linkedCls=linkColor?'linked':'';
+  const linkedStyle=linkColor?`border-left-color:${linkColor}`:'';
+  // Primary role badge
+  const mainRole=roles[0]||'DPS';
+  const roleColor=RC[mainRole]||'#888';
+  // Spec text
+  const specText=specs.length?specs[0]:'';
+  let html=`<div class="kara-player ${pinnedCls} ${linkedCls}" draggable="true" data-entry-id="${entryId}" style="${linkedStyle}">`;
+  html+=`<img class="wow-ico-sm" src="${clsIcon(entry.className)}" alt="${h(entry.className)}">`;
+  html+=`<span class="kp-name" style="color:${cc(entry.className)}">${h(entry.charName)}</span>`;
+  if(specText) html+=`<span class="kp-spec">${h(specText)}</span>`;
+  html+=`<span class="kp-role" style="background:${roleColor}22;color:${roleColor}">${mainRole}</span>`;
+  if(linkGroup){
+    html+=`<span class="kara-link-badge" style="background:${linkColor}33;color:${linkColor}">L</span>`;
+  }
+  html+=`<span class="kp-actions">`;
+  if(inGroup){
+    html+=`<button class="kp-btn kp-pin" title="${pinned?'Lösen':'Fixieren'}" data-pin="${entryId}">${pinned?'\u{1F4CC}':'\u{1F4CD}'}</button>`;
+    html+=`<button class="kp-btn" title="Zurück zum Pool" data-unassign="${entryId}">\u2716</button>`;
+  }
+  html+=`<button class="kp-btn" title="Verknüpfen" data-link="${entryId}">\u{1F517}</button>`;
+  html+=`</span>`;
+  html+=`</div>`;
+  return html;
+}
+
+// ══════════════════════════════
+//  RENDER KARA
+// ══════════════════════════════
+function renderKara(){
+  const el=document.getElementById("v-kara");
+  loadKaraState();
+  const weekStart=getIdWeekStart(karaWeekOffset);
+  const weekEnd=getIdWeekEnd(weekStart);
+  const pool=karaPool();
+
+  // Week navigation
+  let html=`<div class="kara-header">
+    <div class="kara-week-nav">
+      <button onclick="karaWeekOffset--;renderKara()">\u25C0</button>
+      <div class="kara-week-label">
+        ID-Woche
+        <small>${formatDate(weekStart)} \u2013 ${formatDate(weekEnd)}</small>
+      </div>
+      <button onclick="karaWeekOffset++;renderKara()">\u25B6</button>
+    </div>
+    <div class="kara-actions">
+      <button class="kara-btn primary" onclick="karaAutoGenerate()" title="Verbleibende Slots optimal füllen">\u2728 Auto-Verteilen</button>
+      <button class="kara-btn danger" onclick="karaReset()" title="Alle Zuweisungen zurücksetzen">\u21BA Zurücksetzen</button>
+    </div>
+  </div>`;
+
+  // Optional filter
+  html+=`<div class="kara-filter"><div class="kara-filter-row">
+    <span>Filter:</span>
+    <select onchange="karaFilterDay=this.value;karaFilterTime='';renderKara()">
+      <option value="">Alle Spieler</option>
+      ${DAYS.map(d=>`<option value="${d}"${karaFilterDay===d?' selected':''}>${d}</option>`).join('')}
+    </select>`;
+  if(karaFilterDay){
+    html+=`<select onchange="karaFilterTime=this.value;renderKara()">
+      <option value="">Jede Uhrzeit</option>
+      ${HOUR_LABELS.map(hl=>`<option value="${hl}"${karaFilterTime===hl?' selected':''}>${hl}:00</option>`).join('')}
+    </select>`;
+  }
+  html+=`</div></div>`;
+
+  // Layout: pool + 3 groups
+  html+=`<div class="kara-layout">`;
+
+  // Pool
+  html+=`<div class="kara-pool">
+    <div class="kara-pool-title">Spieler-Pool <span class="kara-pool-count">${pool.length}</span></div>
+    <div class="kara-dropzone pool-zone" data-kara-drop="pool">`;
+  if(pool.length===0){
+    html+=`<div class="kara-empty">${entries.length===0?'Keine Einträge vorhanden':'Alle Spieler sind verteilt'}</div>`;
+  } else {
+    pool.forEach(e=>{
+      html+=karaPlayerHtml(e.id,false,false);
+    });
+  }
+  html+=`</div></div>`;
+
+  // 3 Kara groups
+  for(let gi=0;gi<KARA_GROUPS_COUNT;gi++){
+    const group=karaGroups[gi]||[];
+    const roles=karaGroupRoles(group);
+    const full=group.length>=10;
+
+    html+=`<div class="kara-group">
+      <div class="kara-group-hdr">
+        <div class="kara-group-title">Karazhan ${gi+1} <span class="kara-group-count">${group.length}/10</span></div>
+      </div>
+      <div class="kara-role-bar">
+        <span class="kara-role-tag ${roles.t>=KARA_TANKS?'ok':'need'}" style="background:var(--tank)22;color:var(--tank)">\u{1F6E1}\uFE0F ${roles.t}/${KARA_TANKS}T</span>
+        <span class="kara-role-tag ${roles.hl>=KARA_HEALERS?'ok':'need'}" style="background:var(--heal)22;color:var(--heal)">\u{1F49A} ${roles.hl}/${KARA_HEALERS}H</span>
+        <span class="kara-role-tag ${roles.dp>=KARA_DPS?'ok':'need'}" style="background:var(--dps)22;color:var(--dps)">\u2694\uFE0F ${roles.dp}/${KARA_DPS}D</span>
+      </div>
+      <div class="kara-dropzone" data-kara-drop="group-${gi}">`;
+    if(group.length===0){
+      html+=`<div class="kara-empty">Spieler hierher ziehen</div>`;
+    } else {
+      group.forEach(p=>{
+        html+=karaPlayerHtml(p.entryId,true,p.pinned);
+      });
+    }
+    html+=`</div></div>`;
+  }
+
+  html+=`</div>`; // close kara-layout
+
+  // Summary
+  const totalAssigned=karaGroups.reduce((s,g)=>s+g.length,0);
+  html+=`<div class="kara-comp-summary">
+    <div class="kara-comp-card"><div class="num">${totalAssigned}</div><div class="lbl">Verteilt</div></div>
+    <div class="kara-comp-card"><div class="num">${pool.length}</div><div class="lbl">Pool</div></div>
+    <div class="kara-comp-card"><div class="num">${karaLinks.length}</div><div class="lbl">Links</div></div>
+  </div>`;
+
+  el.innerHTML=html;
+
+  // Attach drag & drop handlers
+  karaInitDragDrop();
+}
+
+// ══════════════════════════════
+//  DRAG & DROP
+// ══════════════════════════════
+function karaInitDragDrop(){
+  const karaEl=document.getElementById("v-kara");
+
+  // Drag start
+  karaEl.querySelectorAll('.kara-player[draggable]').forEach(card=>{
+    card.addEventListener('dragstart',e=>{
+      karaDragEntryId=card.dataset.entryId;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain',card.dataset.entryId);
+    });
+    card.addEventListener('dragend',()=>{
+      card.classList.remove('dragging');
+      karaDragEntryId=null;
+      karaEl.querySelectorAll('.drag-over').forEach(z=>z.classList.remove('drag-over'));
+    });
+  });
+
+  // Drop zones
+  karaEl.querySelectorAll('.kara-dropzone').forEach(zone=>{
+    zone.addEventListener('dragover',e=>{
+      e.preventDefault();
+      e.dataTransfer.dropEffect='move';
+      zone.classList.add('drag-over');
+    });
+    zone.addEventListener('dragleave',e=>{
+      if(!zone.contains(e.relatedTarget))zone.classList.remove('drag-over');
+    });
+    zone.addEventListener('drop',e=>{
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      const entryId=e.dataTransfer.getData('text/plain');
+      if(!entryId)return;
+      const target=zone.dataset.karaDrop;
+      karaMoveEntry(entryId,target);
+    });
+  });
+
+  // Button handlers (pin, unassign, link) via event delegation
+  karaEl.addEventListener('click',function(ev){
+    const pinBtn=ev.target.closest('[data-pin]');
+    if(pinBtn){karaTogglePin(pinBtn.dataset.pin);return}
+    const unBtn=ev.target.closest('[data-unassign]');
+    if(unBtn){karaMoveEntry(unBtn.dataset.unassign,'pool');return}
+    const lkBtn=ev.target.closest('[data-link]');
+    if(lkBtn){karaStartLink(lkBtn.dataset.link);return}
+  });
+}
+
+function karaMoveEntry(entryId,target){
+  // Remove from current location
+  karaGroups.forEach((g,gi)=>{
+    karaGroups[gi]=g.filter(p=>p.entryId!==entryId);
+  });
+
+  if(target==='pool'){
+    // Just remove from groups, it goes back to pool
+  }else if(target.startsWith('group-')){
+    const gi=parseInt(target.split('-')[1]);
+    if(karaGroups[gi].length>=10){toast('Gruppe ist voll (10/10)');saveKaraState();renderKara();return}
+    // Find if the entry was pinned
+    const wasPinned=false; // freshly moved entries are unpinned
+    karaGroups[gi].push({entryId,pinned:wasPinned});
+
+    // Move linked players together
+    const link=getEntryLinkGroup(entryId);
+    if(link){
+      link.ids.forEach(lid=>{
+        if(lid===entryId)return;
+        // Remove linked player from all groups
+        let alreadyInTarget=false;
+        karaGroups.forEach((g,gj)=>{
+          const idx=g.findIndex(p=>p.entryId===lid);
+          if(idx>=0){
+            if(gj===gi){alreadyInTarget=true;return}
+            g.splice(idx,1);
+          }
+        });
+        if(!alreadyInTarget&&karaGroups[gi].length<10){
+          karaGroups[gi].push({entryId:lid,pinned:false});
+        }
+      });
+    }
+  }
+  saveKaraState();
+  renderKara();
+}
+
+function karaTogglePin(entryId){
+  karaGroups.forEach(g=>{
+    g.forEach(p=>{
+      if(p.entryId===entryId) p.pinned=!p.pinned;
+    });
+  });
+  saveKaraState();
+  renderKara();
+}
+
+// ── Linking system ──
+let karaLinkPending=null; // first click stores entryId here
+
+function karaStartLink(entryId){
+  const existingLink=getEntryLinkGroup(entryId);
+
+  if(existingLink){
+    // Already linked — show options: unlink or add to link
+    if(karaLinkPending&&karaLinkPending!==entryId){
+      // Merge into existing link
+      const pendingLink=getEntryLinkGroup(karaLinkPending);
+      if(pendingLink&&pendingLink===existingLink){
+        // Same link, just cancel
+        karaLinkPending=null;
+        toast('Bereits verknüpft');
+        return;
+      }
+      if(pendingLink){
+        // Merge two link groups
+        pendingLink.ids.forEach(id=>{
+          if(!existingLink.ids.includes(id))existingLink.ids.push(id);
+        });
+        karaLinks=karaLinks.filter(l=>l!==pendingLink);
+      }else{
+        if(!existingLink.ids.includes(karaLinkPending))existingLink.ids.push(karaLinkPending);
+      }
+      karaLinkPending=null;
+      saveKaraState();
+      renderKara();
+      toast('Verknüpft');
+      return;
+    }
+    // Remove from link
+    existingLink.ids=existingLink.ids.filter(id=>id!==entryId);
+    if(existingLink.ids.length<2) karaLinks=karaLinks.filter(l=>l!==existingLink);
+    karaLinkPending=null;
+    saveKaraState();
+    renderKara();
+    toast('Verknüpfung gelöst');
+    return;
+  }
+
+  if(karaLinkPending===null){
+    // First click
+    karaLinkPending=entryId;
+    toast('Klicke einen zweiten Spieler zum Verknüpfen');
+    return;
+  }
+
+  if(karaLinkPending===entryId){
+    karaLinkPending=null;
+    toast('Verknüpfung abgebrochen');
+    return;
+  }
+
+  // Second click — create link
+  const pendingLink=getEntryLinkGroup(karaLinkPending);
+  if(pendingLink){
+    // Add to existing link
+    pendingLink.ids.push(entryId);
+  }else{
+    karaLinks.push({ids:[karaLinkPending,entryId],color:nextLinkColor()});
+  }
+  karaLinkPending=null;
+  saveKaraState();
+  renderKara();
+  toast('Spieler verknüpft');
+}
+
+// ══════════════════════════════
+//  AUTO-GENERATE ALGORITHM
+// ══════════════════════════════
+function karaAutoGenerate(){
+  loadKaraState();
+
+  // Collect pool entries (not assigned or not pinned-assigned)
+  const assigned=karaAssignedIds();
+  const pinnedIds=new Set();
+  karaGroups.forEach(g=>g.forEach(p=>{if(p.pinned)pinnedIds.add(p.entryId)}));
+
+  // Remove non-pinned entries from groups (they'll be reassigned)
+  karaGroups.forEach((g,gi)=>{
+    karaGroups[gi]=g.filter(p=>p.pinned);
+  });
+
+  // Build list of available players (all entries minus pinned ones)
+  let available=entries.filter(e=>!pinnedIds.has(e.id));
+
+  // Apply day/time filter if set
+  if(karaFilterDay){
+    available=available.filter(e=>{
+      if(!e.availability)return false;
+      if(karaFilterTime){
+        const qs=hourQuarters(karaFilterTime).map(q=>karaFilterDay+'_'+q);
+        return qs.every(q=>e.availability[q]==='yes'||e.availability[q]===true||e.availability[q]==='tentative');
+      }
+      return SLOTS.some(s=>e.availability[karaFilterDay+'_'+s]);
+    });
+  }
+
+  // Respect links: group linked players together
+  const linkedSets=karaLinks.map(lk=>({ids:lk.ids.filter(id=>!pinnedIds.has(id)),color:lk.color}));
+
+  // Classify available players by primary role
+  function primaryRole(entry){
+    const roles=entry.roles||[];
+    if(roles.includes('Tank'))return'Tank';
+    if(roles.includes('Heiler'))return'Heiler';
+    return'DPS';
+  }
+
+  const tanks=available.filter(e=>primaryRole(e)==='Tank');
+  const healers=available.filter(e=>primaryRole(e)==='Heiler');
+  const dps=available.filter(e=>primaryRole(e)==='DPS');
+
+  // Score a group's composition
+  function groupScore(group){
+    const roles=karaGroupRoles(group);
+    let score=0;
+    // Penalize missing roles
+    score-=Math.max(0,KARA_TANKS-roles.t)*10;
+    score-=Math.max(0,KARA_HEALERS-roles.hl)*10;
+    score-=Math.max(0,KARA_DPS-roles.dp)*8;
+    // Penalize excess
+    score-=Math.max(0,roles.t-KARA_TANKS)*3;
+    score-=Math.max(0,roles.hl-KARA_HEALERS)*3;
+    // Bonus for class diversity
+    const classes=new Set();
+    group.forEach(p=>{
+      const entry=entries.find(e=>e.id===p.entryId);
+      if(entry)classes.add(entry.className);
+    });
+    score+=classes.size*2;
+    return score;
+  }
+
+  // Find which group needs a role most
+  function needsRole(role){
+    let bestGi=-1,bestNeed=0;
+    for(let gi=0;gi<KARA_GROUPS_COUNT;gi++){
+      if(karaGroups[gi].length>=10)continue;
+      const roles=karaGroupRoles(karaGroups[gi]);
+      let need=0;
+      if(role==='Tank')need=Math.max(0,KARA_TANKS-roles.t);
+      if(role==='Heiler')need=Math.max(0,KARA_HEALERS-roles.hl);
+      if(role==='DPS')need=Math.max(0,KARA_DPS-roles.dp);
+      if(need>bestNeed||(need===bestNeed&&karaGroups[gi].length<(bestGi>=0?karaGroups[bestGi].length:99))){
+        bestNeed=need;bestGi=gi;
+      }
+    }
+    return bestGi;
+  }
+
+  // Find smallest group that has capacity
+  function smallestGroup(){
+    let bestGi=-1,bestSize=99;
+    for(let gi=0;gi<KARA_GROUPS_COUNT;gi++){
+      if(karaGroups[gi].length>=10)continue;
+      if(karaGroups[gi].length<bestSize){bestSize=karaGroups[gi].length;bestGi=gi}
+    }
+    return bestGi;
+  }
+
+  // First: place linked sets together
+  const placed=new Set();
+  linkedSets.forEach(ls=>{
+    if(ls.ids.length===0)return;
+    // Check if any linked player is already pinned in a group
+    let targetGi=-1;
+    for(let gi=0;gi<KARA_GROUPS_COUNT;gi++){
+      if(karaGroups[gi].some(p=>ls.ids.includes(p.entryId))){targetGi=gi;break}
+    }
+    if(targetGi<0) targetGi=smallestGroup();
+    if(targetGi<0) return;
+    ls.ids.forEach(id=>{
+      if(placed.has(id))return;
+      if(karaGroups[targetGi].length>=10)return;
+      if(karaGroups[targetGi].some(p=>p.entryId===id))return;
+      karaGroups[targetGi].push({entryId:id,pinned:false});
+      placed.add(id);
+    });
+  });
+
+  // Then: fill tanks, healers, DPS in priority order
+  function assignRole(players,role){
+    // Shuffle for fairness
+    const shuffled=[...players].sort(()=>Math.random()-.5);
+    shuffled.forEach(entry=>{
+      if(placed.has(entry.id))return;
+      const gi=needsRole(role);
+      if(gi<0)return;
+      if(karaGroups[gi].length>=10)return;
+      karaGroups[gi].push({entryId:entry.id,pinned:false});
+      placed.add(entry.id);
+    });
+  }
+
+  assignRole(tanks,'Tank');
+  assignRole(healers,'Heiler');
+  assignRole(dps,'DPS');
+
+  // Fill remaining spots with any unplaced players (prefer class diversity)
+  const unplaced=available.filter(e=>!placed.has(e.id));
+  unplaced.sort(()=>Math.random()-.5);
+  unplaced.forEach(entry=>{
+    // Find group with fewest players that has <10
+    const gi=smallestGroup();
+    if(gi<0)return;
+    karaGroups[gi].push({entryId:entry.id,pinned:false});
+    placed.add(entry.id);
+  });
+
+  // Optimize: swap players between groups to improve composition scores
+  for(let iter=0;iter<50;iter++){
+    let improved=false;
+    for(let gi=0;gi<KARA_GROUPS_COUNT;gi++){
+      for(let gj=gi+1;gj<KARA_GROUPS_COUNT;gj++){
+        for(let pi=0;pi<karaGroups[gi].length;pi++){
+          if(karaGroups[gi][pi].pinned)continue;
+          const eiLink=getEntryLinkGroup(karaGroups[gi][pi].entryId);
+          for(let pj=0;pj<karaGroups[gj].length;pj++){
+            if(karaGroups[gj][pj].pinned)continue;
+            const ejLink=getEntryLinkGroup(karaGroups[gj][pj].entryId);
+            // Don't break links
+            if(eiLink&&eiLink.ids.some(id=>karaGroups[gi].some(p=>p.entryId===id&&p.entryId!==karaGroups[gi][pi].entryId)))continue;
+            if(ejLink&&ejLink.ids.some(id=>karaGroups[gj].some(p=>p.entryId===id&&p.entryId!==karaGroups[gj][pj].entryId)))continue;
+
+            const scoreBefore=groupScore(karaGroups[gi])+groupScore(karaGroups[gj]);
+            // Swap
+            const tmp=karaGroups[gi][pi];
+            karaGroups[gi][pi]=karaGroups[gj][pj];
+            karaGroups[gj][pj]=tmp;
+            const scoreAfter=groupScore(karaGroups[gi])+groupScore(karaGroups[gj]);
+            if(scoreAfter>scoreBefore){
+              improved=true;
+            }else{
+              // Undo swap
+              karaGroups[gj][pj]=karaGroups[gi][pi];
+              karaGroups[gi][pi]=tmp;
+            }
+          }
+        }
+      }
+    }
+    if(!improved)break;
+  }
+
+  saveKaraState();
+  renderKara();
+  toast('Gruppen automatisch verteilt');
+}
+
+window.karaAutoGenerate=karaAutoGenerate;
+
+function karaReset(){
+  showModal('Gruppen zurücksetzen','Alle Zuweisungen und Verknüpfungen für diese ID-Woche werden gelöscht.',()=>{
+    karaGroups=[[],[],[]];
+    karaLinks=[];
+    saveKaraState();
+    renderKara();
+    toast('Gruppen zurückgesetzt');
+  });
+}
+window.karaReset=karaReset;
 
 // ══════════════════════════════
 //  CSV EXPORT
