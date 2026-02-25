@@ -9,7 +9,7 @@ const VALID_INSTANCES = [
   "Hyjalgipfel", "Schwarzer Tempel", "Zul'Aman", "Sonnenbrunnenplateau",
 ];
 const VALID_ROLES = ["Tank", "Heiler", "DPS"];
-const VALID_SIGNUP_STATUS = ["accepted", "tentative", "declined", "benched"];
+const VALID_SIGNUP_STATUS = ["accepted", "tentative", "declined", "benched", "confirmed"];
 const CLASS_SPECS = {
   "Druide":      [{n:"Balance",r:"DPS"},{n:"Feral Tank",r:"Tank"},{n:"Feral DPS",r:"DPS"},{n:"Resto",r:"Heiler"}],
   "Hexenmeister":[{n:"Affliction",r:"DPS"},{n:"Demonologie",r:"DPS"},{n:"Destruction",r:"DPS"}],
@@ -84,6 +84,14 @@ export default async (req) => {
         const raid = await store.get(raidId, { type: "json" });
         if (!raid) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
+        }
+        // Block signups after deadline (raid creator exempt)
+        if (raid.deadline && raid.createdBy !== user.userId) {
+          const now = new Date();
+          const dl = new Date(raid.deadline);
+          if (now > dl) {
+            return new Response(JSON.stringify({ error: "Anmeldefrist abgelaufen" }), { status: 403, headers });
+          }
         }
         if (!raid.signups) raid.signups = [];
         // Remove existing signup from this user (to replace)
@@ -191,6 +199,79 @@ export default async (req) => {
         return new Response(JSON.stringify(raid), { status: 200, headers });
       }
 
+      // ── Organizer: confirm a player ──
+      if (action === "confirm") {
+        const { raidId, targetUserId } = body;
+        if (!raidId || !targetUserId) {
+          return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
+        }
+        const raid = await store.get(raidId, { type: "json" });
+        if (!raid) {
+          return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
+        }
+        if (raid.createdBy !== user.userId) {
+          return new Response(JSON.stringify({ error: "Nur der Ersteller kann Spieler bestätigen" }), { status: 403, headers });
+        }
+        if (!raid.signups) raid.signups = [];
+        const signup = raid.signups.find(s => s.userId === targetUserId);
+        if (!signup) {
+          return new Response(JSON.stringify({ error: "Spieler nicht angemeldet" }), { status: 404, headers });
+        }
+        signup.status = "confirmed";
+        await store.setJSON(raidId, raid);
+        autoUpdateDiscord(raidId, raid);
+        return new Response(JSON.stringify(raid), { status: 200, headers });
+      }
+
+      // ── Organizer: unconfirm a player (back to accepted) ──
+      if (action === "unconfirm") {
+        const { raidId, targetUserId } = body;
+        if (!raidId || !targetUserId) {
+          return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
+        }
+        const raid = await store.get(raidId, { type: "json" });
+        if (!raid) {
+          return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
+        }
+        if (raid.createdBy !== user.userId) {
+          return new Response(JSON.stringify({ error: "Nur der Ersteller kann Bestätigung zurücknehmen" }), { status: 403, headers });
+        }
+        if (!raid.signups) raid.signups = [];
+        const signup = raid.signups.find(s => s.userId === targetUserId);
+        if (!signup) {
+          return new Response(JSON.stringify({ error: "Spieler nicht angemeldet" }), { status: 404, headers });
+        }
+        signup.status = "accepted";
+        await store.setJSON(raidId, raid);
+        autoUpdateDiscord(raidId, raid);
+        return new Response(JSON.stringify(raid), { status: 200, headers });
+      }
+
+      // ── Organizer: confirm entire lineup suggestion ──
+      if (action === "confirm-lineup") {
+        const { raidId, userIds } = body;
+        if (!raidId || !Array.isArray(userIds)) {
+          return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
+        }
+        const raid = await store.get(raidId, { type: "json" });
+        if (!raid) {
+          return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
+        }
+        if (raid.createdBy !== user.userId) {
+          return new Response(JSON.stringify({ error: "Nur der Ersteller kann die Aufstellung bestätigen" }), { status: 403, headers });
+        }
+        if (!raid.signups) raid.signups = [];
+        const idSet = new Set(userIds);
+        for (const signup of raid.signups) {
+          if (idSet.has(signup.userId)) {
+            signup.status = "confirmed";
+          }
+        }
+        await store.setJSON(raidId, raid);
+        autoUpdateDiscord(raidId, raid);
+        return new Response(JSON.stringify(raid), { status: 200, headers });
+      }
+
       // ── Organizer: remove a player from raid ──
       if (action === "remove-signup") {
         const { raidId, targetUserId } = body;
@@ -251,7 +332,7 @@ export default async (req) => {
       }
 
       // ── Create or Update Raid ──
-      const { instance, date, time, maxPlayers, notes, description } = body;
+      const { instance, date, time, maxPlayers, notes, description, deadline } = body;
 
       if (!instance || !date || !time) {
         return new Response(JSON.stringify({ error: "Felder fehlen (Instanz, Datum, Uhrzeit)" }), { status: 400, headers });
@@ -274,6 +355,15 @@ export default async (req) => {
       }
       if (description != null && typeof description === "string" && description.length > 2000) {
         return new Response(JSON.stringify({ error: "Beschreibung zu lang (max. 2000 Zeichen)" }), { status: 400, headers });
+      }
+      // Validate deadline (optional datetime string)
+      let cleanDeadline = null;
+      if (deadline && typeof deadline === "string" && deadline.trim()) {
+        const dlDate = new Date(deadline);
+        if (isNaN(dlDate.getTime())) {
+          return new Response(JSON.stringify({ error: "Ungültige Anmeldefrist" }), { status: 400, headers });
+        }
+        cleanDeadline = dlDate.toISOString();
       }
 
       let id;
@@ -298,6 +388,7 @@ export default async (req) => {
         date,
         time,
         maxPlayers: mp,
+        deadline: cleanDeadline || undefined,
         notes: (notes || "").trim().slice(0, 500),
         description: (description || "").trim().slice(0, 2000),
         createdBy: user.userId,
