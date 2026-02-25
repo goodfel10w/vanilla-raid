@@ -759,9 +759,40 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
 .kara-comp-card{text-align:center;padding:8px 16px;border-radius:8px;background:var(--card);border:1px solid var(--bdr);min-width:80px}
 .kara-comp-card .num{font-size:18px;font-weight:700}
 .kara-comp-card .lbl{font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px}
+/* Kara time slot suggestions */
+.kara-suggest-section{margin-bottom:20px}
+.kara-suggest-title{font-size:12px;color:var(--tx2);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.kara-suggest-list{display:grid;gap:6px;max-height:420px;overflow-y:auto;padding-right:4px}
+.kara-suggest-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.04);transition:all .15s;flex-wrap:wrap}
+.kara-suggest-item:hover{border-color:rgba(201,168,76,.2);background:rgba(0,0,0,.2)}
+.kara-suggest-item.assigned{border-color:rgba(201,168,76,.3);background:rgba(201,168,76,.06)}
+.kara-suggest-time{font-weight:700;font-size:13px;color:var(--tx);min-width:200px}
+.kara-suggest-time small{font-weight:400;color:var(--tx3);font-size:11px}
+.kara-suggest-count{font-size:12px;color:var(--tx2);min-width:60px;text-align:center}
+.kara-suggest-roles{display:flex;gap:6px;flex:1;min-width:140px}
+.kara-suggest-roles span{font-size:10px;padding:2px 6px;border-radius:3px;font-weight:600}
+.kara-suggest-assign{display:flex;gap:4px;flex-shrink:0}
+.kara-suggest-assign button{padding:4px 10px;border-radius:4px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.2);color:var(--tx3);cursor:pointer;font:600 10px 'Nunito Sans',sans-serif;transition:all .15s}
+.kara-suggest-assign button:hover{border-color:rgba(201,168,76,.4);color:var(--gold);background:rgba(201,168,76,.08)}
+.kara-suggest-assign button.active{border-color:var(--gold);color:var(--bg);background:var(--gold)}
+.kara-suggest-assign button:disabled{opacity:.3;cursor:not-allowed}
+.kara-suggest-bar{height:4px;border-radius:2px;background:rgba(255,255,255,.04);flex:1;min-width:60px;max-width:120px;overflow:hidden}
+.kara-suggest-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--gold-d),var(--gold))}
+/* Per-group slot badge */
+.kara-group-slot{font-size:11px;color:var(--tx3);display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:6px 10px;border-radius:6px;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.15)}
+.kara-group-slot strong{color:var(--gold);font-weight:600}
+.kara-group-slot .kgs-remove{background:none;border:none;color:var(--tx4);cursor:pointer;font-size:11px;padding:0 2px;transition:color .15s}
+.kara-group-slot .kgs-remove:hover{color:var(--dps)}
+/* Unassigned section */
+.kara-unassigned{margin-top:12px;padding:12px;border-radius:8px;background:rgba(229,115,115,.04);border:1px solid rgba(229,115,115,.1)}
+.kara-unassigned-title{font-size:11px;color:var(--dps);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:600}
+/* Export button */
+.kara-export-area{margin-top:12px;padding:12px;border-radius:8px;background:rgba(0,0,0,.15);border:1px solid var(--bdr)}
+.kara-export-area pre{font-size:11px;color:var(--tx2);white-space:pre-wrap;word-break:break-word;margin:8px 0;line-height:1.5}
 @media(max-width:960px){
   .kara-layout{grid-template-columns:1fr 1fr;grid-template-rows:auto auto}
   .kara-pool{grid-column:1/3}
+  .kara-suggest-item{flex-wrap:wrap}
 }
 @media(max-width:640px){
   .kara-layout{grid-template-columns:1fr}
@@ -770,6 +801,8 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
   .kara-week-nav{justify-content:center}
   .kara-actions{justify-content:center}
   .kara-role-bar{flex-wrap:wrap;gap:4px}
+  .kara-suggest-time{min-width:auto;flex:1}
+  .kara-suggest-assign{flex-wrap:wrap}
 }
 
 /* Hidden */
@@ -4156,6 +4189,9 @@ let karaGroups=[[],[],[]]; // 3 arrays of {entryId, pinned}
 let karaLinks=[]; // [{ids:[entryId,entryId,...], color}]
 let karaFilterDay="", karaFilterTime="";
 let karaDragEntryId=null;
+let karaGroupSlots=["","",""]; // per-group time slot key e.g. "Mittwoch_20:00–23:00"
+let karaSuggestMode=false; // showing suggestion picker
+let karaShowExport=false; // showing export text
 
 // ── ID Week helpers (Wed 03:00 → Tue 02:59) ──
 function getIdWeekStart(offset){
@@ -4188,7 +4224,7 @@ function karaWeekKey(offset){
 // ── Persistence (localStorage) ──
 function saveKaraState(){
   const key=karaWeekKey(karaWeekOffset);
-  const data={groups:karaGroups,links:karaLinks};
+  const data={groups:karaGroups,links:karaLinks,groupSlots:karaGroupSlots};
   localStorage.setItem(key,JSON.stringify(data));
 }
 function loadKaraState(){
@@ -4199,12 +4235,15 @@ function loadKaraState(){
       const data=JSON.parse(raw);
       karaGroups=data.groups||[[],[],[]];
       karaLinks=data.links||[];
+      karaGroupSlots=data.groupSlots||["","",""];
       // Ensure 3 groups exist
       while(karaGroups.length<KARA_GROUPS_COUNT)karaGroups.push([]);
-    }catch(e){karaGroups=[[],[],[]];karaLinks=[];}
+      while(karaGroupSlots.length<KARA_GROUPS_COUNT)karaGroupSlots.push("");
+    }catch(e){karaGroups=[[],[],[]];karaLinks=[];karaGroupSlots=["","",""];}
   }else{
     karaGroups=[[],[],[]];
     karaLinks=[];
+    karaGroupSlots=["","",""];
   }
   // Prune entries that no longer exist in the roster
   const validIds=new Set(entries.map(e=>e.id));
@@ -4266,6 +4305,145 @@ function nextLinkColor(){
   return LINK_COLORS.find(c=>!used.has(c))||LINK_COLORS[karaLinks.length%LINK_COLORS.length];
 }
 
+// ── Time slot suggestion engine ──
+// Returns players available for a 3h window on a given day
+function karaPlayersForWindow(day,startH){
+  const qs=[];
+  for(let wh=startH;wh<startH+3;wh++)
+    for(const m of[0,15,30,45])
+      qs.push(day+'_'+String(wh).padStart(2,'0')+':'+String(m).padStart(2,'0'));
+  return entries.filter(e=>{
+    if(!e.availability)return false;
+    return qs.every(q=>e.availability[q]==='yes'||e.availability[q]===true||e.availability[q]==='tentative');
+  });
+}
+
+// Generate all 3h window suggestions ranked by viability
+function karaSuggestSlots(excludePlayerIds){
+  const exclude=excludePlayerIds||new Set();
+  const suggestions=[];
+  DAYS.forEach(d=>{
+    for(let h=12;h<=21;h++){
+      const endH=h+3;
+      const label=String(h).padStart(2,'0')+':00\u201300:00'.replace('00:00',String(endH===24?0:endH).padStart(2,'0')+':00');
+      const windowLabel=String(h).padStart(2,'0')+':00\u2013'+String(endH===24?0:endH).padStart(2,'0')+':00';
+      const key=d+'_'+windowLabel;
+      const allPlayers=karaPlayersForWindow(d,h);
+      const players=allPlayers.filter(e=>!exclude.has(e.id));
+      let t=0,hl=0,dp=0;
+      players.forEach(p=>{
+        const roles=p.roles||[];
+        if(roles.includes('Tank'))t++;
+        if(roles.includes('Heiler'))hl++;
+        if(roles.includes('DPS'))dp++;
+      });
+      // Score: prefer slots with enough players and good role coverage
+      let score=players.length*10;
+      if(t>=KARA_TANKS)score+=30;
+      if(hl>=KARA_HEALERS)score+=30;
+      if(dp>=KARA_DPS)score+=20;
+      if(t===0)score-=50;
+      if(hl===0)score-=50;
+      if(players.length>=10)score+=20;
+      // Prefer "yes" over "tentative"
+      const qs=[];
+      for(let wh=h;wh<h+3;wh++)
+        for(const m of[0,15,30,45])
+          qs.push(d+'_'+String(wh).padStart(2,'0')+':'+String(m).padStart(2,'0'));
+      let yesCount=0;
+      players.forEach(p=>{
+        if(qs.every(q=>{const v=p.availability[q];return v==='yes'||v===true}))yesCount++;
+      });
+      score+=yesCount*2;
+      suggestions.push({day:d,startH:h,windowLabel,key,players,playerIds:new Set(players.map(e=>e.id)),total:players.length,tanks:t,healers:hl,dps:dp,yesCount,score});
+    }
+  });
+  // Sort by score descending, then by total players
+  suggestions.sort((a,b)=>b.score-a.score||(b.total-a.total));
+  return suggestions;
+}
+
+// Parse a slot key back into {day, windowLabel}
+function parseSlotKey(key){
+  if(!key)return null;
+  const idx=key.indexOf('_');
+  if(idx<0)return null;
+  return{day:key.substring(0,idx),windowLabel:key.substring(idx+1)};
+}
+
+// Get players available at a slot key
+function karaPlayersForSlotKey(key){
+  const parsed=parseSlotKey(key);
+  if(!parsed)return[];
+  const startH=parseInt(parsed.windowLabel);
+  return karaPlayersForWindow(parsed.day,startH);
+}
+
+// Auto-pick best 3 non-overlapping time slots maximizing unique player coverage
+function karaAutoPickSlots(){
+  const allSuggestions=karaSuggestSlots();
+  // Only consider windows with at least some role coverage
+  const viable=allSuggestions.filter(s=>s.total>=5&&s.tanks>=1&&s.healers>=1);
+  const top=viable.slice(0,25);
+  let bestCombo=null,bestScore=-Infinity;
+  for(let i=0;i<top.length;i++){
+    for(let j=i+1;j<top.length;j++){
+      for(let k=j+1;k<top.length;k++){
+        const a=top[i],b=top[j],c=top[k];
+        // Count unique players
+        const allIds=new Set();
+        a.playerIds.forEach(id=>allIds.add(id));
+        b.playerIds.forEach(id=>allIds.add(id));
+        c.playerIds.forEach(id=>allIds.add(id));
+        const uniqueCount=allIds.size;
+        // Cap per group at 10 (Kara size)
+        const capped=Math.min(a.total,10)+Math.min(b.total,10)+Math.min(c.total,10);
+        // Role viability
+        let roleScore=0;
+        [a,b,c].forEach(s=>{
+          if(s.tanks>=KARA_TANKS)roleScore+=15;
+          if(s.healers>=KARA_HEALERS)roleScore+=15;
+          if(s.dps>=KARA_DPS)roleScore+=10;
+        });
+        const score=uniqueCount*5+capped*2+roleScore;
+        if(score>bestScore){bestScore=score;bestCombo=[a.key,b.key,c.key]}
+      }
+    }
+  }
+  if(bestCombo){
+    karaGroupSlots=bestCombo;
+    saveKaraState();
+    renderKara();
+    toast('Optimale Zeiten automatisch gew\u00E4hlt');
+  }else{
+    toast('Nicht genug Spieler f\u00FCr 3 Gruppen');
+  }
+}
+window.karaAutoPickSlots=karaAutoPickSlots;
+
+// Assign a suggestion to a specific group
+function karaAssignSlot(gi,key){
+  karaGroupSlots[gi]=key;
+  saveKaraState();
+  renderKara();
+}
+window.karaAssignSlot=karaAssignSlot;
+
+// Remove a group's time slot
+function karaRemoveSlot(gi){
+  karaGroupSlots[gi]="";
+  saveKaraState();
+  renderKara();
+}
+window.karaRemoveSlot=karaRemoveSlot;
+
+// Toggle suggestion mode
+function karaToggleSuggest(){
+  karaSuggestMode=!karaSuggestMode;
+  renderKara();
+}
+window.karaToggleSuggest=karaToggleSuggest;
+
 // ── Player card HTML ──
 function karaPlayerHtml(entryId,inGroup,pinned){
   const entry=entries.find(e=>e.id===entryId);
@@ -4310,26 +4488,97 @@ function renderKara(){
   const weekStart=getIdWeekStart(karaWeekOffset);
   const weekEnd=getIdWeekEnd(weekStart);
   const pool=karaPool();
+  const hasAnySlot=karaGroupSlots.some(s=>s);
+  const allSlotsSet=karaGroupSlots.every(s=>s);
 
-  // Week navigation
+  // Week navigation + actions
   let html=`<div class="kara-header">
     <div class="kara-week-nav">
-      <button onclick="karaWeekOffset--;renderKara()">\u25C0</button>
+      <button onclick="karaWeekOffset--;karaSuggestMode=false;renderKara()">\u25C0</button>
       <div class="kara-week-label">
         ID-Woche
         <small>${formatDate(weekStart)} \u2013 ${formatDate(weekEnd)}</small>
       </div>
-      <button onclick="karaWeekOffset++;renderKara()">\u25B6</button>
+      <button onclick="karaWeekOffset++;karaSuggestMode=false;renderKara()">\u25B6</button>
     </div>
     <div class="kara-actions">
-      <button class="kara-btn primary" onclick="karaAutoGenerate()" title="Verbleibende Slots optimal füllen">\u2728 Auto-Verteilen</button>
-      <button class="kara-btn danger" onclick="karaReset()" title="Alle Zuweisungen zurücksetzen">\u21BA Zurücksetzen</button>
+      <button class="kara-btn${karaSuggestMode?' primary':''}" onclick="karaToggleSuggest()" title="Optimale Raidzeiten finden">\u{1F50D} Zeiten finden</button>
+      <button class="kara-btn primary" onclick="karaAutoGenerate()" title="Spieler optimal auf Gruppen verteilen">\u2728 Auto-Verteilen</button>
+      <button class="kara-btn" onclick="karaToggleExport()" title="Gruppenaufstellung als Text exportieren">\u{1F4CB} Export</button>
+      <button class="kara-btn danger" onclick="karaReset()" title="Alle Zuweisungen zurücksetzen">\u21BA Reset</button>
     </div>
   </div>`;
 
-  // Optional filter
+  // ── Time slot suggestion picker ──
+  if(karaSuggestMode){
+    // Determine which players are "claimed" by already-assigned groups
+    const claimedIds=new Set();
+    karaGroupSlots.forEach((slot,gi)=>{
+      if(!slot)return;
+      const slotPlayers=karaPlayersForSlotKey(slot);
+      // Only claim up to 10 per group (Kara size)
+      slotPlayers.slice(0,KARA_SIZE).forEach(p=>claimedIds.add(p.id));
+    });
+
+    const suggestions=karaSuggestSlots(claimedIds);
+    // Only show windows with at least 5 players
+    const filtered=suggestions.filter(s=>s.total>=3);
+    const maxTotal=filtered.length?filtered[0].total:1;
+
+    html+=`<div class="kara-suggest-section"><div class="card">`;
+    html+=`<div class="kara-suggest-title">
+      <span>Raidzeit-Vorschl\u00E4ge (3h-Fenster)</span>
+      <button class="kara-btn" onclick="karaAutoPickSlots()" title="Beste 3 Zeitfenster automatisch w\u00E4hlen">\u2728 Beste 3 automatisch</button>
+    </div>`;
+
+    // Show currently assigned slots
+    if(hasAnySlot){
+      html+=`<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">`;
+      for(let gi=0;gi<KARA_GROUPS_COUNT;gi++){
+        const slot=karaGroupSlots[gi];
+        if(slot){
+          const parsed=parseSlotKey(slot);
+          html+=`<span class="kara-group-slot"><strong>Gruppe ${gi+1}:</strong> ${parsed.day} ${parsed.windowLabel}
+            <button class="kgs-remove" onclick="karaRemoveSlot(${gi})" title="Entfernen">\u2716</button></span>`;
+        }else{
+          html+=`<span class="kara-group-slot" style="opacity:.4">Gruppe ${gi+1}: nicht zugewiesen</span>`;
+        }
+      }
+      html+=`</div>`;
+    }
+
+    html+=`<div class="kara-suggest-list">`;
+    const shown=filtered.slice(0,20);
+    if(shown.length===0){
+      html+=`<div class="kara-empty">Keine Verf\u00FCgbarkeitsdaten vorhanden. Spieler m\u00FCssen erst Zeiten eintragen.</div>`;
+    }
+    shown.forEach(s=>{
+      const isAssigned=karaGroupSlots.includes(s.key);
+      const assignedGi=karaGroupSlots.indexOf(s.key);
+      const barW=Math.round((s.total/Math.max(maxTotal,1))*100);
+      html+=`<div class="kara-suggest-item${isAssigned?' assigned':''}">
+        <div class="kara-suggest-time">${s.day} <small>${s.windowLabel}</small></div>
+        <div class="kara-suggest-bar"><div class="kara-suggest-bar-fill" style="width:${barW}%"></div></div>
+        <div class="kara-suggest-count">${s.total} Spieler</div>
+        <div class="kara-suggest-roles">
+          <span style="background:var(--tank)22;color:var(--tank)">${s.tanks}T</span>
+          <span style="background:var(--heal)22;color:var(--heal)">${s.healers}H</span>
+          <span style="background:var(--dps)22;color:var(--dps)">${s.dps}D</span>
+        </div>
+        <div class="kara-suggest-assign">`;
+      for(let gi=0;gi<KARA_GROUPS_COUNT;gi++){
+        const isThis=assignedGi===gi;
+        const otherAssigned=karaGroupSlots[gi]&&karaGroupSlots[gi]!==s.key;
+        html+=`<button class="${isThis?'active':''}" ${otherAssigned?'disabled':''} onclick="karaAssignSlot(${gi},'${s.key}')" title="Gruppe ${gi+1} zuweisen">G${gi+1}</button>`;
+      }
+      html+=`</div></div>`;
+    });
+    html+=`</div></div></div>`;
+  }
+
+  // ── Optional pool filter ──
   html+=`<div class="kara-filter"><div class="kara-filter-row">
-    <span>Filter:</span>
+    <span>Pool-Filter:</span>
     <select onchange="karaFilterDay=this.value;karaFilterTime='';renderKara()">
       <option value="">Alle Spieler</option>
       ${DAYS.map(d=>`<option value="${d}"${karaFilterDay===d?' selected':''}>${d}</option>`).join('')}
@@ -4342,7 +4591,7 @@ function renderKara(){
   }
   html+=`</div></div>`;
 
-  // Layout: pool + 3 groups
+  // ── Layout: pool + 3 groups ──
   html+=`<div class="kara-layout">`;
 
   // Pool
@@ -4350,7 +4599,7 @@ function renderKara(){
     <div class="kara-pool-title">Spieler-Pool <span class="kara-pool-count">${pool.length}</span></div>
     <div class="kara-dropzone pool-zone" data-kara-drop="pool">`;
   if(pool.length===0){
-    html+=`<div class="kara-empty">${entries.length===0?'Keine Einträge vorhanden':'Alle Spieler sind verteilt'}</div>`;
+    html+=`<div class="kara-empty">${entries.length===0?'Keine Eintr\u00E4ge vorhanden':'Alle Spieler sind verteilt'}</div>`;
   } else {
     pool.forEach(e=>{
       html+=karaPlayerHtml(e.id,false,false);
@@ -4362,13 +4611,21 @@ function renderKara(){
   for(let gi=0;gi<KARA_GROUPS_COUNT;gi++){
     const group=karaGroups[gi]||[];
     const roles=karaGroupRoles(group);
-    const full=group.length>=10;
+    const slot=karaGroupSlots[gi];
+    const parsedSlot=parseSlotKey(slot);
 
     html+=`<div class="kara-group">
       <div class="kara-group-hdr">
         <div class="kara-group-title">Karazhan ${gi+1} <span class="kara-group-count">${group.length}/10</span></div>
-      </div>
-      <div class="kara-role-bar">
+      </div>`;
+    // Show assigned time slot
+    if(parsedSlot){
+      html+=`<div class="kara-group-slot">
+        <strong>${parsedSlot.day} ${parsedSlot.windowLabel}</strong>
+        <button class="kgs-remove" onclick="karaRemoveSlot(${gi})" title="Zeit entfernen">\u2716</button>
+      </div>`;
+    }
+    html+=`<div class="kara-role-bar">
         <span class="kara-role-tag ${roles.t>=KARA_TANKS?'ok':'need'}" style="background:var(--tank)22;color:var(--tank)">\u{1F6E1}\uFE0F ${roles.t}/${KARA_TANKS}T</span>
         <span class="kara-role-tag ${roles.hl>=KARA_HEALERS?'ok':'need'}" style="background:var(--heal)22;color:var(--heal)">\u{1F49A} ${roles.hl}/${KARA_HEALERS}H</span>
         <span class="kara-role-tag ${roles.dp>=KARA_DPS?'ok':'need'}" style="background:var(--dps)22;color:var(--dps)">\u2694\uFE0F ${roles.dp}/${KARA_DPS}D</span>
@@ -4386,13 +4643,20 @@ function renderKara(){
 
   html+=`</div>`; // close kara-layout
 
-  // Summary
+  // ── Summary ──
   const totalAssigned=karaGroups.reduce((s,g)=>s+g.length,0);
+  const unassignedPlayers=entries.filter(e=>!karaAssignedIds().has(e.id));
   html+=`<div class="kara-comp-summary">
     <div class="kara-comp-card"><div class="num">${totalAssigned}</div><div class="lbl">Verteilt</div></div>
-    <div class="kara-comp-card"><div class="num">${pool.length}</div><div class="lbl">Pool</div></div>
+    <div class="kara-comp-card"><div class="num">${unassignedPlayers.length}</div><div class="lbl">Offen</div></div>
     <div class="kara-comp-card"><div class="num">${karaLinks.length}</div><div class="lbl">Links</div></div>
+    <div class="kara-comp-card"><div class="num">${karaGroupSlots.filter(s=>s).length}/3</div><div class="lbl">Zeiten</div></div>
   </div>`;
+
+  // ── Export area ──
+  if(karaShowExport){
+    html+=karaExportHtml();
+  }
 
   el.innerHTML=html;
 
@@ -4575,9 +4839,9 @@ function karaStartLink(entryId){
 // ══════════════════════════════
 function karaAutoGenerate(){
   loadKaraState();
+  const hasSlots=karaGroupSlots.some(s=>s);
 
-  // Collect pool entries (not assigned or not pinned-assigned)
-  const assigned=karaAssignedIds();
+  // Collect pinned players
   const pinnedIds=new Set();
   karaGroups.forEach(g=>g.forEach(p=>{if(p.pinned)pinnedIds.add(p.entryId)}));
 
@@ -4586,25 +4850,35 @@ function karaAutoGenerate(){
     karaGroups[gi]=g.filter(p=>p.pinned);
   });
 
-  // Build list of available players (all entries minus pinned ones)
-  let available=entries.filter(e=>!pinnedIds.has(e.id));
-
-  // Apply day/time filter if set
-  if(karaFilterDay){
-    available=available.filter(e=>{
-      if(!e.availability)return false;
-      if(karaFilterTime){
-        const qs=hourQuarters(karaFilterTime).map(q=>karaFilterDay+'_'+q);
-        return qs.every(q=>e.availability[q]==='yes'||e.availability[q]===true||e.availability[q]==='tentative');
-      }
-      return SLOTS.some(s=>e.availability[karaFilterDay+'_'+s]);
-    });
+  // Build per-group available player pools
+  // When time slots are assigned, each group only gets players available at that time
+  const groupPools=[];
+  for(let gi=0;gi<KARA_GROUPS_COUNT;gi++){
+    const slot=karaGroupSlots[gi];
+    let pool;
+    if(slot){
+      // Players available at this group's specific time
+      pool=karaPlayersForSlotKey(slot).filter(e=>!pinnedIds.has(e.id));
+    }else if(karaFilterDay){
+      // Fallback: global filter
+      pool=entries.filter(e=>{
+        if(pinnedIds.has(e.id))return false;
+        if(!e.availability)return false;
+        if(karaFilterTime){
+          const qs=hourQuarters(karaFilterTime).map(q=>karaFilterDay+'_'+q);
+          return qs.every(q=>e.availability[q]==='yes'||e.availability[q]===true||e.availability[q]==='tentative');
+        }
+        return SLOTS.some(s=>e.availability[karaFilterDay+'_'+s]);
+      });
+    }else{
+      pool=entries.filter(e=>!pinnedIds.has(e.id));
+    }
+    groupPools.push(pool);
   }
 
   // Respect links: group linked players together
   const linkedSets=karaLinks.map(lk=>({ids:lk.ids.filter(id=>!pinnedIds.has(id)),color:lk.color}));
 
-  // Classify available players by primary role
   function primaryRole(entry){
     const roles=entry.roles||[];
     if(roles.includes('Tank'))return'Tank';
@@ -4612,22 +4886,14 @@ function karaAutoGenerate(){
     return'DPS';
   }
 
-  const tanks=available.filter(e=>primaryRole(e)==='Tank');
-  const healers=available.filter(e=>primaryRole(e)==='Heiler');
-  const dps=available.filter(e=>primaryRole(e)==='DPS');
-
-  // Score a group's composition
   function groupScore(group){
     const roles=karaGroupRoles(group);
     let score=0;
-    // Penalize missing roles
     score-=Math.max(0,KARA_TANKS-roles.t)*10;
     score-=Math.max(0,KARA_HEALERS-roles.hl)*10;
     score-=Math.max(0,KARA_DPS-roles.dp)*8;
-    // Penalize excess
     score-=Math.max(0,roles.t-KARA_TANKS)*3;
     score-=Math.max(0,roles.hl-KARA_HEALERS)*3;
-    // Bonus for class diversity
     const classes=new Set();
     group.forEach(p=>{
       const entry=entries.find(e=>e.id===p.entryId);
@@ -4637,11 +4903,25 @@ function karaAutoGenerate(){
     return score;
   }
 
-  // Find which group needs a role most
-  function needsRole(role){
+  // Track globally placed players (each player in only one group)
+  const placed=new Set();
+  // Include already-pinned players
+  karaGroups.forEach(g=>g.forEach(p=>placed.add(p.entryId)));
+
+  // Check if a player is eligible for a specific group
+  function canPlace(entryId,gi){
+    if(placed.has(entryId))return false;
+    if(karaGroups[gi].length>=10)return false;
+    const poolIds=new Set(groupPools[gi].map(e=>e.id));
+    return poolIds.has(entryId);
+  }
+
+  // Find which group needs a role most, considering availability
+  function needsRoleForEntry(entry){
+    const role=primaryRole(entry);
     let bestGi=-1,bestNeed=0;
     for(let gi=0;gi<KARA_GROUPS_COUNT;gi++){
-      if(karaGroups[gi].length>=10)continue;
+      if(!canPlace(entry.id,gi))continue;
       const roles=karaGroupRoles(karaGroups[gi]);
       let need=0;
       if(role==='Tank')need=Math.max(0,KARA_TANKS-roles.t);
@@ -4654,82 +4934,111 @@ function karaAutoGenerate(){
     return bestGi;
   }
 
-  // Find smallest group that has capacity
-  function smallestGroup(){
+  function smallestEligibleGroup(entryId){
     let bestGi=-1,bestSize=99;
     for(let gi=0;gi<KARA_GROUPS_COUNT;gi++){
-      if(karaGroups[gi].length>=10)continue;
+      if(!canPlace(entryId,gi))continue;
       if(karaGroups[gi].length<bestSize){bestSize=karaGroups[gi].length;bestGi=gi}
     }
     return bestGi;
   }
 
   // First: place linked sets together
-  const placed=new Set();
   linkedSets.forEach(ls=>{
     if(ls.ids.length===0)return;
-    // Check if any linked player is already pinned in a group
     let targetGi=-1;
     for(let gi=0;gi<KARA_GROUPS_COUNT;gi++){
       if(karaGroups[gi].some(p=>ls.ids.includes(p.entryId))){targetGi=gi;break}
     }
-    if(targetGi<0) targetGi=smallestGroup();
+    if(targetGi<0){
+      // Find group where most linked players are eligible
+      let bestCount=0;
+      for(let gi=0;gi<KARA_GROUPS_COUNT;gi++){
+        const eligibleCount=ls.ids.filter(id=>!placed.has(id)&&new Set(groupPools[gi].map(e=>e.id)).has(id)).length;
+        if(eligibleCount>bestCount&&karaGroups[gi].length<10){bestCount=eligibleCount;targetGi=gi}
+      }
+    }
     if(targetGi<0) return;
     ls.ids.forEach(id=>{
       if(placed.has(id))return;
       if(karaGroups[targetGi].length>=10)return;
       if(karaGroups[targetGi].some(p=>p.entryId===id))return;
+      // Check eligibility
+      const poolIds=new Set(groupPools[targetGi].map(e=>e.id));
+      if(!poolIds.has(id)&&hasSlots)return;
       karaGroups[targetGi].push({entryId:id,pinned:false});
       placed.add(id);
     });
   });
 
-  // Then: fill tanks, healers, DPS in priority order
-  function assignRole(players,role){
-    // Shuffle for fairness
-    const shuffled=[...players].sort(()=>Math.random()-.5);
-    shuffled.forEach(entry=>{
-      if(placed.has(entry.id))return;
-      const gi=needsRole(role);
-      if(gi<0)return;
-      if(karaGroups[gi].length>=10)return;
-      karaGroups[gi].push({entryId:entry.id,pinned:false});
-      placed.add(entry.id);
+  // Collect all unplaced players across all pools
+  const allAvailable=new Map();
+  groupPools.forEach(pool=>{
+    pool.forEach(e=>{
+      if(!placed.has(e.id))allAvailable.set(e.id,e);
     });
+  });
+
+  // Sort by role priority: tanks first, then healers, then DPS
+  const roleOrder={Tank:0,Heiler:1,DPS:2};
+  const sortedAvailable=[...allAvailable.values()].sort((a,b)=>{
+    return(roleOrder[primaryRole(a)]||2)-(roleOrder[primaryRole(b)]||2);
+  });
+  // Shuffle within same role for fairness
+  for(let i=0;i<sortedAvailable.length;){
+    let j=i;
+    while(j<sortedAvailable.length&&primaryRole(sortedAvailable[j])===primaryRole(sortedAvailable[i]))j++;
+    const slice=sortedAvailable.slice(i,j);
+    slice.sort(()=>Math.random()-.5);
+    for(let k=0;k<slice.length;k++)sortedAvailable[i+k]=slice[k];
+    i=j;
   }
 
-  assignRole(tanks,'Tank');
-  assignRole(healers,'Heiler');
-  assignRole(dps,'DPS');
+  // Assign by role need
+  sortedAvailable.forEach(entry=>{
+    if(placed.has(entry.id))return;
+    const gi=needsRoleForEntry(entry);
+    if(gi>=0){
+      karaGroups[gi].push({entryId:entry.id,pinned:false});
+      placed.add(entry.id);
+    }
+  });
 
-  // Fill remaining spots with any unplaced players (prefer class diversity)
-  const unplaced=available.filter(e=>!placed.has(e.id));
-  unplaced.sort(()=>Math.random()-.5);
-  unplaced.forEach(entry=>{
-    // Find group with fewest players that has <10
-    const gi=smallestGroup();
-    if(gi<0)return;
-    karaGroups[gi].push({entryId:entry.id,pinned:false});
-    placed.add(entry.id);
+  // Fill remaining spots
+  sortedAvailable.forEach(entry=>{
+    if(placed.has(entry.id))return;
+    const gi=smallestEligibleGroup(entry.id);
+    if(gi>=0){
+      karaGroups[gi].push({entryId:entry.id,pinned:false});
+      placed.add(entry.id);
+    }
   });
 
   // Optimize: swap players between groups to improve composition scores
+  // Only swap if both players are eligible for the other group
   for(let iter=0;iter<50;iter++){
     let improved=false;
     for(let gi=0;gi<KARA_GROUPS_COUNT;gi++){
+      const poolIdsI=new Set(groupPools[gi].map(e=>e.id));
       for(let gj=gi+1;gj<KARA_GROUPS_COUNT;gj++){
+        const poolIdsJ=new Set(groupPools[gj].map(e=>e.id));
         for(let pi=0;pi<karaGroups[gi].length;pi++){
           if(karaGroups[gi][pi].pinned)continue;
-          const eiLink=getEntryLinkGroup(karaGroups[gi][pi].entryId);
+          const eiId=karaGroups[gi][pi].entryId;
+          const eiLink=getEntryLinkGroup(eiId);
+          // Check if player i is eligible for group j
+          if(hasSlots&&!poolIdsJ.has(eiId))continue;
           for(let pj=0;pj<karaGroups[gj].length;pj++){
             if(karaGroups[gj][pj].pinned)continue;
-            const ejLink=getEntryLinkGroup(karaGroups[gj][pj].entryId);
+            const ejId=karaGroups[gj][pj].entryId;
+            const ejLink=getEntryLinkGroup(ejId);
+            // Check if player j is eligible for group i
+            if(hasSlots&&!poolIdsI.has(ejId))continue;
             // Don't break links
-            if(eiLink&&eiLink.ids.some(id=>karaGroups[gi].some(p=>p.entryId===id&&p.entryId!==karaGroups[gi][pi].entryId)))continue;
-            if(ejLink&&ejLink.ids.some(id=>karaGroups[gj].some(p=>p.entryId===id&&p.entryId!==karaGroups[gj][pj].entryId)))continue;
+            if(eiLink&&eiLink.ids.some(id=>karaGroups[gi].some(p=>p.entryId===id&&p.entryId!==eiId)))continue;
+            if(ejLink&&ejLink.ids.some(id=>karaGroups[gj].some(p=>p.entryId===id&&p.entryId!==ejId)))continue;
 
             const scoreBefore=groupScore(karaGroups[gi])+groupScore(karaGroups[gj]);
-            // Swap
             const tmp=karaGroups[gi][pi];
             karaGroups[gi][pi]=karaGroups[gj][pj];
             karaGroups[gj][pj]=tmp;
@@ -4737,7 +5046,6 @@ function karaAutoGenerate(){
             if(scoreAfter>scoreBefore){
               improved=true;
             }else{
-              // Undo swap
               karaGroups[gj][pj]=karaGroups[gi][pi];
               karaGroups[gi][pi]=tmp;
             }
@@ -4750,21 +5058,88 @@ function karaAutoGenerate(){
 
   saveKaraState();
   renderKara();
-  toast('Gruppen automatisch verteilt');
+
+  // Show summary of unplaced players
+  const totalPlaced=karaGroups.reduce((s,g)=>s+g.length,0);
+  const totalEntries=entries.length;
+  if(totalPlaced<totalEntries&&hasSlots){
+    toast(`${totalPlaced} verteilt, ${totalEntries-totalPlaced} ohne passende Zeit`);
+  }else{
+    toast('Gruppen automatisch verteilt');
+  }
 }
 
 window.karaAutoGenerate=karaAutoGenerate;
 
 function karaReset(){
-  showModal('Gruppen zurücksetzen','Alle Zuweisungen und Verknüpfungen für diese ID-Woche werden gelöscht.',()=>{
+  showModal('Gruppen zur\u00FCcksetzen','Alle Zuweisungen, Verknüpfungen und Zeitfenster f\u00FCr diese ID-Woche werden gel\u00F6scht.',()=>{
     karaGroups=[[],[],[]];
     karaLinks=[];
+    karaGroupSlots=["","",""];
     saveKaraState();
     renderKara();
-    toast('Gruppen zurückgesetzt');
+    toast('Gruppen zur\u00FCckgesetzt');
   });
 }
 window.karaReset=karaReset;
+
+// ── Kara export ──
+function karaToggleExport(){
+  karaShowExport=!karaShowExport;
+  renderKara();
+}
+window.karaToggleExport=karaToggleExport;
+
+function karaExportHtml(){
+  const weekStart=getIdWeekStart(karaWeekOffset);
+  const weekEnd=getIdWeekEnd(weekStart);
+  let text=`**Karazhan Gruppen \u2014 ID-Woche ${formatDate(weekStart)} \u2013 ${formatDate(weekEnd)}**\n\n`;
+  for(let gi=0;gi<KARA_GROUPS_COUNT;gi++){
+    const group=karaGroups[gi]||[];
+    const roles=karaGroupRoles(group);
+    const slot=karaGroupSlots[gi];
+    const parsedSlot=parseSlotKey(slot);
+    text+=`__Karazhan ${gi+1}__`;
+    if(parsedSlot)text+=` \u2014 ${parsedSlot.day} ${parsedSlot.windowLabel}`;
+    text+=` (${roles.t}T/${roles.hl}H/${roles.dp}D)\n`;
+    if(group.length===0){
+      text+=`  (leer)\n`;
+    }else{
+      group.forEach(p=>{
+        const entry=entries.find(e=>e.id===p.entryId);
+        if(!entry)return;
+        const role=(entry.roles||[])[0]||'DPS';
+        const spec=(entry.specs||[])[0]||'';
+        text+=`  ${entry.charName} \u2014 ${entry.className}${spec?' ('+spec+')':''} [${role}]${p.pinned?' \u{1F4CC}':''}\n`;
+      });
+    }
+    text+=`\n`;
+  }
+  // Unassigned players
+  const assignedIds=karaAssignedIds();
+  const unassigned=entries.filter(e=>!assignedIds.has(e.id));
+  if(unassigned.length>0){
+    text+=`__Nicht eingeteilt (${unassigned.length}):__\n`;
+    unassigned.forEach(e=>{
+      text+=`  ${e.charName} \u2014 ${e.className}\n`;
+    });
+  }
+  let html=`<div class="kara-export-area">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:var(--tx2);text-transform:uppercase;letter-spacing:1px">Export</span>
+      <button class="kara-btn" onclick="karaClipboard()" title="In Zwischenablage kopieren">\u{1F4CB} Kopieren</button>
+    </div>
+    <pre id="kara-export-text">${h(text)}</pre>
+  </div>`;
+  return html;
+}
+
+function karaClipboard(){
+  const pre=document.getElementById('kara-export-text');
+  if(!pre)return;
+  navigator.clipboard.writeText(pre.textContent).then(()=>toast('In Zwischenablage kopiert')).catch(()=>toast('Kopieren fehlgeschlagen'));
+}
+window.karaClipboard=karaClipboard;
 
 // ══════════════════════════════
 //  CSV EXPORT
