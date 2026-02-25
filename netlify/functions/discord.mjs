@@ -142,10 +142,17 @@ function buildRaidEmbed(raid, siteUrl) {
   // Compact description — keep it short, details go in fields
   const descParts = [
     `📅 **${fmtDate(raid.date)}** • 🕒 **${raid.time} Uhr**`,
+  ];
+
+  if (raid.locked) {
+    descParts.push("", "🔒 **Raid gesperrt — Anmeldung geschlossen**");
+  }
+
+  descParts.push(
     "",
     `${statusEmoji} **${confirmed.length}** sicher${tentative.length ? ` + **${tentative.length}** unsicher` : ""} von **${raid.maxPlayers}** Plätzen`,
     `\`${bar}\` ${pct}%`,
-  ];
+  );
 
   if (raid.description) {
     const desc = raid.description.length > 300 ? raid.description.slice(0, 300) + "…" : raid.description;
@@ -288,16 +295,17 @@ function buildRaidEmbed(raid, siteUrl) {
   return embed;
 }
 
-function buildRaidButtons(raidId) {
+function buildRaidButtons(raidId, locked) {
   return [{
     type: 1, // ACTION_ROW
     components: [
       {
         type: 2, // BUTTON
         style: 3, // SUCCESS (green)
-        label: "Anmelden",
-        emoji: { name: "✅" },
+        label: locked ? "Gesperrt" : "Anmelden",
+        emoji: { name: locked ? "🔒" : "✅" },
         custom_id: `raid_signup:${raidId}:accepted`,
+        disabled: !!locked,
       },
       {
         type: 2,
@@ -305,6 +313,7 @@ function buildRaidButtons(raidId) {
         label: "Vielleicht",
         emoji: { name: "🔸" },
         custom_id: `raid_signup:${raidId}:tentative`,
+        disabled: !!locked,
       },
       {
         type: 2,
@@ -312,6 +321,7 @@ function buildRaidButtons(raidId) {
         label: "Absagen",
         emoji: { name: "❌" },
         custom_id: `raid_signup:${raidId}:declined`,
+        disabled: !!locked,
       },
     ],
   }];
@@ -368,7 +378,7 @@ export default async (req) => {
       const embed = buildRaidEmbed(raid, siteUrl);
       const botToken = process.env.DISCORD_BOT_TOKEN;
       const channelId = process.env.DISCORD_CHANNEL_ID;
-      const buttons = buildRaidButtons(raidId);
+      const buttons = buildRaidButtons(raidId, raid.locked);
 
       let discordMsg;
 
@@ -446,7 +456,7 @@ async function updateDiscordMessage(webhookUrl, messageId, raid, siteUrl, discor
   const embed = buildRaidEmbed(raid, siteUrl);
   const botToken = process.env.DISCORD_BOT_TOKEN;
   const mapping = await discordStore.get(raidId, { type: "json" });
-  const buttons = buildRaidButtons(raidId);
+  const buttons = buildRaidButtons(raidId, raid.locked);
 
   let discordRes;
   if (botToken && mapping?.channelId) {

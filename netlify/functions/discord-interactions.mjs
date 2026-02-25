@@ -145,6 +145,15 @@ export default async (req) => {
       const raidId = parts[1];
       const status = parts[2]; // accepted, tentative, declined
 
+      // Check if raid is locked
+      {
+        const raidStore = getStore({ name: "raids", consistency: "strong" });
+        const raid = await raidStore.get(raidId, { type: "json" });
+        if (raid?.locked) {
+          return ephemeral("🔒 Dieser Raid ist gesperrt — Anmeldung/Absage nicht mehr möglich.", headers);
+        }
+      }
+
       if (status === "declined") {
         // For decline: check if user has existing signup, remove it
         return await handleDecline(interaction, raidId, headers);
@@ -397,6 +406,11 @@ async function handleSignupCommand(interaction, headers) {
       return ephemeral("Raid nicht gefunden.", headers);
     }
 
+    // Block signups when raid is locked
+    if (raid.locked) {
+      return ephemeral("🔒 Dieser Raid ist gesperrt — Anmeldung nicht mehr möglich.", headers);
+    }
+
     // Resolve character: explicit selection > guild nickname auto-match
     let charName = discordName;
     let className = "";
@@ -510,7 +524,7 @@ async function tryUpdateEmbed(raidId, raid) {
     const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
     const siteUrl = process.env.URL || process.env.DEPLOY_PRIME_URL || "";
     const embed = buildRaidEmbed(raid, siteUrl);
-    const buttons = buildRaidButtons(raidId);
+    const buttons = buildRaidButtons(raidId, raid.locked);
 
     if (botToken && mapping.channelId) {
       await fetch(`${DISCORD_API}/channels/${mapping.channelId}/messages/${mapping.messageId}`, {
@@ -566,6 +580,11 @@ async function handleModalSignup(interaction, raidId, status, fields, headers) {
       return ephemeral("Raid nicht gefunden.", headers);
     }
 
+    // Block signups when raid is locked
+    if (raid.locked) {
+      return ephemeral("🔒 Dieser Raid ist gesperrt — Anmeldung nicht mehr möglich.", headers);
+    }
+
     if (!raid.signups) raid.signups = [];
 
     // Match character by name across all website entries
@@ -603,7 +622,7 @@ async function handleModalSignup(interaction, raidId, status, fields, headers) {
     // Update the embed in-place
     const siteUrl = process.env.URL || process.env.DEPLOY_PRIME_URL || "";
     const embed = buildRaidEmbed(raid, siteUrl);
-    const buttons = buildRaidButtons(raidId);
+    const buttons = buildRaidButtons(raidId, raid.locked);
 
     // Respond with updated message (updates the embed the button was on)
     return new Response(JSON.stringify({
@@ -633,6 +652,11 @@ async function handleDecline(interaction, raidId, headers) {
       return ephemeral("Raid nicht gefunden.", headers);
     }
 
+    // Block changes when raid is locked
+    if (raid.locked) {
+      return ephemeral("🔒 Dieser Raid ist gesperrt — Änderungen nicht mehr möglich.", headers);
+    }
+
     if (!raid.signups) raid.signups = [];
 
     const existing = raid.signups.find(s => s.userId === userId);
@@ -660,7 +684,7 @@ async function handleDecline(interaction, raidId, headers) {
 
     const siteUrl = process.env.URL || process.env.DEPLOY_PRIME_URL || "";
     const embed = buildRaidEmbed(raid, siteUrl);
-    const buttons = buildRaidButtons(raidId);
+    const buttons = buildRaidButtons(raidId, raid.locked);
 
     return new Response(JSON.stringify({
       type: UPDATE_MESSAGE,
