@@ -64,6 +64,60 @@ function specIconUrl(cls, specName) {
 const ROLE_EMOJI = { Tank: "🛡️", Heiler: "💚", DPS: "⚔️" };
 const ROLES = ["Tank", "Heiler", "DPS"];
 
+// English class names for Discord display headers
+const CLASS_ENGLISH = {
+  Druide: "Druid", Hexenmeister: "Warlock", Jäger: "Hunter",
+  Krieger: "Warrior", Magier: "Mage", Paladin: "Paladin",
+  Priester: "Priest", Schamane: "Shaman", Schurke: "Rogue",
+};
+
+// Unicode emoji fallbacks per class (used when DISCORD_EMOJIS env var not set)
+const CLASS_EMOJI_FALLBACK = {
+  Druide: "🌿", Hexenmeister: "🔮", Jäger: "🏹",
+  Krieger: "⚔️", Magier: "✨", Paladin: "⚜️",
+  Priester: "✝️", Schamane: "⚡", Schurke: "🗡️",
+};
+
+// Melee DPS specs (for melee/ranged split in composition summary)
+const MELEE_DPS_SPECS = new Set([
+  "Arms", "Fury",
+  "Assassination", "Combat", "Subtlety",
+  "Feral DPS",
+  "Retri",
+  "Enhancement",
+]);
+
+// Display order: Tank-capable classes first, then melee DPS, ranged DPS
+const CLASS_DISPLAY_ORDER = [
+  "Krieger", "Druide", "Paladin", "Schurke", "Jäger",
+  "Hexenmeister", "Priester", "Magier", "Schamane",
+];
+
+// Custom Discord emoji support via DISCORD_EMOJIS env var
+// Format: JSON object mapping names to Discord emoji strings
+// e.g. {"Warrior":"<:Warrior:123>","Druid":"<:Druid:456>","Protection":"<:Protection:789>"}
+let _emojiCache = null;
+function getCustomEmojis() {
+  if (_emojiCache !== null) return _emojiCache;
+  try { _emojiCache = JSON.parse(process.env.DISCORD_EMOJIS || "{}"); }
+  catch { _emojiCache = {}; }
+  return _emojiCache;
+}
+
+function getClassEmoji(cls) {
+  const custom = getCustomEmojis();
+  const en = CLASS_ENGLISH[cls];
+  return custom[en] || custom[cls] || custom[CLASS_ICON_SLUG[cls]] || CLASS_EMOJI_FALLBACK[cls] || "▫️";
+}
+
+function getSpecEmoji(cls, specName, role) {
+  const custom = getCustomEmojis();
+  if (custom[specName]) return custom[specName];
+  const en = CLASS_ENGLISH[cls];
+  if (en && custom[en + "_" + specName]) return custom[en + "_" + specName];
+  return ROLE_EMOJI[role] || "⚔️";
+}
+
 const DAY_NAMES_SHORT = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 
 function fmtDate(ds) {
@@ -125,6 +179,15 @@ function buildRaidEmbed(raid, siteUrl) {
   ROLES.forEach(r => { roleCounts[r] = 0; });
   signups.forEach(s => { if (roleCounts[s.role] !== undefined) roleCounts[s.role]++; });
 
+  // Melee vs Ranged DPS breakdown
+  let meleeDps = 0, rangedDps = 0;
+  signups.forEach(s => {
+    if (s.role !== "DPS") return;
+    const spec = s.assignedSpec || (s.offeredSpecs && s.offeredSpecs[0]) || "";
+    if (MELEE_DPS_SPECS.has(spec)) meleeDps++;
+    else rangedDps++;
+  });
+
   // Count classes
   const classCounts = {};
   signups.forEach(s => { if (s.className) classCounts[s.className] = (classCounts[s.className] || 0) + 1; });
@@ -139,7 +202,7 @@ function buildRaidEmbed(raid, siteUrl) {
   if (total >= raid.maxPlayers) statusEmoji = "🟢";
   if (total > raid.maxPlayers) statusEmoji = "🔴";
 
-  // Compact description — keep it short, details go in fields
+  // Compact description
   const descParts = [
     `📅 **${fmtDate(raid.date)}** • 🕒 **${raid.time} Uhr**`,
   ];
@@ -153,6 +216,14 @@ function buildRaidEmbed(raid, siteUrl) {
     `${statusEmoji} **${confirmed.length}** sicher${tentative.length ? ` + **${tentative.length}** unsicher` : ""} von **${raid.maxPlayers}** Plätzen`,
     `\`${bar}\` ${pct}%`,
   );
+
+  // Composition summary with melee/ranged split
+  if (signups.length > 0) {
+    descParts.push(
+      "",
+      `🛡️ **${roleCounts.Tank}** Tank · ⚔️ **${meleeDps}** Nahkampf · 🏹 **${rangedDps}** Fernkampf · 💚 **${roleCounts.Heiler}** Heiler`,
+    );
+  }
 
   if (raid.description) {
     const desc = raid.description.length > 300 ? raid.description.slice(0, 300) + "…" : raid.description;
@@ -185,52 +256,47 @@ function buildRaidEmbed(raid, siteUrl) {
     });
   });
 
-  // Row 2: Signup lists per role (3 inline columns — always 3 for alignment)
-  ROLES.forEach(role => {
-    const rs = signups.filter(s => s.role === role);
-    if (!rs.length) {
-      fields.push({ name: ZWS, value: `*— keine —*`, inline: true });
-      return;
-    }
-    const lines = rs.map(s => {
+  // Class-grouped signup list (grouped by class with icons)
+  let classFieldCount = 0;
+  CLASS_DISPLAY_ORDER.forEach(cls => {
+    const clsSignups = signups.filter(s => s.className === cls);
+    if (!clsSignups.length) return;
+
+    const emoji = getClassEmoji(cls);
+    const enName = CLASS_ENGLISH[cls];
+
+    const lines = clsSignups.map(s => {
       const tent = s.status === "tentative" ? " 🔸" : "";
-      const specInfo = s.assignedSpec
-        ? ` ✅ **${s.assignedSpec}**`
-        : s.offeredSpecs && s.offeredSpecs.length
-        ? ` *(${s.offeredSpecs.join("/")})*`
-        : "";
-      return `**${s.charName}**${specInfo}${tent}`;
+      const conf = s.status === "confirmed" ? " ✅" : "";
+      const spec = s.assignedSpec || (s.offeredSpecs && s.offeredSpecs.length ? s.offeredSpecs[0] : "");
+      const specEmoji = spec ? getSpecEmoji(cls, spec, s.role) : (ROLE_EMOJI[s.role] || "⚔️");
+      const specLabel = spec || s.role || "";
+      return `${specEmoji} **${s.charName}** *${specLabel}*${tent}${conf}`;
     });
+
     fields.push({
-      name: `Anmeldungen ${role}`,
+      name: `${emoji} ${enName} (${clsSignups.length})`,
       value: truncField(lines.join("\n")),
       inline: true,
     });
+    classFieldCount++;
   });
 
-  // Row 3: Class breakdown split into 3 columns for wider layout
-  const clsEntries = Object.entries(classCounts).sort((a, b) => b[1] - a[1]);
-  if (clsEntries.length) {
-    // Split classes into up to 3 columns
-    const colSize = Math.ceil(clsEntries.length / 3);
-    for (let col = 0; col < 3; col++) {
-      const chunk = clsEntries.slice(col * colSize, (col + 1) * colSize);
-      if (!chunk.length) {
-        fields.push({ name: ZWS, value: ZWS, inline: true });
-        continue;
-      }
-      const clsLines = chunk.map(([cls, ct]) => `\`${ct}×\` ${cls}`);
-      fields.push({
-        name: col === 0 ? "📊 Klassenverteilung" : ZWS,
-        value: clsLines.join("\n"),
-        inline: true,
-      });
+  // Pad last row of inline class fields to align in groups of 3
+  const remainder = classFieldCount % 3;
+  if (remainder > 0) {
+    for (let i = 0; i < 3 - remainder; i++) {
+      fields.push({ name: ZWS, value: ZWS, inline: true });
     }
   }
 
   // Full-width rows: Benched, Declined
   if (benched.length) {
-    const names = benched.map(s => `💺 ${s.charName}${s.className ? ` (${s.className})` : ""}`);
+    const emoji = getCustomEmojis()["Bench"] || "💺";
+    const names = benched.map(s => {
+      const clsEmoji = s.className ? getClassEmoji(s.className) + " " : "";
+      return `${clsEmoji}${s.charName}`;
+    });
     fields.push({
       name: `💺 Bank (${benched.length})`,
       value: truncField(names.join(", ")),
@@ -271,6 +337,7 @@ function buildRaidEmbed(raid, siteUrl) {
   if (total > raid.maxPlayers) color = 0xE57373; // red = over
 
   // Find the most common class for footer icon
+  const clsEntries = Object.entries(classCounts).sort((a, b) => b[1] - a[1]);
   const topClass = clsEntries.length ? clsEntries[0][0] : null;
 
   const embed = {
