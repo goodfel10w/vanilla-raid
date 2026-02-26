@@ -336,10 +336,6 @@ function buildRaidEmbed(raid, siteUrl) {
   if (total >= raid.maxPlayers) color = 0x66BB6A; // green = full
   if (total > raid.maxPlayers) color = 0xE57373; // red = over
 
-  // Find the most common class for footer icon
-  const clsEntries = Object.entries(classCounts).sort((a, b) => b[1] - a[1]);
-  const topClass = clsEntries.length ? clsEntries[0][0] : null;
-
   const embed = {
     author: {
       name: "<Vanilla> Raid-Planer",
@@ -351,10 +347,6 @@ function buildRaidEmbed(raid, siteUrl) {
     fields,
     thumbnail: {
       url: RAID_THUMBNAILS[raid.instance] || `${WH_ICONS}/inv_misc_head_dragon_01.jpg`,
-    },
-    footer: {
-      text: `Erstellt von ${raid.createdByName}`,
-      icon_url: topClass ? clsIconUrl(topClass) : `${WOW_ICONS}/class/64/warrior.png`,
     },
     timestamp: new Date().toISOString(),
   };
