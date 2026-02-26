@@ -4115,6 +4115,17 @@ function renderAdminEntries(){
 
 function renderAdminManage(){
   let html=`<div class="card">
+    <div class="card-t">Discord</div>
+    <div class="adm-danger-row" style="border-color:rgba(88,101,242,.2)">
+      <div class="adm-danger-info">
+        <strong>${dcIco(14)} Discord-Emojis einrichten</strong>
+        <small>Lädt WoW-Klassen- und Spezialisierungs-Icons als Custom-Emojis auf euren Discord-Server hoch. Die Raid-Posts verwenden dann die echten WoW-Icons statt Unicode-Emojis.</small>
+      </div>
+      <button class="btn-discord" id="btn-setup-emojis" onclick="setupDiscordEmojis()">Emojis hochladen</button>
+    </div>
+    <div id="emoji-setup-status" style="font-size:12px;color:var(--tx3);margin-top:8px"></div>
+  </div>`;
+  html+=`<div class="card">
     <div class="card-t">Verwaltung</div>
     <p style="font-size:13px;color:var(--tx3);margin-bottom:16px">Administrative Aktionen. Diese Aktionen können nicht rückgängig gemacht werden.</p>
     <div class="adm-danger">
@@ -4217,6 +4228,30 @@ window.postToDiscord=async function(raidId){
     toast("Discord: "+e.message);
   }finally{
     if(btn){btn.disabled=false;btn.innerHTML=dcIco(14)+" Discord";}
+  }
+};
+
+window.setupDiscordEmojis=async function(){
+  const btn=document.getElementById("btn-setup-emojis");
+  const status=document.getElementById("emoji-setup-status");
+  if(btn){btn.disabled=true;btn.textContent="Wird hochgeladen...";}
+  if(status)status.textContent="WoW-Icons werden heruntergeladen und hochgeladen...";
+  try{
+    const r=await fetch(DISCORD_API,{
+      method:"POST",
+      headers:{"Content-Type":"application/json",...authHeader()},
+      body:JSON.stringify({action:"setup-emojis"}),
+    });
+    const data=await r.json().catch(()=>null);
+    if(!r.ok)throw new Error(data?.error||`HTTP ${r.status}`);
+    const msg=`${data.uploaded} hochgeladen, ${data.skipped} bereits vorhanden`;
+    if(status)status.innerHTML=`<span style="color:var(--grn)">\u2713 ${h(msg)}</span>${data.errors?.length?`<br><span style="color:var(--dps)">${data.errors.map(e=>h(e)).join("<br>")}</span>`:""}`;
+    toast("Discord-Emojis eingerichtet \u2713");
+  }catch(e){
+    if(status)status.innerHTML=`<span style="color:var(--dps)">\u2717 ${h(e.message)}</span>`;
+    toast("Emoji-Setup: "+e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent="Emojis hochladen";}
   }
 };
 

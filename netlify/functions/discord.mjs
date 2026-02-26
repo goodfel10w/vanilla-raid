@@ -93,15 +93,32 @@ const CLASS_DISPLAY_ORDER = [
   "Hexenmeister", "Priester", "Magier", "Schamane",
 ];
 
-// Custom Discord emoji support via DISCORD_EMOJIS env var
-// Format: JSON object mapping names to Discord emoji strings
-// e.g. {"Warrior":"<:Warrior:123>","Druid":"<:Druid:456>","Protection":"<:Protection:789>"}
+// Custom Discord emoji support
+// Priority: DISCORD_EMOJIS env var > Netlify Blob store > Unicode fallbacks
 let _emojiCache = null;
+
+// Sync getter — returns cached map (call loadEmojiCache() first in async context)
 function getCustomEmojis() {
   if (_emojiCache !== null) return _emojiCache;
+  // Sync fallback: check env var only
   try { _emojiCache = JSON.parse(process.env.DISCORD_EMOJIS || "{}"); }
   catch { _emojiCache = {}; }
   return _emojiCache;
+}
+
+// Async loader — reads from env var or Netlify Blobs
+async function loadEmojiCache() {
+  if (_emojiCache !== null) return;
+  const envEmojis = process.env.DISCORD_EMOJIS;
+  if (envEmojis) {
+    try { _emojiCache = JSON.parse(envEmojis); return; } catch { /* fall through */ }
+  }
+  try {
+    const store = getStore({ name: "discord-emojis", consistency: "strong" });
+    const map = await store.get("emoji-map", { type: "json" });
+    if (map && Object.keys(map).length > 0) { _emojiCache = map; return; }
+  } catch { /* fall through */ }
+  _emojiCache = {};
 }
 
 function getClassEmoji(cls) {
@@ -406,9 +423,17 @@ export default async (req) => {
     const body = await req.json();
     const { action, raidId } = body;
 
+    // ── Setup emojis (no raidId needed) ──
+    if (action === "setup-emojis") {
+      return await handleSetupEmojis(user, headers);
+    }
+
     if (!action || !raidId) {
       return new Response(JSON.stringify({ error: "Action und Raid-ID erforderlich" }), { status: 400, headers });
     }
+
+    // Load emoji cache from Blobs before building embeds
+    await loadEmojiCache();
 
     const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
     if (!webhookUrl) {
@@ -563,6 +588,157 @@ async function updateDiscordMessage(webhookUrl, messageId, raid, siteUrl, discor
   }
 
   return new Response(JSON.stringify({ ok: true, messageId }), { status: 200, headers });
+}
+
+// ── Auto-upload WoW icons as Discord server emojis ──
+async function handleSetupEmojis(user, headers) {
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+  const guildId = process.env.DISCORD_GUILD_ID;
+
+  if (!botToken || !guildId) {
+    return new Response(JSON.stringify({
+      error: "DISCORD_BOT_TOKEN und DISCORD_GUILD_ID müssen konfiguriert sein",
+    }), { status: 400, headers });
+  }
+
+  const DISCORD_API = "https://discord.com/api/v10";
+
+  // Build list of icons to upload: 9 class + 27 spec icons
+  const toUpload = [];
+
+  // Class icons
+  for (const [cls, slug] of Object.entries(CLASS_ICON_SLUG)) {
+    const en = CLASS_ENGLISH[cls];
+    toUpload.push({
+      name: `wow_${slug}`,
+      url: `${WOW_ICONS}/class/64/${slug}.png`,
+      mapKey: en, // e.g. "Warrior"
+    });
+  }
+
+  // Spec icons (deduplicate by icon path)
+  const seenPaths = new Set();
+  for (const [cls, specs] of Object.entries(SPEC_ICONS)) {
+    const en = CLASS_ENGLISH[cls];
+    for (const [specName, iconPath] of Object.entries(specs)) {
+      if (seenPaths.has(iconPath)) {
+        // Shared icon (e.g. Feral Tank/DPS) — still map the spec name
+        const existingEntry = toUpload.find(e => e.iconPath === iconPath);
+        if (existingEntry) {
+          existingEntry.extraMapKeys = existingEntry.extraMapKeys || [];
+          existingEntry.extraMapKeys.push(`${en}_${specName}`);
+        }
+        continue;
+      }
+      seenPaths.add(iconPath);
+      const emojiName = `wow_${iconPath.replace("/", "_")}`;
+      toUpload.push({
+        name: emojiName,
+        url: `${WOW_ICONS}/spec/${iconPath}.png`,
+        mapKey: `${en}_${specName}`,
+        iconPath,
+      });
+    }
+  }
+
+  // Check existing guild emojis to avoid re-uploading
+  let existingEmojis = [];
+  try {
+    const res = await fetch(`${DISCORD_API}/guilds/${guildId}/emojis`, {
+      headers: { Authorization: `Bot ${botToken}` },
+    });
+    if (res.ok) existingEmojis = await res.json();
+  } catch { /* continue */ }
+
+  const existingByName = {};
+  existingEmojis.forEach(e => { existingByName[e.name] = e; });
+
+  // Fetch all icon images in parallel from CDN
+  const imageResults = await Promise.allSettled(
+    toUpload.map(async (entry) => {
+      const res = await fetch(entry.url);
+      if (!res.ok) throw new Error(`CDN ${res.status} for ${entry.url}`);
+      const buf = await res.arrayBuffer();
+      return { ...entry, base64: Buffer.from(buf).toString("base64") };
+    })
+  );
+
+  const emojiMap = {};
+  const uploaded = [];
+  const skipped = [];
+  const errors = [];
+
+  for (const result of imageResults) {
+    if (result.status === "rejected") {
+      errors.push(result.reason.message);
+      continue;
+    }
+    const entry = result.value;
+
+    // Check if already exists on server
+    if (existingByName[entry.name]) {
+      const existing = existingByName[entry.name];
+      const emojiStr = `<:${existing.name}:${existing.id}>`;
+      emojiMap[entry.mapKey] = emojiStr;
+      if (entry.extraMapKeys) entry.extraMapKeys.forEach(k => { emojiMap[k] = emojiStr; });
+      skipped.push(entry.name);
+      continue;
+    }
+
+    // Upload to Discord
+    try {
+      const discordRes = await fetch(`${DISCORD_API}/guilds/${guildId}/emojis`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bot ${botToken}`,
+        },
+        body: JSON.stringify({
+          name: entry.name,
+          image: `data:image/png;base64,${entry.base64}`,
+        }),
+      });
+
+      if (!discordRes.ok) {
+        const errText = await discordRes.text();
+        if (discordRes.status === 429) {
+          // Rate limited — save what we have so far and report
+          errors.push(`Rate-Limit bei ${entry.name} — bitte später erneut ausführen`);
+          break;
+        }
+        errors.push(`${entry.name}: ${discordRes.status} ${errText.slice(0, 100)}`);
+        continue;
+      }
+
+      const emoji = await discordRes.json();
+      const emojiStr = `<:${emoji.name}:${emoji.id}>`;
+      emojiMap[entry.mapKey] = emojiStr;
+      if (entry.extraMapKeys) entry.extraMapKeys.forEach(k => { emojiMap[k] = emojiStr; });
+      uploaded.push(entry.name);
+    } catch (e) {
+      errors.push(`${entry.name}: ${e.message}`);
+    }
+  }
+
+  // Store emoji map in Netlify Blobs
+  if (Object.keys(emojiMap).length > 0) {
+    const store = getStore({ name: "discord-emojis", consistency: "strong" });
+    // Merge with existing map (in case of partial uploads)
+    let existing = {};
+    try { existing = (await store.get("emoji-map", { type: "json" })) || {}; } catch { /* ok */ }
+    const merged = { ...existing, ...emojiMap };
+    await store.setJSON("emoji-map", merged);
+    // Reset cache so next request picks up new emojis
+    _emojiCache = null;
+  }
+
+  return new Response(JSON.stringify({
+    ok: true,
+    uploaded: uploaded.length,
+    skipped: skipped.length,
+    errors,
+    total: Object.keys(emojiMap).length,
+  }), { status: 200, headers });
 }
 
 // Exported helpers for raids.mjs and discord-interactions.mjs
