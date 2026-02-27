@@ -840,7 +840,7 @@ input[type=number]:focus{border-color:rgba(201,168,76,.3)}
     <button class="tab" data-v="roster" role="tab" aria-selected="false" aria-controls="v-roster" id="tab-roster">Aufstellung</button>
     <button class="tab" data-v="heatmap" role="tab" aria-selected="false" aria-controls="v-heatmap" id="tab-heatmap">Heatmap</button>
     <button class="tab" data-v="analytics" role="tab" aria-selected="false" aria-controls="v-analytics" id="tab-analytics">Auswertung</button>
-    <button class="tab" data-v="kara" role="tab" aria-selected="false" aria-controls="v-kara" id="tab-kara">Kara Gruppen</button>
+    <button class="tab hidden" data-v="kara" role="tab" aria-selected="false" aria-controls="v-kara" id="tab-kara">Kara Gruppen</button>
     <button class="tab" data-v="dkp" role="tab" aria-selected="false" aria-controls="v-dkp" id="tab-dkp">DKP</button>
     <button class="tab hidden" data-v="admin" role="tab" aria-selected="false" aria-controls="v-admin" id="tab-admin">Admin</button>
   </div>
@@ -952,7 +952,7 @@ function collapseRanges(avail,day){
 const RR_TANK=2, RR_HEAL=5, RR_DPS=18;
 
 // ── State ──
-let entries=[], view="form", editId=null, heatMode="1h", rosterSort="name";
+let entries=[], view="form", editId=null, heatMode="1h", rosterSort="name", _initialLoad=true;
 let form={name:"",cls:"",specs:[],roles:[],avail:{},notes:""};
 let currentUser=null; // { token, username, userId, discordLinked, discordUsername, discordGuildMember }
 
@@ -1247,6 +1247,13 @@ async function load(){
     const dr=await fetch(DKP_API,{headers:authHeader()});
     if(dr.ok){const dd=await dr.json();dkpBalances=dd.balances||[];dkpTransactions=dd.transactions||[];if(dd.config){dkpConfig=dd.config;dkpDecayPercent=dkpConfig.defaultDecayPercent||15}}
   }catch(e){console.error(e)}
+  // On first load, switch to Raids tab if user has a character entry and there are raids
+  if(_initialLoad){
+    _initialLoad=false;
+    if(currentUser&&raids.length&&entries.some(e=>e.userId===currentUser.userId)){
+      switchTab("raids");
+    }
+  }
   updateAll();
 }
 async function save(data){
@@ -2284,6 +2291,7 @@ function renderRaidCard(raid,isPast){
           <span class="raid-signup-status bench">Gebankt</span>
           ${s.note?`<span style="font-size:11px;color:var(--tx4);font-style:italic">${h(s.note)}</span>`:""}
           ${isOwner&&!isPast?`<span class="raid-signup-actions">
+            <button class="btn-confirm" onclick="unconfirmPlayer('${raid.id}','${s.userId}')">Aufnehmen</button>
             <button class="btn-kick" onclick="removePlayer('${raid.id}','${s.userId}')">Entfernen</button>
           </span>`:""}
         </div>`;
@@ -3915,8 +3923,13 @@ function updateAdminTabVisibility(){
   if(tab){
     const show=isOfficerUser();
     tab.classList.toggle("hidden",!show);
-    // If admin tab was active but user lost access, switch to form
     if(!show&&view==="admin"){switchTab("form");renderForm()}
+  }
+  const karaTab=document.getElementById("tab-kara");
+  if(karaTab){
+    const showKara=isOfficerUser();
+    karaTab.classList.toggle("hidden",!showKara);
+    if(!showKara&&view==="kara"){switchTab("form");renderForm()}
   }
 }
 
@@ -4102,6 +4115,17 @@ function renderAdminEntries(){
 
 function renderAdminManage(){
   let html=`<div class="card">
+    <div class="card-t">Discord</div>
+    <div class="adm-danger-row" style="border-color:rgba(88,101,242,.2)">
+      <div class="adm-danger-info">
+        <strong>${dcIco(14)} Discord-Emojis einrichten</strong>
+        <small>Lädt WoW-Klassen- und Spezialisierungs-Icons als Custom-Emojis auf euren Discord-Server hoch. Die Raid-Posts verwenden dann die echten WoW-Icons statt Unicode-Emojis.</small>
+      </div>
+      <button class="btn-discord" id="btn-setup-emojis" onclick="setupDiscordEmojis()">Emojis hochladen</button>
+    </div>
+    <div id="emoji-setup-status" style="font-size:12px;color:var(--tx3);margin-top:8px"></div>
+  </div>`;
+  html+=`<div class="card">
     <div class="card-t">Verwaltung</div>
     <p style="font-size:13px;color:var(--tx3);margin-bottom:16px">Administrative Aktionen. Diese Aktionen können nicht rückgängig gemacht werden.</p>
     <div class="adm-danger">
@@ -4207,6 +4231,30 @@ window.postToDiscord=async function(raidId){
   }
 };
 
+window.setupDiscordEmojis=async function(){
+  const btn=document.getElementById("btn-setup-emojis");
+  const status=document.getElementById("emoji-setup-status");
+  if(btn){btn.disabled=true;btn.textContent="Wird hochgeladen...";}
+  if(status)status.textContent="WoW-Icons werden heruntergeladen und hochgeladen...";
+  try{
+    const r=await fetch(DISCORD_API,{
+      method:"POST",
+      headers:{"Content-Type":"application/json",...authHeader()},
+      body:JSON.stringify({action:"setup-emojis"}),
+    });
+    const data=await r.json().catch(()=>null);
+    if(!r.ok)throw new Error(data?.error||`HTTP ${r.status}`);
+    const msg=`${data.uploaded} hochgeladen, ${data.skipped} bereits vorhanden`;
+    if(status)status.innerHTML=`<span style="color:var(--grn)">\u2713 ${h(msg)}</span>${data.errors?.length?`<br><span style="color:var(--dps)">${data.errors.map(e=>h(e)).join("<br>")}</span>`:""}`;
+    toast("Discord-Emojis eingerichtet \u2713");
+  }catch(e){
+    if(status)status.innerHTML=`<span style="color:var(--dps)">\u2717 ${h(e.message)}</span>`;
+    toast("Emoji-Setup: "+e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent="Emojis hochladen";}
+  }
+};
+
 // ══════════════════════════════
 //  KARAZHAN GROUP PLANNER
 // ══════════════════════════════
@@ -4225,16 +4273,16 @@ let karaGroupSlots=["","",""]; // per-group time slot key e.g. "Mittwoch_20:00�
 let karaSuggestMode=false; // showing suggestion picker
 let karaShowExport=false; // showing export text
 
-// ── ID Week helpers (Wed 03:00 → Tue 02:59) ──
+// ── ID Week helpers (Tue 03:00 → Mon 02:59) ──
 function getIdWeekStart(offset){
   const now=new Date();
-  // Find current Wednesday: day 0=Sun, 3=Wed
+  // Find current Tuesday: day 0=Sun, 2=Tue
   const d=new Date(now.getFullYear(),now.getMonth(),now.getDate(),3,0,0);
   const dow=d.getDay(); // 0=Sun
-  // Days since last Wednesday
-  const daysSinceWed=(dow+4)%7; // Wed=0, Thu=1, ..., Tue=6
-  d.setDate(d.getDate()-daysSinceWed);
-  // If we're before Wednesday 3:00 AM this week, we're still in last week's ID
+  // Days since last Tuesday
+  const daysSinceTue=(dow+5)%7; // Tue=0, Wed=1, ..., Mon=6
+  d.setDate(d.getDate()-daysSinceTue);
+  // If we're before Tuesday 3:00 AM this week, we're still in last week's ID
   if(now<d) d.setDate(d.getDate()-7);
   // Apply offset
   d.setDate(d.getDate()+offset*7);
