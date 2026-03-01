@@ -3,7 +3,7 @@
     color: var(--color-text-primary);
     font-family: var(--font-body);
     font-size: var(--text-base);
-    background: linear-gradient(170deg, var(--color-bg-base) 0%, var(--color-bg-surface) 40%, #1a1028 70%, #0d0b16 100%);
+    background: linear-gradient(170deg, var(--color-bg-base) 0%, var(--color-bg-surface) 40%, #221a12 70%, #12100c 100%);
     background-attachment: fixed;
   }
 
@@ -179,13 +179,13 @@
     left: -10%;
     width: 50%;
     height: 60%;
-    background: radial-gradient(ellipse, rgba(80, 40, 120, 0.08), transparent 70%);
+    background: radial-gradient(ellipse, rgba(120, 80, 30, 0.08), transparent 70%);
   }
   .g2 {
     bottom: -20%;
     right: -10%;
     width: 40%;
     height: 50%;
-    background: radial-gradient(ellipse, rgba(40, 60, 120, 0.06), transparent 70%);
+    background: radial-gradient(ellipse, rgba(100, 60, 20, 0.06), transparent 70%);
   }
 }

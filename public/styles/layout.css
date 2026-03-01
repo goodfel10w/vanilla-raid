@@ -172,7 +172,7 @@
     grid-area: bottomnav;
     display: none;
     height: var(--bottomnav-height);
-    background: rgba(10, 10, 18, 0.95);
+    background: rgba(20, 17, 14, 0.95);
     border-top: 1px solid var(--color-border-default);
     backdrop-filter: blur(12px);
     z-index: var(--z-nav);
