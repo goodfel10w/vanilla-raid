@@ -4,40 +4,42 @@ import { getState, update, subscribe } from '../state.js';
 import { navigate, currentPath, viewFromPath } from '../router.js';
 import { isAdminUser } from '../auth.js';
 
+const mi = name => `<span class="material-symbols-outlined">${name}</span>`;
+
 const NAV_GROUPS = [
   {
     label: 'Planen',
     items: [
-      { view: 'dashboard', icon: '\u{1F3E0}', label: 'Dashboard', href: '#/dashboard' },
-      { view: 'form', icon: '\u{1F4DD}', label: 'Eintragen', href: '#/form' },
-      { view: 'raids', icon: '\u2694\uFE0F', label: 'Raids', href: '#/raids' },
+      { view: 'dashboard', icon: mi('home'), label: 'Dashboard', href: '#/dashboard' },
+      { view: 'form', icon: mi('edit_note'), label: 'Eintragen', href: '#/form' },
+      { view: 'raids', icon: mi('swords'), label: 'Raids', href: '#/raids' },
     ],
   },
   {
     label: 'Auswerten',
     items: [
-      { view: 'roster', icon: '\u{1F465}', label: 'Aufstellung', href: '#/roster' },
-      { view: 'heatmap', icon: '\u{1F525}', label: 'Heatmap', href: '#/heatmap' },
-      { view: 'analytics', icon: '\u{1F4CA}', label: 'Auswertung', href: '#/analytics' },
+      { view: 'roster', icon: mi('groups'), label: 'Aufstellung', href: '#/roster' },
+      { view: 'heatmap', icon: mi('local_fire_department'), label: 'Heatmap', href: '#/heatmap' },
+      { view: 'analytics', icon: mi('bar_chart'), label: 'Auswertung', href: '#/analytics' },
     ],
   },
   {
     label: 'Verwalten',
     items: [
-      { view: 'kara', icon: '\u2699\uFE0F', label: 'Kara', href: '#/kara' },
-      { view: 'dkp', icon: '\u{1F4B0}', label: 'DKP', href: '#/dkp' },
-      { view: 'admin', icon: '\u{1F512}', label: 'Admin', href: '#/admin', adminOnly: true },
+      { view: 'kara', icon: mi('settings'), label: 'Kara', href: '#/kara' },
+      { view: 'dkp', icon: mi('toll'), label: 'DKP', href: '#/dkp' },
+      { view: 'admin', icon: mi('lock'), label: 'Admin', href: '#/admin', adminOnly: true },
     ],
   },
 ];
 
 // Bottom nav: 5 items + "Mehr"
 const BOTTOM_NAV_ITEMS = [
-  { view: 'dashboard', icon: '\u{1F3E0}', label: 'Dashboard', href: '#/dashboard' },
-  { view: 'form', icon: '\u{1F4DD}', label: 'Eintragen', href: '#/form' },
-  { view: 'raids', icon: '\u2694\uFE0F', label: 'Raids', href: '#/raids' },
-  { view: 'dkp', icon: '\u{1F4B0}', label: 'DKP', href: '#/dkp' },
-  { view: 'more', icon: '\u2022\u2022\u2022', label: 'Mehr', href: null },
+  { view: 'dashboard', icon: mi('home'), label: 'Dashboard', href: '#/dashboard' },
+  { view: 'form', icon: mi('edit_note'), label: 'Eintragen', href: '#/form' },
+  { view: 'raids', icon: mi('swords'), label: 'Raids', href: '#/raids' },
+  { view: 'dkp', icon: mi('toll'), label: 'DKP', href: '#/dkp' },
+  { view: 'more', icon: mi('more_horiz'), label: 'Mehr', href: null },
 ];
 
 export function renderSidebar(el) {
@@ -48,7 +50,7 @@ export function renderSidebar(el) {
   let html = `
     <div class="sidebar-header">
       <button class="sidebar-toggle" aria-label="Navigation ${expanded ? 'einklappen' : 'ausklappen'}" data-action="toggle-sidebar">
-        <span style="font-size:20px">${expanded ? '\u2190' : '\u2192'}</span>
+        <span class="material-symbols-outlined" style="font-size:20px">${expanded ? 'chevron_left' : 'chevron_right'}</span>
       </button>
       <span class="sidebar-logo">&lt;Vanilla&gt;</span>
     </div>`;
@@ -80,7 +82,7 @@ export function renderSidebar(el) {
     update('ui.sidebarExpanded', next);
     el.classList.toggle('expanded', next);
     el.querySelector('.sidebar-toggle').setAttribute('aria-label', `Navigation ${next ? 'einklappen' : 'ausklappen'}`);
-    el.querySelector('.sidebar-toggle span').textContent = next ? '\u2190' : '\u2192';
+    el.querySelector('.sidebar-toggle .material-symbols-outlined').textContent = next ? 'chevron_left' : 'chevron_right';
   });
 
   // Event: nav clicks (let hash routing handle it)
@@ -124,13 +126,13 @@ export function renderBottomNav(el) {
 function _openMoreSheet() {
   const isAdmin = isAdminUser();
   const moreItems = [
-    { view: 'roster', icon: '\u{1F465}', label: 'Aufstellung', href: '#/roster' },
-    { view: 'heatmap', icon: '\u{1F525}', label: 'Heatmap', href: '#/heatmap' },
-    { view: 'analytics', icon: '\u{1F4CA}', label: 'Auswertung', href: '#/analytics' },
-    { view: 'kara', icon: '\u2699\uFE0F', label: 'Kara', href: '#/kara' },
+    { view: 'roster', icon: mi('groups'), label: 'Aufstellung', href: '#/roster' },
+    { view: 'heatmap', icon: mi('local_fire_department'), label: 'Heatmap', href: '#/heatmap' },
+    { view: 'analytics', icon: mi('bar_chart'), label: 'Auswertung', href: '#/analytics' },
+    { view: 'kara', icon: mi('settings'), label: 'Kara', href: '#/kara' },
   ];
   if (isAdmin) {
-    moreItems.push({ view: 'admin', icon: '\u{1F512}', label: 'Admin', href: '#/admin' });
+    moreItems.push({ view: 'admin', icon: mi('lock'), label: 'Admin', href: '#/admin' });
   }
 
   const sheet = document.createElement('div');
@@ -138,7 +140,7 @@ function _openMoreSheet() {
   sheet.innerHTML = `<div class="more-sheet-content">
     <div style="text-align:center;margin-bottom:var(--sp-4,16px)"><div style="width:40px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto"></div></div>
     ${moreItems.map(item => `<a class="more-sheet-item" href="${item.href}" data-view="${item.view}" data-v="${item.view}" aria-current="false">
-      <span style="font-size:20px">${item.icon}</span>
+      ${item.icon}
       <span>${item.label}</span>
     </a>`).join('')}
   </div>`;

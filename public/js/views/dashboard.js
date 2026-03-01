@@ -71,19 +71,19 @@ function _renderContent(container) {
         <div class="card-title">Schnellzugriff</div>
         <div class="quick-actions">
           <a class="quick-action" href="#/form">
-            <span class="quick-action-icon">\u{1F4DD}</span>
+            <span class="quick-action-icon"><span class="material-symbols-outlined">edit_note</span></span>
             <span>Verfügbarkeit eintragen</span>
           </a>
           <a class="quick-action" href="#/raids">
-            <span class="quick-action-icon">\u2694\uFE0F</span>
+            <span class="quick-action-icon"><span class="material-symbols-outlined">swords</span></span>
             <span>Raids anzeigen</span>
           </a>
           <a class="quick-action" href="#/roster">
-            <span class="quick-action-icon">\u{1F465}</span>
+            <span class="quick-action-icon"><span class="material-symbols-outlined">groups</span></span>
             <span>Aufstellung</span>
           </a>
           <a class="quick-action" href="#/heatmap">
-            <span class="quick-action-icon">\u{1F525}</span>
+            <span class="quick-action-icon"><span class="material-symbols-outlined">local_fire_department</span></span>
             <span>Heatmap</span>
           </a>
         </div>
@@ -111,7 +111,7 @@ function _renderContent(container) {
     html += '<div class="activity-list">';
     recentEntries.forEach(e => {
       html += `<div class="activity-item">
-        <span class="activity-icon" style="color:${cc(e.className)}">\u{1F464}</span>
+        <span class="activity-icon" style="color:${cc(e.className)}"><span class="material-symbols-outlined" style="font-size:18px">person</span></span>
         <span><strong style="color:${cc(e.className)}">${h(e.charName)}</strong> hat sich eingetragen</span>
         ${e.timestamp ? `<span class="activity-time">${timeAgo(e.timestamp)}</span>` : ''}
       </div>`;

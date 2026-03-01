@@ -19,7 +19,7 @@ export function raidCard(raid, opts = {}) {
     return `<a class="raid-card raid-card-compact card" href="#/raids/${raid.id}" data-testid="raid-card">
       <div class="raid-card-header">
         <span class="raid-inst">${h(raid.instance)}</span>
-        ${raid.locked ? '<span class="raid-locked" title="Gesperrt">\u{1F512}</span>' : ''}
+        ${raid.locked ? '<span class="raid-locked" title="Gesperrt"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">lock</span></span>' : ''}
       </div>
       <div class="raid-card-meta">
         <span>${dateStr}</span>
@@ -44,9 +44,9 @@ export function raidCard(raid, opts = {}) {
   if (isCreator) {
     actionBtns += ` <button class="btn-discord" data-raid-id="${raid.id}" style="font-size:12px;padding:6px 14px">${discordSvg(14)} Discord</button>`;
     if (raid.locked) {
-      actionBtns += ` <button class="btn-raid-lock btn-secondary" data-raid-id="${raid.id}" data-lock-action="unlock" style="font-size:12px;padding:6px 14px">\u{1F513} Entsperren</button>`;
+      actionBtns += ` <button class="btn-raid-lock btn-secondary" data-raid-id="${raid.id}" data-lock-action="unlock" style="font-size:12px;padding:6px 14px"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">lock_open</span> Entsperren</button>`;
     } else {
-      actionBtns += ` <button class="btn-raid-lock btn-secondary" data-raid-id="${raid.id}" data-lock-action="lock" style="font-size:12px;padding:6px 14px">\u{1F512} Sperren</button>`;
+      actionBtns += ` <button class="btn-raid-lock btn-secondary" data-raid-id="${raid.id}" data-lock-action="lock" style="font-size:12px;padding:6px 14px"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">lock</span> Sperren</button>`;
     }
   } else if (user && !raid.locked) {
     const hasSignup = signups.some(s => s.userId === user.userId);
@@ -58,7 +58,7 @@ export function raidCard(raid, opts = {}) {
   return `<div class="raid-card card" data-testid="raid-card" data-raid-id="${raid.id}">
     <div class="raid-card-header">
       <span class="raid-inst">${h(raid.instance)}</span>
-      ${raid.locked ? '<span class="raid-locked" title="Gesperrt">\u{1F512} Gesperrt</span>' : ''}
+      ${raid.locked ? '<span class="raid-locked" title="Gesperrt"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">lock</span> Gesperrt</span>' : ''}
     </div>
     <div class="raid-card-meta">
       <span>${dateStr} ${raid.time}</span>
