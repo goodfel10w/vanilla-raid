@@ -2,16 +2,16 @@
 
 import { getState, update, subscribe } from '../state.js';
 import { api, RAIDS_API } from '../api.js';
-import { h, cc, clsIcon, specIcon, formatDate } from '../utils.js';
-import { CLS, TBC_RAIDS, ROLES, ROLE_ICONS, ROLE_COLORS, BNET_ICON, WOW_ICONS } from '../constants.js';
+import { h, cc, clsIcon, specIcon, formatDate, specRole } from '../utils.js';
+import { CLS, TBC_RAIDS, ROLES, ROLE_ICONS, ROLE_COLORS, CLASS_SPECS, WOW_ICONS } from '../constants.js';
 import { raidCard, roleBar } from '../components/raid-card.js';
 import { roleBarFull } from '../components/role-bar.js';
 import { monthlyCalendar, weeklyCalendar } from '../components/calendar.js';
-import { showConfirm } from '../components/modal.js';
+import { showModal, showConfirm } from '../components/modal.js';
 import { toast } from '../components/toast.js';
 import { navigate } from '../router.js';
 import { loadData } from '../app.js';
-import { isAdminUser } from '../auth.js';
+import { isAdminUser, isOfficerUser } from '../auth.js';
 
 let _unsub = [];
 let _container = null;
@@ -56,6 +56,11 @@ function _renderRaidList(container) {
   // Sort by date
   const sorted = [...raids].sort((a, b) => new Date(a.date) - new Date(b.date));
 
+  // Split into upcoming vs past
+  const now = new Date();
+  const upcoming = sorted.filter(r => new Date(r.date + 'T' + (r.time || '20:00')) >= now);
+  const past = sorted.filter(r => new Date(r.date + 'T' + (r.time || '20:00')) < now).reverse();
+
   let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-4);flex-wrap:wrap;gap:var(--sp-2)">
     <h2 style="margin:0">Raids</h2>
     ${user ? `<button class="btn-primary" style="font-size:13px;padding:8px 18px" id="btn-create-raid">+ Raid erstellen</button>` : ''}
@@ -76,10 +81,17 @@ function _renderRaidList(container) {
   </div>`;
 
   if (calMode === 'list') {
-    if (sorted.length) {
-      sorted.forEach(r => { html += raidCard(r, { user }); });
-    } else {
+    if (!upcoming.length && !past.length) {
       html += '<div class="empty">Keine Raids geplant</div>';
+    } else {
+      if (upcoming.length) {
+        html += `<div class="raid-section-title">Kommende Raids (${upcoming.length})</div>`;
+        upcoming.forEach(r => { html += raidCard(r, { user }); });
+      }
+      if (past.length) {
+        html += `<div class="raid-section-title raid-section-past">Vergangene Raids (${past.length})</div>`;
+        past.forEach(r => { html += raidCard(r, { user, past: true }); });
+      }
     }
   } else if (calMode === 'week') {
     html += weeklyCalendar(calDate, raids);
@@ -147,6 +159,21 @@ function _renderRaidList(container) {
     });
   });
 
+  // DKP award button
+  container.querySelectorAll('.btn-dkp-award').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const raidId = btn.dataset.raidId;
+      const raid = (getState('raids') || []).find(r => r.id === raidId);
+      if (!raid) return;
+      const signups = (raid.signups || []).filter(s => s.status !== 'declined');
+      const playerNames = signups.map(s => s.charName);
+      update('ui.dkpAwardPlayers', playerNames);
+      update('ui.dkpAwardReason', raid.instance + ' ' + formatDate(raid.date));
+      update('ui.dkpView', 'award');
+      navigate('/dkp');
+    });
+  });
+
   // Calendar navigation
   container.querySelectorAll('[data-action="cal-prev"]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -169,20 +196,21 @@ function _renderRaidList(container) {
   });
 }
 
-function _showCreateForm(container) {
-  const form = getState('ui.raidForm');
+function _showCreateForm(container, editRaid) {
+  const form = editRaid || getState('ui.raidForm');
+  const isEdit = !!editRaid?.id;
   container.innerHTML = `<div class="card" style="padding:28px">
-    <h2 style="margin-bottom:var(--sp-4)">Raid erstellen</h2>
+    <h2 style="margin-bottom:var(--sp-4)">${isEdit ? 'Raid bearbeiten' : 'Raid erstellen'}</h2>
     <div class="field">
       <span class="label">Instanz</span>
       <select class="input" id="rf-instance">
         <option value="">— Wählen —</option>
-        ${TBC_RAIDS.map(r => `<option value="${h(r.n)}"${form.instance === r.n ? ' selected' : ''}>${h(r.n)} (${r.max})</option>`).join('')}
+        ${TBC_RAIDS.map(r => `<option value="${h(r.n)}"${(form.instance || '') === r.n ? ' selected' : ''}>${h(r.n)} (${r.max})</option>`).join('')}
       </select>
     </div>
     <div class="field">
       <span class="label">Datum</span>
-      <input class="input" type="date" id="rf-date" value="${form.date}">
+      <input class="input" type="date" id="rf-date" value="${form.date || ''}">
     </div>
     <div class="field">
       <span class="label">Uhrzeit</span>
@@ -190,7 +218,7 @@ function _showCreateForm(container) {
     </div>
     <div class="field">
       <span class="label">Max. Spieler</span>
-      <input class="input" type="number" id="rf-max" value="${form.maxPlayers}" min="1" max="40">
+      <input class="input" type="number" id="rf-max" value="${form.maxPlayers || 25}" min="1" max="40">
     </div>
     <div class="field">
       <span class="label">Beschreibung (optional)</span>
@@ -201,7 +229,7 @@ function _showCreateForm(container) {
       <input class="input" type="datetime-local" id="rf-deadline" value="${form.deadline || ''}">
     </div>
     <div class="btn-row">
-      <button class="btn-primary" id="rf-submit">Erstellen</button>
+      <button class="btn-primary" id="rf-submit">${isEdit ? 'Speichern' : 'Erstellen'}</button>
       <button class="btn-secondary" id="rf-cancel">Abbrechen</button>
     </div>
   </div>`;
@@ -214,7 +242,7 @@ function _showCreateForm(container) {
 
   container.querySelector('#rf-submit').addEventListener('click', async () => {
     const data = {
-      action: 'create',
+      action: isEdit ? 'update' : 'create',
       instance: container.querySelector('#rf-instance').value,
       date: container.querySelector('#rf-date').value,
       time: container.querySelector('#rf-time').value,
@@ -222,16 +250,21 @@ function _showCreateForm(container) {
       description: container.querySelector('#rf-desc').value,
       deadline: container.querySelector('#rf-deadline').value || undefined,
     };
+    if (isEdit) data.id = editRaid.id;
     if (!data.instance || !data.date) { toast('Instanz und Datum erforderlich'); return; }
     try {
       await api.post(RAIDS_API, data);
-      toast('Raid erstellt \u2713');
+      toast(isEdit ? 'Raid aktualisiert \u2713' : 'Raid erstellt \u2713');
       await loadData();
-      _renderRaidList(container);
+      if (isEdit) _renderRaidDetail(container, editRaid.id);
+      else _renderRaidList(container);
     } catch (e) { toast('Fehler: ' + e.message); }
   });
 
-  container.querySelector('#rf-cancel').addEventListener('click', () => _renderRaidList(container));
+  container.querySelector('#rf-cancel').addEventListener('click', () => {
+    if (isEdit) _renderRaidDetail(container, editRaid.id);
+    else _renderRaidList(container);
+  });
 }
 
 function _renderRaidDetail(container, raidId) {
@@ -246,30 +279,53 @@ function _renderRaidDetail(container, raidId) {
   const signups = raid.signups || [];
   const isCreator = user && raid.createdBy === user.userId;
   const isAdmin = isAdminUser();
-  const canManage = isCreator || isAdmin;
+  const isOfficer = isOfficerUser();
+  const canManage = isCreator || isAdmin || isOfficer;
   const isPast = new Date(raid.date + 'T' + (raid.time || '20:00')) < new Date();
+  const deadlinePassed = raid.deadline && new Date(raid.deadline) < new Date();
 
-  // Group signups by role
-  const byRole = {};
-  ROLES.forEach(r => { byRole[r] = []; });
+  // Group signups by status
+  const statusOrder = ['confirmed', 'accepted', 'tentative', 'benched', 'declined'];
+  const statusLabels = { confirmed: 'Bestätigt', accepted: 'Zugesagt', tentative: 'Vielleicht', benched: 'Bank', declined: 'Abgesagt' };
+  const byStatus = {};
+  statusOrder.forEach(s => { byStatus[s] = []; });
   signups.forEach(s => {
-    const role = s.role || 'DPS';
-    if (byRole[role]) byRole[role].push(s);
-    else byRole['DPS'].push(s);
+    const st = s.status || 'accepted';
+    if (byStatus[st]) byStatus[st].push(s);
+    else byStatus['accepted'].push(s);
   });
 
-  const roleCounts = { Tank: byRole.Tank.length, Heiler: byRole.Heiler.length, DPS: byRole.DPS.length };
+  // Role counts (exclude declined)
+  const activeSu = signups.filter(s => s.status !== 'declined');
+  const roleCounts = { Tank: 0, Heiler: 0, DPS: 0 };
+  activeSu.forEach(s => { const r = s.role || 'DPS'; if (roleCounts[r] !== undefined) roleCounts[r]++; else roleCounts['DPS']++; });
+
+  // Raid size-based targets
+  const targets = raid.maxPlayers <= 10
+    ? { Tank: 2, Heiler: 3, DPS: 5 }
+    : { Tank: 2, Heiler: 5, DPS: 18 };
+
+  // Status counts for header
+  const confirmedCount = byStatus.confirmed.length;
+  const acceptedCount = byStatus.accepted.length;
+  const tentativeCount = byStatus.tentative.length;
 
   let html = `<div class="raid-detail">
     <button class="btn-secondary" style="margin-bottom:var(--sp-4);font-size:12px;padding:6px 14px" id="btn-back-raids">\u2190 Zurück</button>
     <div class="card">
       <div class="raid-card-header">
         <span class="raid-inst">${h(raid.instance)}</span>
-        ${raid.locked ? '<span class="raid-locked" title="Gesperrt"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">lock</span></span>' : ''}
+        <div style="display:flex;gap:var(--sp-2);align-items:center">
+          ${raid.locked ? '<span class="raid-locked" title="Gesperrt"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">lock</span></span>' : ''}
+          ${deadlinePassed ? '<span class="deadline-badge deadline-closed">Frist abgelaufen</span>' : raid.deadline ? '<span class="deadline-badge deadline-open">Anmeldung offen</span>' : ''}
+        </div>
       </div>
       <div class="raid-card-meta">
         <span>${formatDate(raid.date)} ${raid.time || ''}</span>
-        <span>${signups.length}/${raid.maxPlayers} Anmeldungen</span>
+        <span>${activeSu.length}/${raid.maxPlayers} Anmeldungen</span>
+        ${confirmedCount ? `<span style="color:var(--green-400)">\u2713\u2713${confirmedCount}</span>` : ''}
+        ${acceptedCount ? `<span style="color:var(--green-400)">\u2713${acceptedCount}</span>` : ''}
+        ${tentativeCount ? `<span style="color:var(--yellow-400)">?${tentativeCount}</span>` : ''}
         ${raid.createdByName ? `<span>von ${h(raid.createdByName)}</span>` : ''}
       </div>
       ${raid.description ? `<div class="raid-desc">\u201E${h(raid.description)}\u201C</div>` : ''}
@@ -278,23 +334,51 @@ function _renderRaidDetail(container, raidId) {
 
     <div class="card">
       <div class="card-title">Rollenzusammensetzung</div>
-      ${roleBarFull(roleCounts)}
-    </div>
-
-    <div class="card">
-      <div class="card-title">Anmeldungen (${signups.length})</div>
-      ${ROLES.map(r => {
-        const group = byRole[r];
-        if (!group.length) return '';
-        return `<div class="raid-signups-group">
-          <div class="raid-signups-group-title" style="color:${ROLE_COLORS[r]}">${ROLE_ICONS[r]} ${r} (${group.length})</div>
-          ${group.map(s => _renderSignupRow(s, canManage, raid)).join('')}
-        </div>`;
-      }).join('')}
-      ${signups.length === 0 ? '<div class="empty">Noch keine Anmeldungen</div>' : ''}
+      ${roleBarFull(roleCounts, targets)}
     </div>`;
 
-  // Signup form (if logged in and not locked)
+  // Composition suggestion panel
+  html += _buildRaidComp(raid);
+
+  // Signup sections by status
+  html += `<div class="card">
+      <div class="card-title">Anmeldungen (${signups.length})</div>`;
+  let hasSections = false;
+  statusOrder.forEach(st => {
+    const group = byStatus[st];
+    if (!group.length) return;
+    hasSections = true;
+    const stColor = { confirmed: 'var(--green-400)', accepted: 'var(--green-400)', tentative: 'var(--yellow-400)', benched: '#e6903a', declined: 'var(--red-400)' }[st];
+    html += `<div class="raid-signups-group">
+      <div class="raid-signups-group-title" style="color:${stColor}">${statusLabels[st]} (${group.length})</div>
+      ${group.map(s => _renderSignupRow(s, canManage, raid)).join('')}
+    </div>`;
+  });
+  if (!hasSections) html += '<div class="empty">Noch keine Anmeldungen</div>';
+  html += '</div>';
+
+  // Own signup card
+  if (user) {
+    const mySignup = signups.find(s => s.userId === user.userId);
+    if (mySignup) {
+      const myStatusLabel = statusLabels[mySignup.status] || mySignup.status;
+      html += `<div class="card own-signup-card">
+        <div class="card-title">Deine Anmeldung</div>
+        <div style="display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-3)">
+          <img class="wow-ico-sm" src="${clsIcon(mySignup.className)}" alt="" loading="lazy">
+          <span style="font-weight:600;color:${cc(mySignup.className)}">${h(mySignup.charName)}</span>
+          <span class="raid-signup-status signup-${mySignup.status}">${myStatusLabel}</span>
+          ${mySignup.assignedSpec ? `<img class="wow-ico-sm" src="${specIcon(mySignup.className, mySignup.assignedSpec)}" alt="" loading="lazy">` : ''}
+        </div>
+        <div style="display:flex;gap:var(--sp-2)">
+          ${!isPast && !raid.locked ? `<button class="btn-secondary" id="btn-change-signup">Ändern</button>` : ''}
+          ${!isPast && !raid.locked ? `<button class="btn-danger" id="btn-unsignup">Abmelden</button>` : ''}
+        </div>
+      </div>`;
+    }
+  }
+
+  // Signup form (if logged in and not locked, and no existing signup or changing)
   if (user && !raid.locked && !isPast) {
     const mySignup = signups.find(s => s.userId === user.userId);
     if (!mySignup) {
@@ -302,10 +386,23 @@ function _renderRaidDetail(container, raidId) {
     }
   }
 
+  // Organizer tools
+  if (canManage) {
+    html += `<div class="card">
+      <div class="card-title">Organisator-Werkzeuge</div>
+      <div class="raid-detail-actions">
+        <button class="btn-secondary" id="btn-signup-other"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">person_add</span> Spieler anmelden</button>
+        ${!raid.locked ? `<button class="btn-primary" id="btn-confirm-lineup"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">check_circle</span> Aufstellung bestätigen</button>` : ''}
+      </div>
+    </div>`;
+  }
+
   // Management actions
   if (canManage) {
     html += `<div class="raid-detail-actions">
+      <button class="btn-secondary" id="btn-edit-raid"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">edit</span> Bearbeiten</button>
       ${!raid.locked ? `<button class="btn-secondary" id="btn-lock-raid"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">lock</span> Sperren</button>` : `<button class="btn-secondary" id="btn-unlock-raid"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">lock_open</span> Entsperren</button>`}
+      ${isPast && (isAdmin || isOfficer) ? `<button class="btn-primary btn-dkp-award" data-raid-id="${raid.id}"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">toll</span> DKP vergeben</button>` : ''}
       <button class="btn-danger" id="btn-delete-raid">\u2715 Löschen</button>
     </div>`;
   }
@@ -315,6 +412,8 @@ function _renderRaidDetail(container, raidId) {
 
   // Events
   container.querySelector('#btn-back-raids')?.addEventListener('click', () => navigate('/raids'));
+
+  container.querySelector('#btn-edit-raid')?.addEventListener('click', () => _showCreateForm(container, raid));
 
   container.querySelector('#btn-lock-raid')?.addEventListener('click', async () => {
     try {
@@ -343,27 +442,126 @@ function _renderRaidDetail(container, raidId) {
     });
   });
 
+  // Change own signup
+  container.querySelector('#btn-change-signup')?.addEventListener('click', () => {
+    const mySignup = signups.find(s => s.userId === user.userId);
+    if (!mySignup) return;
+    // Remove own signup card and show signup form
+    const ownCard = container.querySelector('.own-signup-card');
+    if (ownCard) {
+      const formHtml = _renderSignupForm(raid, true);
+      ownCard.outerHTML = formHtml;
+      _attachSignupFormEvents(container, raid);
+    }
+  });
+
+  // Unsignup
+  container.querySelector('#btn-unsignup')?.addEventListener('click', async () => {
+    try {
+      await api.post(RAIDS_API, { action: 'unsignup', raidId: raid.id });
+      toast('Abgemeldet');
+      await loadData();
+    } catch (e) { toast('Fehler: ' + e.message); }
+  });
+
   // Signup form submit
+  _attachSignupFormEvents(container, raid);
+
+  // Signup action buttons (confirm, bench, unconfirm, remove)
+  container.querySelectorAll('[data-signup-action]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const action = btn.dataset.signupAction;
+      const userId = btn.dataset.userId;
+      try {
+        await api.post(RAIDS_API, { action, raidId: raid.id, targetUserId: userId });
+        toast('Aktualisiert');
+        await loadData();
+      } catch (e) { toast('Fehler: ' + e.message); }
+    });
+  });
+
+  // Signup others
+  container.querySelector('#btn-signup-other')?.addEventListener('click', () => _signupOther(raid));
+
+  // Confirm lineup
+  container.querySelector('#btn-confirm-lineup')?.addEventListener('click', () => _confirmLineup(raid));
+
+  // DKP award button in detail
+  container.querySelectorAll('.btn-dkp-award').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const su = (raid.signups || []).filter(s => s.status !== 'declined');
+      update('ui.dkpAwardPlayers', su.map(s => s.charName));
+      update('ui.dkpAwardReason', raid.instance + ' ' + formatDate(raid.date));
+      update('ui.dkpView', 'award');
+      navigate('/dkp');
+    });
+  });
+
+  // Spec assignment selects
+  container.querySelectorAll('.spec-assign-select').forEach(sel => {
+    sel.addEventListener('change', async () => {
+      const userId = sel.dataset.userId;
+      const spec = sel.value;
+      try {
+        await api.post(RAIDS_API, { action: 'assign-spec', raidId: raid.id, targetUserId: userId, assignedSpec: spec });
+        toast('Spec zugewiesen');
+        await loadData();
+      } catch (e) { toast('Fehler: ' + e.message); }
+    });
+  });
+}
+
+function _attachSignupFormEvents(container, raid) {
+  const charSel = container.querySelector('#signup-char');
+  const specArea = container.querySelector('#signup-spec-area');
+
+  // Character select → show spec chips
+  if (charSel && specArea) {
+    const updateSpecs = () => {
+      const entries = getState('entries') || [];
+      const entry = entries.find(e => e.id === charSel.value);
+      if (!entry) { specArea.innerHTML = ''; return; }
+      const specs = CLASS_SPECS[entry.className] || [];
+      if (!specs.length) { specArea.innerHTML = ''; return; }
+      specArea.innerHTML = `<span class="label">Spezialisierung</span>
+        <div class="spec-chips">
+          ${specs.map(sp => `<button type="button" class="spec-chip" data-spec="${h(sp.n)}" data-role="${sp.r}">
+            <img class="wow-ico-sm" src="${WOW_ICONS}/spec/${sp.i}.png" alt="" loading="lazy">
+            ${h(sp.n)} <span style="font-size:10px;color:var(--color-text-muted)">(${sp.r})</span>
+          </button>`).join('')}
+        </div>`;
+      specArea.querySelectorAll('.spec-chip').forEach(chip => {
+        chip.addEventListener('click', () => chip.classList.toggle('active'));
+      });
+    };
+    charSel.addEventListener('change', updateSpecs);
+    updateSpecs();
+  }
+
   container.querySelector('#btn-signup')?.addEventListener('click', async () => {
     const entries = getState('entries') || [];
-    const charSel = container.querySelector('#signup-char');
-    const specSel = container.querySelector('#signup-spec');
+    const cSel = container.querySelector('#signup-char');
     const noteSel = container.querySelector('#signup-note');
     const statusSel = container.querySelector('#signup-status');
-    if (!charSel?.value) { toast('Charakter wählen'); return; }
-    const entry = entries.find(e => e.id === charSel.value);
+    if (!cSel?.value) { toast('Charakter wählen'); return; }
+    const entry = entries.find(e => e.id === cSel.value);
     if (!entry) return;
-    const specName = specSel?.value || '';
-    const role = specName ? (await import('../utils.js')).specRole(entry.className, specName) : (entry.roles?.[0] || 'DPS');
+
+    // Collect selected specs
+    const activeChips = container.querySelectorAll('.spec-chip.active');
+    const offeredSpecs = [...activeChips].map(c => c.dataset.spec);
+    const primarySpec = offeredSpecs[0] || '';
+    const role = primarySpec ? specRole(entry.className, primarySpec) : (entry.roles?.[0] || 'DPS');
+
     try {
       await api.post(RAIDS_API, {
         action: 'signup',
-        id: raid.id,
+        raidId: raid.id,
         charName: entry.charName,
         className: entry.className,
         role,
-        offeredSpecs: entry.specs || [],
-        assignedSpec: specName,
+        offeredSpecs,
+        assignedSpec: primarySpec,
         status: statusSel?.value || 'accepted',
         note: noteSel?.value || '',
       });
@@ -371,41 +569,42 @@ function _renderRaidDetail(container, raidId) {
       await loadData();
     } catch (e) { toast('Fehler: ' + e.message); }
   });
-
-  // Signup action buttons
-  container.querySelectorAll('[data-signup-action]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const action = btn.dataset.signupAction;
-      const userId = btn.dataset.userId;
-      try {
-        await api.post(RAIDS_API, { action, id: raid.id, targetUserId: userId });
-        toast('Aktualisiert');
-        await loadData();
-      } catch (e) { toast('Fehler: ' + e.message); }
-    });
-  });
 }
 
 function _renderSignupRow(s, canManage, raid) {
   const statusCls = `signup-${s.status || 'accepted'}`;
   const statusLabel = { accepted: '\u2713', tentative: '?', declined: '\u2715', benched: 'Bank', confirmed: '\u2713\u2713' }[s.status] || s.status;
-  return `<div class="raid-signup-row">
-    <span class="raid-signup-name" style="color:${cc(s.className)}">
+  const isDeclined = s.status === 'declined';
+  const roleBadge = s.role ? `<span class="role-badge" style="color:${ROLE_COLORS[s.role] || '#ccc'}">${ROLE_ICONS[s.role] || ''}</span>` : '';
+
+  // Spec assignment dropdown for organizers
+  let specAssignHtml = '';
+  if (canManage && s.offeredSpecs?.length > 1) {
+    const specs = s.offeredSpecs;
+    specAssignHtml = `<select class="spec-assign-select" data-user-id="${s.userId}" style="font-size:11px;padding:2px 4px;background:transparent;color:var(--color-text-secondary);border:1px solid var(--color-border-default);border-radius:var(--radius-sm)">
+      ${specs.map(sp => `<option value="${h(sp)}"${sp === s.assignedSpec ? ' selected' : ''}>${h(sp)}</option>`).join('')}
+    </select>`;
+  }
+
+  return `<div class="raid-signup-row${isDeclined ? ' signup-declined-row' : ''}">
+    <span class="raid-signup-name" style="color:${cc(s.className)}${isDeclined ? ';text-decoration:line-through;opacity:0.5' : ''}">
       <img class="wow-ico-sm" src="${clsIcon(s.className)}" alt="" loading="lazy">
       ${h(s.charName)}
       ${s.assignedSpec ? `<img class="wow-ico-sm" src="${specIcon(s.className, s.assignedSpec)}" alt="" loading="lazy" style="margin-left:4px">` : ''}
     </span>
+    ${roleBadge}
     <span class="raid-signup-status ${statusCls}">${statusLabel}</span>
+    ${specAssignHtml}
     ${s.note ? `<span style="font-size:11px;color:var(--color-text-muted);font-style:italic">${h(s.note)}</span>` : ''}
     ${canManage ? `<div class="raid-signup-actions">
-      ${s.status !== 'confirmed' ? `<button data-signup-action="confirm-signup" data-user-id="${s.userId}" title="Bestätigen">\u2713</button>` : ''}
-      ${s.status !== 'benched' ? `<button data-signup-action="bench-signup" data-user-id="${s.userId}" title="Auf die Bank">B</button>` : ''}
+      ${s.status !== 'confirmed' ? `<button data-signup-action="confirm" data-user-id="${s.userId}" title="Bestätigen">\u2713\u2713</button>` : `<button data-signup-action="unconfirm" data-user-id="${s.userId}" title="Zurück zu Zugesagt">\u21A9</button>`}
+      ${s.status !== 'benched' ? `<button data-signup-action="bench" data-user-id="${s.userId}" title="Auf die Bank">B</button>` : ''}
       <button data-signup-action="remove-signup" data-user-id="${s.userId}" title="Entfernen">\u2715</button>
     </div>` : ''}
   </div>`;
 }
 
-function _renderSignupForm(raid) {
+function _renderSignupForm(raid, isChange) {
   const entries = getState('entries') || [];
   const user = getState('auth.user');
   const myEntries = entries.filter(e => e.userId === user?.userId);
@@ -415,13 +614,14 @@ function _renderSignupForm(raid) {
   }
 
   return `<div class="card signup-form">
-    <div class="card-title">Anmelden</div>
+    <div class="card-title">${isChange ? 'Anmeldung ändern' : 'Anmelden'}</div>
     <div class="field">
       <span class="label">Charakter</span>
       <select class="input" id="signup-char">
         ${myEntries.map(e => `<option value="${e.id}">${h(e.charName)} (${h(e.className)})</option>`).join('')}
       </select>
     </div>
+    <div class="field" id="signup-spec-area"></div>
     <div class="field">
       <span class="label">Status</span>
       <select class="input" id="signup-status">
@@ -433,6 +633,143 @@ function _renderSignupForm(raid) {
       <span class="label">Anmerkung (optional)</span>
       <input class="input" type="text" id="signup-note" placeholder="z.B. komme 10 Min. später">
     </div>
-    <button class="btn-primary" id="btn-signup">Anmelden</button>
+    <button class="btn-primary" id="btn-signup">${isChange ? 'Änderung speichern' : 'Anmelden'}</button>
   </div>`;
+}
+
+function _buildRaidComp(raid) {
+  const signups = raid.signups || [];
+  if (!signups.length) return '';
+
+  const active = signups.filter(s => s.status !== 'declined');
+  // Priority sort: confirmed > accepted > tentative
+  const priorityOrder = { confirmed: 0, accepted: 1, tentative: 2 };
+  const sorted = [...active].sort((a, b) => (priorityOrder[a.status] ?? 3) - (priorityOrder[b.status] ?? 3));
+
+  const targets = raid.maxPlayers <= 10
+    ? { Tank: 2, Heiler: 3, DPS: 5 }
+    : { Tank: 2, Heiler: 5, DPS: 18 };
+
+  const filled = { Tank: 0, Heiler: 0, DPS: 0 };
+  const roster = [];
+  const bench = [];
+
+  sorted.forEach(s => {
+    const role = s.role || 'DPS';
+    if (s.status === 'benched') {
+      bench.push(s);
+    } else if (filled[role] < targets[role]) {
+      filled[role]++;
+      roster.push(s);
+    } else {
+      bench.push(s);
+    }
+  });
+
+  // Class distribution
+  const classCounts = {};
+  active.forEach(s => {
+    if (s.className) classCounts[s.className] = (classCounts[s.className] || 0) + 1;
+  });
+  const classEntries = Object.entries(classCounts).sort((a, b) => b[1] - a[1]);
+  const maxClassCount = classEntries.length ? classEntries[0][1] : 1;
+
+  let html = `<div class="card">
+    <div class="card-title">Aufstellungsvorschlag</div>
+    ${roleBarFull(filled, targets)}
+    <div style="font-size:var(--text-sm);color:var(--color-text-secondary);margin:var(--sp-3) 0">
+      ${roster.length} in Aufstellung, ${bench.length} auf der Bank
+    </div>`;
+
+  if (classEntries.length) {
+    html += `<div class="card-title" style="margin-top:var(--sp-3)">Klassenverteilung</div>
+    <div class="class-dist">
+      ${classEntries.map(([cls, count]) => {
+        const pct = (count / maxClassCount) * 100;
+        return `<div class="class-dist-row">
+          <span class="class-dist-label" style="color:${cc(cls)}">${h(cls)}</span>
+          <div class="class-dist-track">
+            <div class="class-dist-bar" style="width:${pct}%;background:${cc(cls)}"></div>
+          </div>
+          <span class="class-dist-count">${count}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  html += '</div>';
+  return html;
+}
+
+function _signupOther(raid) {
+  const entries = getState('entries') || [];
+  const signedUpUserIds = new Set((raid.signups || []).map(s => s.userId));
+  const available = entries.filter(e => !signedUpUserIds.has(e.userId));
+
+  showModal({
+    title: 'Spieler anmelden',
+    body: `<div class="field"><span class="label">Charakter</span>
+      <select class="input" id="modal-signup-char">
+        <option value="">— Wählen —</option>
+        ${available.map(e => `<option value="${e.id}">${h(e.charName)} (${h(e.className)})</option>`).join('')}
+      </select></div>
+      <div class="field"><span class="label">Rolle</span>
+      <select class="input" id="modal-signup-role">
+        ${ROLES.map(r => `<option value="${r}">${r}</option>`).join('')}
+      </select></div>
+      <div class="field"><span class="label">Status</span>
+      <select class="input" id="modal-signup-status">
+        <option value="accepted">Zugesagt</option>
+        <option value="confirmed">Bestätigt</option>
+        <option value="tentative">Vielleicht</option>
+        <option value="benched">Bank</option>
+      </select></div>
+      <div class="field"><span class="label">Anmerkung</span>
+      <input class="input" type="text" id="modal-signup-note" placeholder="optional"></div>`,
+    confirmText: 'Anmelden',
+    onConfirm: async () => {
+      const charId = document.querySelector('#modal-signup-char')?.value;
+      const role = document.querySelector('#modal-signup-role')?.value || 'DPS';
+      const status = document.querySelector('#modal-signup-status')?.value || 'accepted';
+      const note = document.querySelector('#modal-signup-note')?.value || '';
+      if (!charId) { toast('Charakter wählen'); return; }
+      const entry = entries.find(e => e.id === charId);
+      if (!entry) return;
+      try {
+        await api.post(RAIDS_API, {
+          action: 'signup-other',
+          raidId: raid.id,
+          charName: entry.charName,
+          className: entry.className,
+          userId: entry.userId,
+          role,
+          status,
+          note,
+        });
+        toast(`${entry.charName} angemeldet`);
+        await loadData();
+      } catch (e) { toast('Fehler: ' + e.message); }
+    },
+  });
+}
+
+function _confirmLineup(raid) {
+  const signups = raid.signups || [];
+  const accepted = signups.filter(s => s.status === 'accepted');
+  if (!accepted.length) { toast('Keine zugesagten Spieler zum Bestätigen'); return; }
+  showConfirm(
+    'Aufstellung bestätigen',
+    `<strong>${accepted.length}</strong> zugesagte Spieler werden auf <em>Bestätigt</em> gesetzt.`,
+    async () => {
+      try {
+        await api.post(RAIDS_API, {
+          action: 'confirm-lineup',
+          raidId: raid.id,
+          userIds: accepted.map(s => s.userId),
+        });
+        toast('Aufstellung bestätigt');
+        await loadData();
+      } catch (e) { toast('Fehler: ' + e.message); }
+    }
+  );
 }

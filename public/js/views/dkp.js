@@ -2,7 +2,7 @@
 
 import { getState, update, subscribe } from '../state.js';
 import { api, DKP_API } from '../api.js';
-import { h, cc, linkItems, timeAgo } from '../utils.js';
+import { h, cc, linkItems, timeAgo, formatDate } from '../utils.js';
 import { CLS, ROLES } from '../constants.js';
 import { showModal, showConfirm } from '../components/modal.js';
 import { toast } from '../components/toast.js';
@@ -187,6 +187,19 @@ function _renderDkp(container) {
     update('ui.dkpAwardReason', this.value);
   });
 
+  // Raid picker change
+  container.querySelector('#dkp-raid-picker')?.addEventListener('change', function () {
+    const raidId = this.value;
+    if (!raidId) return;
+    const raids = getState('raids') || [];
+    const raid = raids.find(r => r.id === raidId);
+    if (!raid) return;
+    const su = (raid.signups || []).filter(s => s.status !== 'declined');
+    update('ui.dkpAwardPlayers', su.map(s => s.charName));
+    update('ui.dkpAwardReason', raid.instance + ' ' + formatDate(raid.date));
+    _renderDkp(container);
+  });
+
   // Spend form: enable/disable submit based on fields
   const spendPlayer = container.querySelector('#dkp-spend-player');
   const spendAmount = container.querySelector('#dkp-spend-amount');
@@ -218,6 +231,27 @@ function _renderDkp(container) {
 
   // Role management
   container.querySelector('#dkp-role-add-btn')?.addEventListener('click', () => _addRole(container));
+  container.querySelectorAll('.dkp-role-change').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const username = btn.dataset.roleUser;
+      const newRole = btn.dataset.newRole;
+      try {
+        await api.post(DKP_API, { action: 'manage-roles', username, role: newRole });
+        toast(`${username} als ${newRole === 'admin' ? 'Admin' : 'Offizier'} gesetzt`);
+        await loadData();
+      } catch (e) { toast('Fehler: ' + e.message); }
+    });
+  });
+  container.querySelectorAll('.dkp-role-remove').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const username = btn.dataset.roleUser;
+      try {
+        await api.post(DKP_API, { action: 'manage-roles', username, role: null });
+        toast(`Rolle von ${username} entfernt`);
+        await loadData();
+      } catch (e) { toast('Fehler: ' + e.message); }
+    });
+  });
 }
 
 function _renderOverview() {
@@ -360,8 +394,16 @@ function _renderTxList(txs) {
 function _renderAward() {
   const balances = getState('dkp.balances') || [];
   const entries = getState('entries') || [];
+  const raids = getState('raids') || [];
   const selectedPlayers = getState('ui.dkpAwardPlayers') || [];
   const amount = getState('ui.dkpAwardAmount') || '';
+
+  // Past raids for raid picker
+  const now = new Date();
+  const pastRaids = raids
+    .filter(r => new Date(r.date + 'T' + (r.time || '20:00')) < now)
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 20);
 
   // Combine unique player names
   const playerNames = new Set(balances.map(b => b.playerName));
@@ -379,6 +421,16 @@ function _renderAward() {
 
   return `<div class="card dkp-form">
     <div class="card-title">DKP vergeben</div>
+    ${pastRaids.length ? `<div class="field">
+      <span class="label">Raid auswählen (optional)</span>
+      <select class="input" id="dkp-raid-picker">
+        <option value="">— Spieler manuell wählen —</option>
+        ${pastRaids.map(r => {
+          const su = (r.signups || []).filter(s => s.status !== 'declined');
+          return `<option value="${r.id}">${h(r.instance)} — ${formatDate(r.date)} (${su.length} Spieler)</option>`;
+        }).join('')}
+      </select>
+    </div>` : ''}
     <div class="field">
       <span class="label">Spieler auswählen</span>
       <button class="btn-secondary dkp-selectall" style="font-size:11px;padding:4px 10px;margin-bottom:var(--sp-2)">${allSelected ? 'Keine auswählen' : 'Alle auswählen'}</button>
@@ -477,6 +529,14 @@ function _renderSettings() {
       <span class="label">Negative Salden erlauben</span>
       <input type="checkbox" id="cfg-neg" ${config.allowNegativeBalance ? 'checked' : ''}>
     </div>
+    <div class="field">
+      <span class="label">Transaktionslimit pro Spieler</span>
+      <input class="input" type="number" id="cfg-tx-limit" value="${config.transactionLimit || 0}" placeholder="0 = unbegrenzt">
+    </div>
+    <div class="field">
+      <span class="label">Max. Zeichenlänge Grund</span>
+      <input class="input" type="number" id="cfg-reason-max" value="${config.reasonMaxLength || 200}" placeholder="200">
+    </div>
     <button class="btn-primary btn-p" id="dkp-cfg-save">Speichern</button>
 
     <div class="card-title" style="margin-top:var(--sp-6)">Rollenverwaltung</div>
@@ -484,6 +544,10 @@ function _renderSettings() {
       ${roleEntries.map(([u, r]) => `<div class="dkp-role-entry">
         <span>${h(u)}</span>
         <span class="dkp-role-badge">${r === 'admin' ? 'Admin' : 'Offizier'}</span>
+        <div style="display:flex;gap:var(--sp-1)">
+          ${r === 'officer' ? `<button class="btn-secondary dkp-role-change" data-role-user="${h(u)}" data-new-role="admin" style="font-size:10px;padding:2px 6px">\u2191 Admin</button>` : `<button class="btn-secondary dkp-role-change" data-role-user="${h(u)}" data-new-role="officer" style="font-size:10px;padding:2px 6px">\u2193 Offizier</button>`}
+          <button class="btn-danger dkp-role-remove" data-role-user="${h(u)}" style="font-size:10px;padding:2px 6px">\u2715</button>
+        </div>
       </div>`).join('')}
       ${!roleEntries.length ? '<div class="empty" style="padding:8px 0">Keine Rollen vergeben</div>' : ''}
     </div>
@@ -553,6 +617,8 @@ async function _doSaveConfig(container) {
     maxDkpAmount: parseInt(container.querySelector('#cfg-max')?.value) || 10000,
     startingBalance: parseInt(container.querySelector('#cfg-start')?.value) || 0,
     allowNegativeBalance: container.querySelector('#cfg-neg')?.checked || false,
+    transactionLimit: parseInt(container.querySelector('#cfg-tx-limit')?.value) || 0,
+    reasonMaxLength: parseInt(container.querySelector('#cfg-reason-max')?.value) || 200,
   };
   try {
     await api.post(DKP_API, config);
@@ -640,17 +706,21 @@ function _editPlayer(container) {
 
   showModal({
     title: 'Spieler bearbeiten',
-    body: `<div class="field"><span class="label">Klasse</span>
+    body: `<div class="field"><span class="label">Name</span>
+      <input class="input" type="text" id="dkp-edit-name" value="${h(name)}" placeholder="Neuer Name"></div>
+      <div class="field"><span class="label">Klasse</span>
       <select class="input" id="dkp-edit-class">
         <option value="">— Keine —</option>
         ${CLS.map(c => `<option value="${h(c.n)}"${bal?.className === c.n ? ' selected' : ''}>${h(c.n)}</option>`).join('')}
       </select></div>`,
     confirmText: 'Speichern',
     onConfirm: async () => {
+      const newName = document.querySelector('#dkp-edit-name')?.value?.trim() || name;
       const className = document.querySelector('#dkp-edit-class')?.value || '';
       try {
-        await api.post(DKP_API, { action: 'edit-player', playerName: name, className });
+        await api.post(DKP_API, { action: 'edit-player', playerName: name, newName: newName !== name ? newName : undefined, className });
         toast(`${name} aktualisiert`);
+        if (newName !== name) update('ui.dkpPlayerDetail', newName);
         await loadData();
       } catch (e) { toast('Fehler: ' + e.message); }
     },
@@ -661,13 +731,26 @@ function _deletePlayer(container) {
   const name = container.querySelector('#dkp-delete-player-btn')?.dataset.player;
   if (!name) return;
 
-  showConfirm('Spieler löschen', `<strong>${h(name)}</strong> und alle zugehörigen Transaktionen wirklich löschen?`, async () => {
-    try {
-      await api.post(DKP_API, { action: 'delete-player', playerName: name });
-      toast(`${name} aus dem DKP-System entfernt`);
-      update('ui.dkpPlayerDetail', null);
-      await loadData();
-    } catch (e) { toast('Fehler: ' + e.message); }
+  showModal({
+    title: 'Spieler löschen',
+    body: `<p><strong>${h(name)}</strong> aus dem DKP-System entfernen?</p>
+      <div class="field" style="margin-top:var(--sp-3)">
+        <label style="display:flex;align-items:center;gap:var(--sp-2);font-size:var(--text-sm);cursor:pointer">
+          <input type="checkbox" id="dkp-delete-txs" checked>
+          Transaktionen auch löschen
+        </label>
+      </div>`,
+    confirmText: 'Löschen',
+    confirmClass: 'btn-danger',
+    onConfirm: async () => {
+      const deleteTxs = document.querySelector('#dkp-delete-txs')?.checked ?? true;
+      try {
+        await api.post(DKP_API, { action: 'delete-player', playerName: name, deleteTransactions: deleteTxs });
+        toast(`${name} aus dem DKP-System entfernt`);
+        update('ui.dkpPlayerDetail', null);
+        await loadData();
+      } catch (e) { toast('Fehler: ' + e.message); }
+    },
   });
 }
 
@@ -684,9 +767,26 @@ async function _addRole(container) {
 
 function _exportDkpCsv() {
   const balances = _sortedBalances();
+  const transactions = getState('dkp.transactions') || [];
+
+  // Balances CSV
   const header = ['Spieler', 'Klasse', 'DKP'];
   const rows = balances.map(b => [b.playerName, b.className || '', b.balance]);
-  const csv = [header, ...rows].map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+
+  // Add transaction history section
+  const txHeader = ['', '', ''];
+  const txTitleRow = ['Transaktionshistorie', '', ''];
+  const txColHeader = ['Spieler', 'Typ', 'Betrag', 'Grund', 'Datum'];
+  const txRows = transactions.map(t => [
+    t.playerName,
+    { earn: 'Verdient', spend: 'Beute', decay: 'Verfall', adjust: 'Anpassung' }[t.type] || t.type,
+    t.amount,
+    t.reason || '',
+    t.timestamp ? new Date(t.timestamp).toLocaleString('de-DE') : '',
+  ]);
+
+  const allRows = [header, ...rows, txHeader, txTitleRow, txColHeader, ...txRows];
+  const csv = allRows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

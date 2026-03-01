@@ -1,9 +1,12 @@
 // ── Dashboard View ──
 
 import { getState, subscribe } from '../state.js';
-import { h, cc, timeAgo } from '../utils.js';
+import { h, cc, timeAgo, formatDate } from '../utils.js';
+import { CLS, ROLES, ROLE_COLORS, ROLE_ICONS } from '../constants.js';
 import { raidCard } from '../components/raid-card.js';
+import { roleBarFull } from '../components/role-bar.js';
 import { skeletonCard, skeletonList } from '../components/skeleton.js';
+import { isAdminUser, isOfficerUser } from '../auth.js';
 
 let _unsub = [];
 
@@ -41,13 +44,16 @@ function _renderContent(container) {
   const safeEntries = entries || [];
   const safeRaids = raids || [];
   const user = getState('auth.user');
+  const isAdmin = isAdminUser();
+  const isOfficer = isOfficerUser();
 
   // Upcoming raids: sorted by date, future only
   const now = new Date();
-  const upcoming = safeRaids
+  const allUpcoming = safeRaids
     .filter(r => new Date(r.date + 'T' + (r.time || '20:00')) >= now)
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .slice(0, 3);
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  const upcoming = allUpcoming.slice(0, 5);
+  const overflowCount = allUpcoming.length - 5;
 
   // Recent entries for activity feed
   const recentEntries = [...safeEntries]
@@ -56,7 +62,23 @@ function _renderContent(container) {
 
   // Stats
   const totalRaiders = safeEntries.length;
-  const upcomingCount = safeRaids.filter(r => new Date(r.date + 'T' + (r.time || '20:00')) >= now).length;
+  const upcomingCount = allUpcoming.length;
+
+  // Role distribution from entries
+  const roleCounts = { Tank: 0, Heiler: 0, DPS: 0 };
+  safeEntries.forEach(e => {
+    (e.roles || []).forEach(r => {
+      if (roleCounts[r] !== undefined) roleCounts[r]++;
+    });
+  });
+
+  // Class distribution
+  const classCounts = {};
+  safeEntries.forEach(e => {
+    if (e.className) classCounts[e.className] = (classCounts[e.className] || 0) + 1;
+  });
+  const classEntries = Object.entries(classCounts).sort((a, b) => b[1] - a[1]);
+  const maxClassCount = classEntries.length ? classEntries[0][1] : 1;
 
   let html = `
     <div class="center" style="margin-bottom:var(--sp-8)">
@@ -89,6 +111,69 @@ function _renderContent(container) {
         </div>
       </div>`;
 
+  // "Deine Anmeldungen" card (logged-in users)
+  if (user) {
+    const mySignups = allUpcoming
+      .filter(r => (r.signups || []).some(s => s.userId === user.userId))
+      .slice(0, 5);
+    const raidsWithoutSignup = allUpcoming
+      .filter(r => !(r.signups || []).some(s => s.userId === user.userId))
+      .slice(0, 3);
+
+    html += `<div class="card card-full">
+      <div class="card-title">Deine Anmeldungen</div>`;
+    if (mySignups.length) {
+      html += '<div class="dashboard-signups">';
+      mySignups.forEach(r => {
+        const su = (r.signups || []).find(s => s.userId === user.userId);
+        const statusLabels = { confirmed: 'Bestätigt', accepted: 'Zugesagt', tentative: 'Vielleicht', benched: 'Bank', declined: 'Abgesagt' };
+        const stLabel = statusLabels[su?.status] || su?.status || '';
+        html += `<a href="#/raids/${r.id}" class="dashboard-signup-row">
+          <span class="raid-inst" style="font-size:var(--text-sm)">${h(r.instance)}</span>
+          <span style="font-size:var(--text-xs);color:var(--color-text-muted)">${formatDate(r.date)} ${r.time || ''}</span>
+          <span class="raid-signup-status signup-${su?.status || 'accepted'}" style="font-size:10px">${stLabel}</span>
+        </a>`;
+      });
+      html += '</div>';
+    } else {
+      html += '<div class="empty" style="font-size:var(--text-sm)">Du bist für keine kommenden Raids angemeldet</div>';
+    }
+    if (raidsWithoutSignup.length) {
+      html += `<div style="margin-top:var(--sp-3);font-size:var(--text-xs);color:var(--yellow-400)">
+        \u26A0 ${raidsWithoutSignup.length} Raid${raidsWithoutSignup.length > 1 ? 's' : ''} ohne Anmeldung:
+        ${raidsWithoutSignup.map(r => `<a href="#/raids/${r.id}" style="color:var(--color-accent)">${h(r.instance)}</a>`).join(', ')}
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  // Raid-lead quick actions (officers/admins)
+  if (isAdmin || isOfficer) {
+    const warnings = [];
+    allUpcoming.forEach(r => {
+      const su = r.signups || [];
+      const confirmed = su.filter(s => s.status === 'confirmed').length;
+      const total = su.filter(s => s.status !== 'declined').length;
+      if (confirmed === 0 && total > 0) {
+        warnings.push({ raid: r, type: 'no-lineup', msg: `${r.instance} (${formatDate(r.date)}): keine bestätigte Aufstellung` });
+      }
+      if (total < r.maxPlayers * 0.5) {
+        warnings.push({ raid: r, type: 'low-signups', msg: `${r.instance} (${formatDate(r.date)}): weniger als 50% Anmeldungen (${total}/${r.maxPlayers})` });
+      }
+    });
+    if (warnings.length) {
+      html += `<div class="card card-full">
+        <div class="card-title">Raid-Leitung</div>
+        <div class="dashboard-warnings">
+          ${warnings.map(w => `<div class="dashboard-warning">
+            <span class="material-symbols-outlined" style="font-size:16px;color:var(--yellow-400)">warning</span>
+            <a href="#/raids/${w.raid.id}" style="color:var(--color-text-secondary)">${h(w.msg)}</a>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    }
+  }
+
   // Upcoming raids
   if (upcoming.length) {
     html += `<div class="card${upcoming.length <= 2 ? ' card-full' : ''}">
@@ -96,6 +181,7 @@ function _renderContent(container) {
       <div class="upcoming-raids">
         ${upcoming.map(r => raidCard(r, { compact: true })).join('')}
       </div>
+      ${overflowCount > 0 ? `<a href="#/raids" style="display:block;text-align:center;font-size:var(--text-xs);color:var(--color-accent);margin-top:var(--sp-2)">+${overflowCount} weitere</a>` : ''}
     </div>`;
   } else {
     html += `<div class="card">
@@ -121,6 +207,31 @@ function _renderContent(container) {
     html += '<div class="empty">Noch keine Aktivität</div>';
   }
   html += '</div>';
+
+  // Role distribution
+  html += `<div class="card">
+    <div class="card-title">Rollenverteilung</div>
+    ${roleBarFull(roleCounts, { Tank: Math.max(roleCounts.Tank, 2), Heiler: Math.max(roleCounts.Heiler, 5), DPS: Math.max(roleCounts.DPS, 18) })}
+  </div>`;
+
+  // Class distribution
+  if (classEntries.length) {
+    html += `<div class="card">
+      <div class="card-title">Klassenverteilung</div>
+      <div class="class-dist-dashboard">
+        ${classEntries.map(([cls, count]) => {
+          const pct = (count / maxClassCount) * 100;
+          return `<div class="class-dist-row">
+            <span class="class-dist-label" style="color:${cc(cls)}">${h(cls)}</span>
+            <div class="class-dist-track">
+              <div class="class-dist-bar" style="width:${pct}%;background:${cc(cls)}"></div>
+            </div>
+            <span class="class-dist-count">${count}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
 
   // Stats summary
   html += `<div class="card card-full">
