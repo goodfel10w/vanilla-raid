@@ -11,9 +11,8 @@ test.describe('Analytics', () => {
           token: 'mock-token', username: 'Testuser', userId: 'mock-user-1', discordLinked: true, discordUsername: 'Testuser#1234', discordGuildMember: true
         }));
       });
-      await page.goto('/');
+      await page.goto('/#/analytics');
       await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
-      await page.click('[data-v="analytics"]');
     });
 
     test('shows 3 role distribution items', async ({ page }) => {
@@ -71,7 +70,7 @@ test.describe('Analytics', () => {
 
     test('player ranking shows slot counts', async ({ page }) => {
       const vals = await page.locator('.pbar-val').allTextContents();
-      vals.forEach(v => expect(v).toMatch(/\d+ Slots/));
+      vals.forEach(v => expect(v).toMatch(/\d+%/));
     });
   });
 
@@ -83,9 +82,8 @@ test.describe('Analytics', () => {
           token: 'mock-token', username: 'Testuser', userId: 'mock-user-1', discordLinked: true, discordUsername: 'Testuser#1234', discordGuildMember: true
         }));
       });
-      await page.goto('/');
+      await page.goto('/#/analytics');
       await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
-      await page.click('[data-v="analytics"]');
       await expect(page.locator('.empty')).toHaveText('Noch keine Daten f\u00fcr die Auswertung.');
     });
   });

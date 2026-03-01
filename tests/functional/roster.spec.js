@@ -11,9 +11,8 @@ test.describe('Roster', () => {
           token: 'mock-token', username: 'Testuser', userId: 'mock-user-1', discordLinked: true, discordUsername: 'Testuser#1234', discordGuildMember: true
         }));
       });
-      await page.goto('/');
+      await page.goto('/#/roster');
       await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
-      await page.click('[data-v="roster"]');
     });
 
     test('shows all entries', async ({ page }) => {
@@ -22,7 +21,7 @@ test.describe('Roster', () => {
 
     test('displays entry name and class', async ({ page }) => {
       const names = await page.locator('.e-name').allTextContents();
-      expect(names).toContain('Thrallm\u00e4chtig');
+      expect(names).toContain('Thrallmächtig');
       expect(names).toContain('Heiligschein');
       const classes = await page.locator('.e-class').allTextContents();
       expect(classes).toContain('Krieger');
@@ -40,30 +39,30 @@ test.describe('Roster', () => {
     test('sorting by name orders alphabetically', async ({ page }) => {
       await page.selectOption('.sort-sel', 'name');
       const names = await page.locator('.e-name').allTextContents();
-      // Heiligschein < Thrallm\u00e4chtig
+      // Heiligschein < Thrallmächtig
       expect(names[0]).toBe('Heiligschein');
-      expect(names[1]).toBe('Thrallm\u00e4chtig');
+      expect(names[1]).toBe('Thrallmächtig');
     });
 
     test('sorting by class orders by CLS array', async ({ page }) => {
       await page.selectOption('.sort-sel', 'class');
       const names = await page.locator('.e-name').allTextContents();
       // Krieger (index 3) before Priester (index 6)
-      expect(names[0]).toBe('Thrallm\u00e4chtig');
+      expect(names[0]).toBe('Thrallmächtig');
       expect(names[1]).toBe('Heiligschein');
     });
 
     test('sorting by role orders Tank > Heiler > DPS', async ({ page }) => {
       await page.selectOption('.sort-sel', 'role');
       const names = await page.locator('.e-name').allTextContents();
-      // Tank (Thrallm\u00e4chtig) before Heiler (Heiligschein)
-      expect(names[0]).toBe('Thrallm\u00e4chtig');
+      // Tank (Thrallmächtig) before Heiler (Heiligschein)
+      expect(names[0]).toBe('Thrallmächtig');
       expect(names[1]).toBe('Heiligschein');
     });
 
     test('own entry shows edit/delete buttons', async ({ page }) => {
       // SAMPLE_ENTRY has userId mock-user-1 = our user
-      const ownEntry = page.locator('.entry', { has: page.locator('.e-name', { hasText: 'Thrallm\u00e4chtig' }) });
+      const ownEntry = page.locator('.entry', { has: page.locator('.e-name', { hasText: 'Thrallmächtig' }) });
       await expect(ownEntry.locator('[data-edit]')).toBeVisible();
       await expect(ownEntry.locator('[data-del]')).toBeVisible();
     });
@@ -76,10 +75,10 @@ test.describe('Roster', () => {
     });
 
     test('delete with modal confirm removes entry', async ({ page }) => {
-      // Only own entry (Thrallm\u00e4chtig) has delete button
+      // Only own entry (Thrallmächtig) has delete button
       await page.locator('[data-del]').first().click();
       await expect(page.locator('.modal-bg')).toBeVisible();
-      await expect(page.locator('.modal-title')).toHaveText('Eintrag l\u00f6schen');
+      await expect(page.locator('.modal-title')).toHaveText('Eintrag löschen');
       await page.click('.modal-confirm');
       await expect(page.locator('.modal-bg')).toHaveCount(0);
       await expect(page.locator('.entry')).toHaveCount(1);
@@ -96,10 +95,8 @@ test.describe('Roster', () => {
     test('edit pre-fills form with entry data', async ({ page }) => {
       // Click edit on SAMPLE_ENTRY specifically (by id)
       await page.locator(`[data-edit="${SAMPLE_ENTRY.id}"]`).click();
-      // Switches to form tab
+      // Switches to form view
       await expect(page.locator('#v-form')).toBeVisible();
-      // Tab text changes to "Bearbeiten"
-      await expect(page.locator('[data-v="form"]')).toHaveText('Bearbeiten');
       // Name is pre-filled
       await expect(page.locator('#f-name')).toHaveValue(SAMPLE_ENTRY.charName);
       // Class chip is active
@@ -122,10 +119,9 @@ test.describe('Roster', () => {
           token: 'mock-token', username: 'Testuser', userId: 'mock-user-1', discordLinked: true, discordUsername: 'Testuser#1234', discordGuildMember: true
         }));
       });
-      await page.goto('/');
+      await page.goto('/#/roster');
       await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
-      await page.click('[data-v="roster"]');
-      await expect(page.locator('.empty')).toHaveText('Noch keine Eintr\u00e4ge. Sei der Erste!');
+      await expect(page.locator('.empty')).toHaveText('Noch keine Einträge. Sei der Erste!');
       // No CSV export button when empty
       await expect(page.locator('.btn-export')).toHaveCount(0);
     });

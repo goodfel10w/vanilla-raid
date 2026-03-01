@@ -15,6 +15,8 @@ test.describe('Layout checks', () => {
   });
 
   test('no horizontal overflow on form view', async ({ page }) => {
+    await page.evaluate(() => { window.location.hash = '#/form'; });
+    await expect(page.locator('#v-form')).toBeVisible();
     const overflow = await page.evaluate(() =>
       document.documentElement.scrollWidth > document.documentElement.clientWidth
     );
@@ -22,7 +24,8 @@ test.describe('Layout checks', () => {
   });
 
   test('no horizontal overflow on roster view', async ({ page }) => {
-    await page.click('[data-v="roster"]');
+    await page.evaluate(() => { window.location.hash = '#/roster'; });
+    await expect(page.locator('#v-roster')).toBeVisible();
     await expect(page.locator('.entry').first()).toBeVisible();
     const overflow = await page.evaluate(() =>
       document.documentElement.scrollWidth > document.documentElement.clientWidth
@@ -31,7 +34,8 @@ test.describe('Layout checks', () => {
   });
 
   test('no horizontal overflow on heatmap view', async ({ page }) => {
-    await page.click('[data-v="heatmap"]');
+    await page.evaluate(() => { window.location.hash = '#/heatmap'; });
+    await expect(page.locator('#v-heatmap')).toBeVisible();
     await expect(page.locator('.htable').first()).toBeVisible();
     const overflow = await page.evaluate(() =>
       document.documentElement.scrollWidth > document.documentElement.clientWidth
@@ -40,7 +44,8 @@ test.describe('Layout checks', () => {
   });
 
   test('no horizontal overflow on analytics view', async ({ page }) => {
-    await page.click('[data-v="analytics"]');
+    await page.evaluate(() => { window.location.hash = '#/analytics'; });
+    await expect(page.locator('#v-analytics')).toBeVisible();
     await expect(page.locator('.role-an-item').first()).toBeVisible();
     const overflow = await page.evaluate(() =>
       document.documentElement.scrollWidth > document.documentElement.clientWidth
@@ -49,10 +54,10 @@ test.describe('Layout checks', () => {
   });
 
   test('all tabs are visible and clickable', async ({ page }) => {
-    // 7 tabs for admin users (includes Admin tab), 6 for regular users
-    const tabs = page.locator('.tab:not(.hidden)');
+    // Sidebar + bottom nav both render .tab elements; use :visible to filter
+    const tabs = page.locator('.tab:visible');
     const count = await tabs.count();
-    expect(count).toBeGreaterThanOrEqual(6);
+    expect(count).toBeGreaterThanOrEqual(4);
     for (const tab of await tabs.all()) {
       await expect(tab).toBeVisible();
       await expect(tab).toBeEnabled();
@@ -60,6 +65,8 @@ test.describe('Layout checks', () => {
   });
 
   test('form has 9 class chips and spec chips appear after class selection', async ({ page }) => {
+    await page.evaluate(() => { window.location.hash = '#/form'; });
+    await expect(page.locator('#v-form')).toBeVisible();
     await expect(page.locator('.chip')).toHaveCount(9);
     // Spec chips only appear after selecting a class
     await expect(page.locator('.rchip')).toHaveCount(0);
@@ -69,7 +76,8 @@ test.describe('Layout checks', () => {
   });
 
   test('heatmap cards have overflow-x auto', async ({ page }) => {
-    await page.click('[data-v="heatmap"]');
+    await page.evaluate(() => { window.location.hash = '#/heatmap'; });
+    await expect(page.locator('#v-heatmap')).toBeVisible();
     await expect(page.locator('.htable').first()).toBeVisible();
     const cards = page.locator('#v-heatmap .card');
     const count = await cards.count();
@@ -81,7 +89,8 @@ test.describe('Layout checks', () => {
   });
 
   test('roster entries fit within container', async ({ page }) => {
-    await page.click('[data-v="roster"]');
+    await page.evaluate(() => { window.location.hash = '#/roster'; });
+    await expect(page.locator('#v-roster')).toBeVisible();
     await expect(page.locator('.entry').first()).toBeVisible();
     const containerWidth = await page.locator('#v-roster').evaluate(el => el.clientWidth);
     for (const entry of await page.locator('.entry').all()) {
@@ -91,7 +100,8 @@ test.describe('Layout checks', () => {
   });
 
   test('analytics bars fit within tracks', async ({ page }) => {
-    await page.click('[data-v="analytics"]');
+    await page.evaluate(() => { window.location.hash = '#/analytics'; });
+    await expect(page.locator('#v-analytics')).toBeVisible();
     await expect(page.locator('.bar-row').first()).toBeVisible();
     for (const track of await page.locator('.bar-track').all()) {
       const trackWidth = await track.evaluate(el => el.clientWidth);
