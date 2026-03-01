@@ -1,0 +1,132 @@
+@layer tokens {
+  :root {
+    /* ── Primitives ── */
+    --gray-50: #f5f4f7;
+    --gray-100: #e8e6ed;
+    --gray-200: #d1cdd9;
+    --gray-300: #b3adbf;
+    --gray-400: #9a92a8;
+    --gray-500: #8a8098;
+    --gray-600: #726888;
+    --gray-700: #5a5268;
+    --gray-800: #3a3548;
+    --gray-900: #1a1828;
+    --gray-950: #0d0b16;
+
+    --gold-300: #f0d878;
+    --gold-400: #dfc45c;
+    --gold-500: #c9a84c;
+    --gold-600: #a8873a;
+    --gold-700: #8a6e2e;
+
+    --blue-400: #5b9bd5;
+    --blue-500: #3a7cc8;
+    --green-400: #66bb6a;
+    --green-500: #4caf50;
+    --red-400: #e57373;
+    --red-500: #ef5350;
+    --yellow-400: #e5c244;
+    --yellow-500: #d4b030;
+
+    /* Spacing */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 20px;
+    --sp-6: 24px;
+    --sp-8: 32px;
+    --sp-10: 40px;
+    --sp-12: 48px;
+
+    /* Radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+
+    /* WoW class colors */
+    --cls-druide: #FF7C0A;
+    --cls-hexenmeister: #8788EE;
+    --cls-jaeger: #AAD372;
+    --cls-krieger: #C69B6D;
+    --cls-magier: #3FC7EB;
+    --cls-paladin: #F48CBA;
+    --cls-priester: #FFFFFF;
+    --cls-schamane: #0070DD;
+    --cls-schurke: #FFF468;
+
+    /* ── Semantic ── */
+    --color-bg-base: #0a0a12;
+    --color-bg-surface: #12101f;
+    --color-bg-elevated: #1a1828;
+    --color-bg-overlay: rgba(0, 0, 0, 0.65);
+
+    --color-text-primary: #e0ddd4;
+    --color-text-secondary: #8a8098;
+    --color-text-muted: #918a9c;
+    --color-text-accent: var(--gold-500);
+
+    --color-border-default: rgba(255, 255, 255, 0.06);
+    --color-border-subtle: rgba(255, 255, 255, 0.03);
+    --color-border-accent: rgba(201, 168, 76, 0.3);
+
+    --color-card: rgba(255, 255, 255, 0.025);
+
+    --color-role-tank: var(--blue-400);
+    --color-role-healer: var(--green-400);
+    --color-role-dps: var(--red-400);
+
+    --color-status-confirmed: var(--green-400);
+    --color-status-tentative: var(--yellow-400);
+    --color-status-declined: var(--red-400);
+    --color-status-benched: #e6903a;
+
+    --color-accent: var(--gold-500);
+    --color-accent-light: var(--gold-300);
+    --color-accent-dark: var(--gold-600);
+
+    --color-success-bg: rgba(76, 175, 80, 0.15);
+    --color-success-border: rgba(76, 175, 80, 0.4);
+    --color-warning-bg: rgba(229, 194, 68, 0.15);
+    --color-warning-border: rgba(229, 194, 68, 0.4);
+    --color-error: var(--red-400);
+
+    /* ── Typography ── */
+    --font-display: 'Cinzel', serif;
+    --font-body: 'Nunito Sans', system-ui, sans-serif;
+
+    --text-xs: clamp(0.6875rem, 0.65rem + 0.1vw, 0.75rem);     /* 11-12px */
+    --text-sm: clamp(0.75rem, 0.7rem + 0.15vw, 0.8125rem);      /* 12-13px */
+    --text-base: clamp(0.8125rem, 0.75rem + 0.2vw, 0.9375rem);   /* 13-15px */
+    --text-md: clamp(0.875rem, 0.8rem + 0.25vw, 1rem);           /* 14-16px */
+    --text-lg: clamp(1rem, 0.9rem + 0.35vw, 1.25rem);            /* 16-20px */
+    --text-xl: clamp(1.125rem, 1rem + 0.5vw, 1.5rem);            /* 18-24px */
+    --text-2xl: clamp(1.25rem, 1.1rem + 0.6vw, 1.75rem);         /* 20-28px */
+    --text-display: clamp(1.5rem, 1.2rem + 1vw, 2.125rem);       /* 24-34px */
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.6);
+
+    /* Transitions */
+    --transition-fast: 0.15s ease;
+    --transition-base: 0.2s ease;
+    --transition-slow: 0.3s ease;
+
+    /* Z-index scale */
+    --z-base: 1;
+    --z-sticky: 10;
+    --z-nav: 100;
+    --z-overlay: 500;
+    --z-modal: 1000;
+    --z-toast: 1100;
+
+    /* Layout */
+    --sidebar-collapsed: 64px;
+    --sidebar-expanded: 240px;
+    --bottomnav-height: 56px;
+    --main-max-width: 960px;
+  }
+}

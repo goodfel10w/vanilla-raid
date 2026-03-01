@@ -10,9 +10,8 @@ test.describe('Heatmap', () => {
         token: 'mock-token', username: 'Testuser', userId: 'mock-user-1', discordLinked: true, discordUsername: 'Testuser#1234', discordGuildMember: true
       }));
     });
-    await page.goto('/');
+    await page.goto('/#/heatmap');
     await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
-    await page.click('[data-v="heatmap"]');
   });
 
   test('shows two heatmap tables (weekday and weekend)', async ({ page }) => {

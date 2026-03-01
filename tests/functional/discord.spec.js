@@ -51,10 +51,8 @@ test.describe('Discord Integration', () => {
           token: 'mock-token', username: 'Testuser', userId: 'mock-user-1', discordLinked: true, discordUsername: 'Testuser#1234', discordGuildMember: true
         }));
       });
-      await page.goto('/');
+      await page.goto('/#/raids');
       await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
-      // Navigate to raids tab
-      await page.click('[data-v="raids"]');
       await expect(page.locator('#v-raids')).toBeVisible();
     });
 
@@ -166,9 +164,8 @@ test.describe('Discord Integration', () => {
         }
         await route.continue();
       });
-      await page.goto('/');
+      await page.goto('/#/raids');
       await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
-      await page.click('[data-v="raids"]');
       await expect(page.locator('#v-raids')).toBeVisible();
     });
 
@@ -199,9 +196,8 @@ test.describe('Discord Integration', () => {
           token: 'mock-token', username: 'Otheruser', userId: 'mock-user-99', discordLinked: true, discordUsername: 'Otheruser#9999', discordGuildMember: true
         }));
       });
-      await page.goto('/');
+      await page.goto('/#/raids');
       await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
-      await page.click('[data-v="raids"]');
       await expect(page.locator('#v-raids')).toBeVisible();
     });
 
