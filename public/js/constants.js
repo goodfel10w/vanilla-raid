@@ -16,7 +16,7 @@ export const CLS = [
 
 export const ROLES = ['Tank', 'Heiler', 'DPS'];
 
-export const ROLE_ICONS = { Tank: '\u{1F6E1}\uFE0F', Heiler: '\u{1F49A}', DPS: '\u2694\uFE0F' };
+export const ROLE_ICONS = { Tank: '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">shield</span>', Heiler: '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">favorite</span>', DPS: '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">swords</span>' };
 
 export const ROLE_COLORS = { Tank: '#5b9bd5', Heiler: '#66bb6a', DPS: '#e57373' };
 

@@ -265,7 +265,7 @@ function _renderRaidDetail(container, raidId) {
     <div class="card">
       <div class="raid-card-header">
         <span class="raid-inst">${h(raid.instance)}</span>
-        ${raid.locked ? '<span class="raid-locked" title="Gesperrt">\u{1F512}</span>' : ''}
+        ${raid.locked ? '<span class="raid-locked" title="Gesperrt"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">lock</span></span>' : ''}
       </div>
       <div class="raid-card-meta">
         <span>${formatDate(raid.date)} ${raid.time || ''}</span>
@@ -305,7 +305,7 @@ function _renderRaidDetail(container, raidId) {
   // Management actions
   if (canManage) {
     html += `<div class="raid-detail-actions">
-      ${!raid.locked ? `<button class="btn-secondary" id="btn-lock-raid">\u{1F512} Sperren</button>` : `<button class="btn-secondary" id="btn-unlock-raid">\u{1F513} Entsperren</button>`}
+      ${!raid.locked ? `<button class="btn-secondary" id="btn-lock-raid"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">lock</span> Sperren</button>` : `<button class="btn-secondary" id="btn-unlock-raid"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">lock_open</span> Entsperren</button>`}
       <button class="btn-danger" id="btn-delete-raid">\u2715 Löschen</button>
     </div>`;
   }

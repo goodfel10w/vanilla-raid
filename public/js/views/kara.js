@@ -94,9 +94,9 @@ function _renderKara(container) {
       <button class="btn-icon" id="kara-next">\u2192</button>
     </div>
     <div class="kara-actions">
-      <button class="kara-btn" id="kara-auto">\u{1F3B2} Auto-Verteilen</button>
-      <button class="kara-btn" id="kara-export">\u{1F4CB} Export</button>
-      <button class="kara-btn" id="kara-reset">\u{1F5D1} Reset</button>
+      <button class="kara-btn" id="kara-auto"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">casino</span> Auto-Verteilen</button>
+      <button class="kara-btn" id="kara-export"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">content_paste</span> Export</button>
+      <button class="kara-btn" id="kara-reset"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">delete</span> Reset</button>
     </div>
   </div>`;
 
@@ -163,7 +163,7 @@ function _playerCard(entry, pinned, groupIndex) {
     <img class="wow-ico-sm" src="${clsIcon(entry.className)}" alt="" loading="lazy">
     <span style="color:${cc(entry.className)};font-weight:600">${h(entry.charName)}</span>
     <span style="font-size:10px;color:${ROLE_COLORS[role]}">${role}</span>
-    ${pinned ? '<span title="Gepinnt">\u{1F4CC}</span>' : ''}
+    ${pinned ? '<span title="Gepinnt"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">push_pin</span></span>' : ''}
   </div>`;
 }
 
@@ -322,7 +322,7 @@ function _exportHtml(entries) {
   return `<div class="kara-export-area card">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <span class="sec-label">Export</span>
-      <button class="kara-btn" id="kara-copy">\u{1F4CB} Kopieren</button>
+      <button class="kara-btn" id="kara-copy"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">content_paste</span> Kopieren</button>
     </div>
     <pre id="kara-export-text">${h(text)}</pre>
   </div>`;
