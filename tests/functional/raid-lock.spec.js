@@ -91,9 +91,8 @@ test.describe('Raid Locking', () => {
           token: 'mock-token', username: 'Testuser', userId: 'mock-user-1',
         }));
       });
-      await page.goto('/');
+      await page.goto('/#/raids');
       await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
-      await page.click('[data-v="raids"]');
       await expect(page.locator('#v-raids')).toBeVisible();
     });
 
@@ -161,9 +160,8 @@ test.describe('Raid Locking', () => {
           token: 'mock-token', username: 'Testuser', userId: 'mock-user-1',
         }));
       });
-      await page.goto('/');
+      await page.goto('/#/raids');
       await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
-      await page.click('[data-v="raids"]');
       await expect(page.locator('#v-raids')).toBeVisible();
     });
 
@@ -200,9 +198,8 @@ test.describe('Raid Locking', () => {
           token: 'mock-token', username: 'Otheruser', userId: 'mock-user-99',
         }));
       });
-      await page.goto('/');
+      await page.goto('/#/raids');
       await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
-      await page.click('[data-v="raids"]');
       await expect(page.locator('#v-raids')).toBeVisible();
     });
 
