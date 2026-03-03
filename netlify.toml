@@ -1,5 +1,6 @@
 [build]
-  publish = "public"
+  command = "npm run build:vue"
+  publish = "dist"
 
 # Security headers
 [[headers]]
@@ -10,3 +11,17 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
     X-XSS-Protection = "0"
+
+# SPA fallback — hash routing handles client-side routes,
+# but this ensures direct URL access works
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Role = ["admin", "user", "visitor"]}
+
+# Netlify Functions API redirect
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
