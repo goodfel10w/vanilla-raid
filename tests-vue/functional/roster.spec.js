@@ -12,7 +12,7 @@ test.describe('Roster', () => {
         }));
       });
       await page.goto('/#/roster');
-      await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+      await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
     });
 
     test('shows all entries', async ({ page }) => {
@@ -120,7 +120,7 @@ test.describe('Roster', () => {
         }));
       });
       await page.goto('/#/roster');
-      await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+      await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
       await expect(page.locator('.empty')).toContainText('Noch keine Eintr\u00e4ge');
       // No CSV export button when empty
       await expect(page.locator('.btn-export')).toHaveCount(0);

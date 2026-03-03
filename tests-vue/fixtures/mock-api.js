@@ -6,6 +6,20 @@ const MOCK_BNET_CHARACTERS = [
   { name: 'Dottqueen', realm: 'Thunderstrike', className: 'Hexenmeister', level: 65 },
 ];
 
+/**
+ * Navigate to a route using Vue Router's push() for reliable hash navigation.
+ * Falls back to window.location.hash if router is not available.
+ */
+export async function navigateTo(page, path) {
+  await page.evaluate(async (p) => {
+    if (window.__vue_router__) {
+      await window.__vue_router__.push(p);
+    } else {
+      window.location.hash = '#' + p;
+    }
+  }, path);
+}
+
 export async function setupMockApi(page, initialEntries = []) {
   const store = initialEntries.map(e => ({ ...e }));
 

@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useEntriesStore } from '@/stores/entries'
 import { useRaidsStore } from '@/stores/raids'
 import { useDkpStore } from '@/stores/dkp'
+import { useToast } from '@/composables/useToast'
 import TheSidebar from '@/components/layout/TheSidebar.vue'
 import TheBottomNav from '@/components/layout/TheBottomNav.vue'
 import TheHeader from '@/components/layout/TheHeader.vue'
@@ -13,9 +14,33 @@ const auth = useAuthStore()
 const entries = useEntriesStore()
 const raids = useRaidsStore()
 const dkp = useDkpStore()
+const { toast } = useToast()
 
 onMounted(async () => {
-  await auth.validate()
+  // Handle OAuth callback parameters
+  const queryParams = new URLSearchParams(window.location.search)
+  const bnetToken = queryParams.get('bnet_token')
+  const authError = queryParams.get('auth_error')
+
+  if (bnetToken) {
+    window.history.replaceState({}, '', window.location.pathname + window.location.hash)
+    auth.saveSession({ token: bnetToken, username: '...', userId: '' })
+    try {
+      await auth.validate()
+      if (auth.user?.username && auth.user.username !== '...') {
+        toast('Angemeldet als ' + auth.user.username)
+      }
+    } catch {
+      auth.clearSession()
+      toast('Anmeldung fehlgeschlagen')
+    }
+  } else if (authError) {
+    window.history.replaceState({}, '', window.location.pathname + window.location.hash)
+    toast('Battle.net-Anmeldung fehlgeschlagen')
+  } else {
+    await auth.validate()
+  }
+
   await Promise.all([entries.load(), raids.load(), dkp.load()])
 })
 </script>

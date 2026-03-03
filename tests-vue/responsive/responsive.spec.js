@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { setupMockApi } from '../fixtures/mock-api.js';
+import { setupMockApi, navigateTo } from '../fixtures/mock-api.js';
 import { SAMPLE_ENTRY, SAMPLE_ENTRY_2 } from '../fixtures/test-data.js';
 
 const viewports = [
@@ -20,13 +20,13 @@ for (const vp of viewports) {
         }));
       });
       await page.goto('/');
-      await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+      await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
     });
 
     test('no horizontal overflow on all views', async ({ page }) => {
       const views = ['form', 'roster', 'heatmap', 'analytics'];
       for (const v of views) {
-        await page.evaluate((view) => { window.location.hash = '#/' + view; }, v);
+        await navigateTo(page, '/' + v);
         await expect(page.locator(`#v-${v}`)).toBeVisible();
         const overflow = await page.evaluate(() =>
           document.documentElement.scrollWidth > document.documentElement.clientWidth
@@ -36,7 +36,7 @@ for (const vp of viewports) {
     });
 
     test('form submit works', async ({ page }) => {
-      await page.evaluate(() => { window.location.hash = '#/form'; });
+      await navigateTo(page, '/form');
       await expect(page.locator('#v-form')).toBeVisible();
       await page.fill('#f-name', 'ResponsiveTest');
       await page.locator('.chip', { hasText: 'Magier' }).click();
@@ -49,13 +49,13 @@ for (const vp of viewports) {
 
     test('tab switching works', async ({ page }) => {
       for (const v of ['roster', 'heatmap', 'analytics', 'form']) {
-        await page.evaluate((view) => { window.location.hash = '#/' + view; }, v);
+        await navigateTo(page, '/' + v);
         await expect(page.locator(`#v-${v}`)).toBeVisible();
       }
     });
 
     test('delete modal displays and dismisses', async ({ page }) => {
-      await page.evaluate(() => { window.location.hash = '#/roster'; });
+      await navigateTo(page, '/roster');
       await expect(page.locator('#v-roster')).toBeVisible();
       // Only own entries show delete button
       await page.locator('[data-del]').first().click();

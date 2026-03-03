@@ -91,8 +91,8 @@ test.describe('Raid Locking', () => {
           token: 'mock-token', username: 'Testuser', userId: 'mock-user-1',
         }));
       });
-      await page.goto('/#/raids');
-      await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+      await page.goto('/#/raids/raid-1');
+      await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
       await expect(page.locator('#v-raids')).toBeVisible();
     });
 
@@ -108,8 +108,8 @@ test.describe('Raid Locking', () => {
 
       const modal = page.locator('.modal-bg');
       await expect(modal).toBeVisible();
-      await expect(modal).toContainText('Raid sperren');
-      await expect(modal).toContainText('gesperrt werden');
+      await expect(modal).toContainText(/Raid sperren/i);
+      await expect(modal).toContainText(/gesperrt werden/i);
     });
 
     test('confirming lock sends lock action to API', async ({ page }) => {
@@ -160,15 +160,16 @@ test.describe('Raid Locking', () => {
           token: 'mock-token', username: 'Testuser', userId: 'mock-user-1',
         }));
       });
-      await page.goto('/#/raids');
-      await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+      await page.goto('/#/raids/raid-1');
+      await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
       await expect(page.locator('#v-raids')).toBeVisible();
     });
 
     test('locked raid shows lock indicator', async ({ page }) => {
-      const raidCard = page.locator('.raid-card');
-      await expect(raidCard).toContainText('Raid gesperrt');
-      await expect(raidCard).toContainText('Gesperrt');
+      // In the detail view, the lock indicator is in .raid-detail-hdr
+      const detail = page.locator('#v-raids');
+      await expect(detail).toContainText('Raid gesperrt');
+      await expect(detail).toContainText('Gesperrt');
     });
 
     test('owner sees unlock button on locked raid', async ({ page }) => {
@@ -198,8 +199,8 @@ test.describe('Raid Locking', () => {
           token: 'mock-token', username: 'Otheruser', userId: 'mock-user-99',
         }));
       });
-      await page.goto('/#/raids');
-      await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+      await page.goto('/#/raids/raid-1');
+      await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
       await expect(page.locator('#v-raids')).toBeVisible();
     });
 
@@ -209,9 +210,9 @@ test.describe('Raid Locking', () => {
     });
 
     test('non-owner sees locked message instead of signup', async ({ page }) => {
-      const raidCard = page.locator('.raid-card');
-      await expect(raidCard).toContainText('Raid gesperrt');
-      await expect(raidCard).toContainText('Anmeldung nicht mehr m\u00f6glich');
+      const detail = page.locator('#v-raids');
+      await expect(detail).toContainText('Raid gesperrt');
+      await expect(detail).toContainText(/Anmeldung nicht mehr m.eglich/);
     });
 
     test('lock button is not visible for non-owners', async ({ page }) => {

@@ -12,7 +12,7 @@ test.describe('Analytics', () => {
         }));
       });
       await page.goto('/#/analytics');
-      await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+      await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
     });
 
     test('shows 3 role distribution items', async ({ page }) => {
@@ -83,7 +83,7 @@ test.describe('Analytics', () => {
         }));
       });
       await page.goto('/#/analytics');
-      await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+      await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
       await expect(page.locator('.empty')).toContainText('Noch keine Daten');
     });
   });

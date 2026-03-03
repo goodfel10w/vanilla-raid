@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { setupMockApi } from '../fixtures/mock-api.js';
+import { setupMockApi, navigateTo } from '../fixtures/mock-api.js';
 import { SAMPLE_ENTRY, SAMPLE_ENTRY_2 } from '../fixtures/test-data.js';
 
 test.describe('Auth', () => {
@@ -24,7 +24,7 @@ test.describe('Auth', () => {
         await route.continue();
       });
       await page.goto('/');
-      await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+      await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
     });
 
     test('auth bar shows Battle.net login button', async ({ page }) => {
@@ -32,7 +32,7 @@ test.describe('Auth', () => {
     });
 
     test('form view shows login hint with Battle.net button instead of form', async ({ page }) => {
-      await page.evaluate(() => { window.location.hash = '#/form'; });
+      await navigateTo(page, '/form');
       await expect(page.locator('#v-form')).toBeVisible();
       await expect(page.locator('.auth-hint')).toBeVisible();
       await expect(page.locator('.auth-hint')).toContainText('Bitte melde dich an');
@@ -41,26 +41,26 @@ test.describe('Auth', () => {
     });
 
     test('roster is readable without login', async ({ page }) => {
-      await page.evaluate(() => { window.location.hash = '#/roster'; });
+      await navigateTo(page, '/roster');
       await expect(page.locator('#v-roster')).toBeVisible();
       await expect(page.locator('.entry')).toHaveCount(2);
       await expect(page.locator('.e-name').first()).toBeVisible();
     });
 
     test('heatmap is readable without login', async ({ page }) => {
-      await page.evaluate(() => { window.location.hash = '#/heatmap'; });
+      await navigateTo(page, '/heatmap');
       await expect(page.locator('#v-heatmap')).toBeVisible();
       await expect(page.locator('.htable')).toHaveCount(2);
     });
 
     test('analytics is readable without login', async ({ page }) => {
-      await page.evaluate(() => { window.location.hash = '#/analytics'; });
+      await navigateTo(page, '/analytics');
       await expect(page.locator('#v-analytics')).toBeVisible();
       await expect(page.locator('.role-an-item')).toHaveCount(3);
     });
 
     test('no edit/delete buttons without login', async ({ page }) => {
-      await page.evaluate(() => { window.location.hash = '#/roster'; });
+      await navigateTo(page, '/roster');
       await expect(page.locator('#v-roster')).toBeVisible();
       await expect(page.locator('.entry')).toHaveCount(2);
       await expect(page.locator('[data-edit]')).toHaveCount(0);
@@ -69,7 +69,7 @@ test.describe('Auth', () => {
 
     test('Battle.net login button triggers redirect', async ({ page }) => {
       // On mobile the auth-bar is in the hidden sidebar; use the form view's auth hint instead
-      await page.evaluate(() => { window.location.hash = '#/form'; });
+      await navigateTo(page, '/form');
       await expect(page.locator('#v-form')).toBeVisible();
       const navigationPromise = page.waitForURL(/battle\.net|bnet_token/, { timeout: 3000 }).catch(() => null);
       // Click whichever .btn-bnet is visible (auth-bar on desktop, auth-hint on mobile)
@@ -77,7 +77,7 @@ test.describe('Auth', () => {
     });
 
     test('auth overlay opens with Battle.net button', async ({ page }) => {
-      await page.evaluate(() => { window.location.hash = '#/form'; });
+      await navigateTo(page, '/form');
       await expect(page.locator('#v-form')).toBeVisible();
       await page.locator('.auth-hint .btn-bnet').click();
       // The button triggers bnetLogin directly, which calls the API
@@ -94,7 +94,7 @@ test.describe('Auth', () => {
         }));
       });
       await page.goto('/');
-      await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+      await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
     });
 
     test('auth bar shows username and logout button', async ({ page }) => {
@@ -103,14 +103,14 @@ test.describe('Auth', () => {
     });
 
     test('form view shows the form (not login hint)', async ({ page }) => {
-      await page.evaluate(() => { window.location.hash = '#/form'; });
+      await navigateTo(page, '/form');
       await expect(page.locator('#v-form')).toBeVisible();
       await expect(page.locator('#f-name')).toBeVisible();
       await expect(page.locator('.auth-hint')).toHaveCount(0);
     });
 
     test('own entries show edit/delete buttons', async ({ page }) => {
-      await page.evaluate(() => { window.location.hash = '#/roster'; });
+      await navigateTo(page, '/roster');
       await expect(page.locator('#v-roster')).toBeVisible();
       // SAMPLE_ENTRY has userId mock-user-1 = our user
       const ownEntry = page.locator('.entry', { has: page.locator('.e-name', { hasText: 'Thrallm\u00e4chtig' }) });
@@ -119,7 +119,7 @@ test.describe('Auth', () => {
     });
 
     test('other user entries hide edit/delete buttons', async ({ page }) => {
-      await page.evaluate(() => { window.location.hash = '#/roster'; });
+      await navigateTo(page, '/roster');
       await expect(page.locator('#v-roster')).toBeVisible();
       // SAMPLE_ENTRY_2 has userId mock-user-2 = different user
       const otherEntry = page.locator('.entry', { has: page.locator('.e-name', { hasText: 'Heiligschein' }) });
@@ -131,7 +131,7 @@ test.describe('Auth', () => {
       // On mobile the .btn-logout is in the hidden sidebar; use JS to trigger it
       await page.evaluate(() => document.querySelector('[data-action="logout"]').click());
       // Form shows login hint
-      await page.evaluate(() => { window.location.hash = '#/form'; });
+      await navigateTo(page, '/form');
       await expect(page.locator('#v-form')).toBeVisible();
       await expect(page.locator('.auth-hint')).toBeVisible();
     });
@@ -139,16 +139,16 @@ test.describe('Auth', () => {
     test('session survives page reload via localStorage', async ({ page }) => {
       // Reload page
       await page.reload();
-      await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+      await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
       // Still logged in
       await expect(page.locator('.auth-user')).toContainText('Testuser');
-      await page.evaluate(() => { window.location.hash = '#/form'; });
+      await navigateTo(page, '/form');
       await expect(page.locator('#v-form')).toBeVisible();
       await expect(page.locator('#f-name')).toBeVisible();
     });
 
     test('character picker shows Battle.net characters', async ({ page }) => {
-      await page.evaluate(() => { window.location.hash = '#/form'; });
+      await navigateTo(page, '/form');
       await expect(page.locator('#v-form')).toBeVisible();
       // The mock API returns characters; wait for them to load
       await expect(page.locator('#f-char-pick')).toBeVisible({ timeout: 5000 });
@@ -160,7 +160,7 @@ test.describe('Auth', () => {
     });
 
     test('selecting a character auto-fills name and class', async ({ page }) => {
-      await page.evaluate(() => { window.location.hash = '#/form'; });
+      await navigateTo(page, '/form');
       await expect(page.locator('#v-form')).toBeVisible();
       await expect(page.locator('#f-char-pick')).toBeVisible({ timeout: 5000 });
       // Select the second character (Arthaslull - Paladin)
@@ -175,7 +175,7 @@ test.describe('Auth', () => {
     test('bnet_token in URL logs user in', async ({ page }) => {
       await setupMockApi(page, [SAMPLE_ENTRY]);
       await page.goto('/?bnet_token=mock-token');
-      await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+      await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
       // Should be logged in
       await expect(page.locator('.auth-user')).toContainText('Testuser');
       // URL should be clean (no bnet_token)

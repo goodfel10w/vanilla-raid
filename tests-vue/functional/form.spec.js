@@ -10,7 +10,7 @@ test.describe('Form', () => {
       }));
     });
     await page.goto('/#/form');
-    await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+    await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
   });
 
   test('submit is disabled without required fields', async ({ page }) => {

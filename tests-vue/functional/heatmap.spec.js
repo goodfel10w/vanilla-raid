@@ -11,7 +11,7 @@ test.describe('Heatmap', () => {
       }));
     });
     await page.goto('/#/heatmap');
-    await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+    await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
   });
 
   test('shows two heatmap tables (weekday and weekend)', async ({ page }) => {

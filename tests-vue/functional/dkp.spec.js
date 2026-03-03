@@ -14,7 +14,7 @@ function seedAuth(page) {
 // Helper: navigate to DKP tab and wait for render
 async function gotoDkp(page) {
   await page.goto('/#/dkp');
-  await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+  await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
   await expect(page.locator('#v-dkp')).toBeVisible();
 }
 
@@ -510,7 +510,7 @@ test.describe('DKP', () => {
         await route.continue();
       });
       await page.goto('/#/dkp');
-      await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+      await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
       await expect(page.locator('#v-dkp')).toBeVisible();
     });
 

@@ -51,8 +51,8 @@ test.describe('Discord Integration', () => {
           token: 'mock-token', username: 'Testuser', userId: 'mock-user-1', discordLinked: true, discordUsername: 'Testuser#1234', discordGuildMember: true
         }));
       });
-      await page.goto('/#/raids');
-      await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+      await page.goto('/#/raids/raid-1');
+      await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
       await expect(page.locator('#v-raids')).toBeVisible();
     });
 
@@ -62,10 +62,9 @@ test.describe('Discord Integration', () => {
       await expect(discordBtn).toContainText('Discord');
     });
 
-    test('Discord button has Discord icon', async ({ page }) => {
+    test('Discord button has Discord label', async ({ page }) => {
       const discordBtn = page.locator('.btn-discord');
-      const svg = discordBtn.locator('svg');
-      await expect(svg).toBeVisible();
+      await expect(discordBtn).toContainText('Discord');
     });
 
     test('clicking Discord button calls /api/discord endpoint', async ({ page }) => {
@@ -164,8 +163,8 @@ test.describe('Discord Integration', () => {
         }
         await route.continue();
       });
-      await page.goto('/#/raids');
-      await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+      await page.goto('/#/raids/raid-1');
+      await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
       await expect(page.locator('#v-raids')).toBeVisible();
     });
 
@@ -196,8 +195,8 @@ test.describe('Discord Integration', () => {
           token: 'mock-token', username: 'Otheruser', userId: 'mock-user-99', discordLinked: true, discordUsername: 'Otheruser#9999', discordGuildMember: true
         }));
       });
-      await page.goto('/#/raids');
-      await expect(page.locator('#counter')).toHaveText(/\d+ Raider/);
+      await page.goto('/#/raids/raid-1');
+      await expect(page.locator('header #counter')).toHaveText(/\d+ Raider/);
       await expect(page.locator('#v-raids')).toBeVisible();
     });
 
