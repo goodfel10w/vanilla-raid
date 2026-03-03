@@ -24,7 +24,11 @@ export interface RaidSignup {
   className: WowClassName
   spec: string
   role: RoleName
-  status: 'confirmed' | 'tentative' | 'declined' | 'bench'
+  status: 'confirmed' | 'tentative' | 'declined' | 'bench' | 'accepted' | 'benched'
+  offeredSpecs?: string[]
+  assignedSpec?: string
+  note?: string
+  addedBy?: string
   userId?: string
   timestamp?: string
 }
@@ -40,6 +44,7 @@ export interface Raid {
   notes: string
   description: string
   createdBy?: string
+  createdByName?: string
   signups: RaidSignup[]
   timestamp: string
 }
