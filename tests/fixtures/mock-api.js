@@ -140,12 +140,18 @@ export async function setupMockApi(page, initialEntries = []) {
   const dkpTransactions = [];
   let dkpConfig = {
     roles: { testuser: 'admin' },
-    defaultDecayPercent: 15,
+    defaultDecayPercent: 50,
     maxDkpAmount: 10000,
-    allowNegativeBalance: true,
+    allowNegativeBalance: false,
     startingBalance: 0,
     transactionLimit: 50,
     reasonMaxLength: 200,
+    minBid: 5,
+    raidAttendanceDkp: 10,
+    raidPartialDkp: 5,
+    raidBenchDkp: 10,
+    bossKillDkp: 5,
+    startingBonus: 20,
   };
 
   await page.route('**/api/dkp**', async (route) => {
@@ -190,7 +196,7 @@ export async function setupMockApi(page, initialEntries = []) {
           const key = p.name.trim().toLowerCase();
           let existing = dkpBalances.find(b => b.playerName.toLowerCase() === key);
           if (!existing) {
-            existing = { playerName: p.name.trim(), className: p.className || '', balance: dkpConfig.startingBalance };
+            existing = { playerName: p.name.trim(), className: p.className || '', balance: dkpConfig.startingBalance, hasReceivedStartingBonus: false };
             dkpBalances.push(existing);
           }
           if (p.className) existing.className = p.className;
@@ -295,6 +301,12 @@ export async function setupMockApi(page, initialEntries = []) {
         if (body.allowNegativeBalance !== undefined) dkpConfig.allowNegativeBalance = !!body.allowNegativeBalance;
         if (body.transactionLimit !== undefined) dkpConfig.transactionLimit = Number(body.transactionLimit);
         if (body.reasonMaxLength !== undefined) dkpConfig.reasonMaxLength = Number(body.reasonMaxLength);
+        if (body.minBid !== undefined) dkpConfig.minBid = Number(body.minBid);
+        if (body.raidAttendanceDkp !== undefined) dkpConfig.raidAttendanceDkp = Number(body.raidAttendanceDkp);
+        if (body.raidPartialDkp !== undefined) dkpConfig.raidPartialDkp = Number(body.raidPartialDkp);
+        if (body.raidBenchDkp !== undefined) dkpConfig.raidBenchDkp = Number(body.raidBenchDkp);
+        if (body.bossKillDkp !== undefined) dkpConfig.bossKillDkp = Number(body.bossKillDkp);
+        if (body.startingBonus !== undefined) dkpConfig.startingBonus = Number(body.startingBonus);
         await route.fulfill({
           status: 200,
           contentType: 'application/json',

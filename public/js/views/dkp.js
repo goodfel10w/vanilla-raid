@@ -150,6 +150,7 @@ function _renderDkp(container) {
   container.querySelector('#dkp-spend-submit')?.addEventListener('click', () => _doSpend(container));
   container.querySelector('#dkp-decay-submit')?.addEventListener('click', () => _doDecay(container));
   container.querySelector('#dkp-cfg-save')?.addEventListener('click', () => _doSaveConfig(container));
+  container.querySelector('#dkp-cfg-save-2')?.addEventListener('click', () => _doSaveConfig(container));
 
   // Player selection chips
   container.querySelectorAll('[data-dkp-select-player]').forEach(chip => {
@@ -204,8 +205,22 @@ function _renderDkp(container) {
   const spendPlayer = container.querySelector('#dkp-spend-player');
   const spendAmount = container.querySelector('#dkp-spend-amount');
   const spendSubmit = container.querySelector('#dkp-spend-submit');
+  const spendMax = container.querySelector('.dkp-spend-max');
   if (spendPlayer && spendAmount && spendSubmit) {
-    const updateSpendBtn = () => { spendSubmit.disabled = !spendPlayer.value || !spendAmount.value; };
+    const balances = getState('dkp.balances') || [];
+    const config = getState('dkp.config') || {};
+    const updateSpendBtn = () => {
+      spendSubmit.disabled = !spendPlayer.value || !spendAmount.value;
+      if (spendMax && !config.allowNegativeBalance && spendPlayer.value) {
+        const bal = balances.find(b => b.playerName === spendPlayer.value);
+        if (bal) {
+          spendMax.textContent = `Max. verfügbar: ${bal.balance} DKP`;
+          spendMax.style.display = '';
+        }
+      } else if (spendMax) {
+        spendMax.style.display = 'none';
+      }
+    };
     spendPlayer.addEventListener('change', updateSpendBtn);
     spendAmount.addEventListener('input', updateSpendBtn);
   }
@@ -356,7 +371,8 @@ function _renderPlayerDetail(name) {
       <div class="dkp-detail-stat"><div class="val" style="color:var(--green-400)">+${earned}</div><div class="lbl">Verdient</div></div>
       <div class="dkp-detail-stat"><div class="val" style="color:var(--red-400)">-${spent}</div><div class="lbl">Ausgegeben</div></div>
       <div class="dkp-detail-stat"><div class="val" style="color:var(--yellow-400)">-${decayed}</div><div class="lbl">Verfall</div></div>
-    </div>`;
+    </div>
+    <div class="dkp-bonus-status" style="font-size:12px;padding:var(--sp-2) 0;color:var(--color-text-muted)">Startbonus: ${bal?.hasReceivedStartingBonus ? '<span style="color:var(--green-400)">erhalten</span>' : '<span style="color:var(--yellow-400)">ausstehend</span>'}</div>`;
 
   // Admin actions
   if (admin) {
@@ -463,6 +479,7 @@ function _renderSpend() {
         ${balances.map(b => `<option value="${h(b.playerName)}">${h(b.playerName)} (${b.balance} DKP)</option>`).join('')}
       </select>
     </div>
+    <div class="dkp-spend-max" style="display:none;font-size:12px;color:var(--yellow-400);padding:var(--sp-1) 0"></div>
     <div class="field">
       <span class="label">Kosten</span>
       <input class="input" type="number" id="dkp-spend-amount" placeholder="z.B. 25">
@@ -538,6 +555,33 @@ function _renderSettings() {
       <input class="input" type="number" id="cfg-reason-max" value="${config.reasonMaxLength || 200}" placeholder="200">
     </div>
     <button class="btn-primary btn-p" id="dkp-cfg-save">Speichern</button>
+
+    <div class="card-title" style="margin-top:var(--sp-6)">Raid-DKP Regeln</div>
+    <div class="field">
+      <span class="label">Mindestgebot (DKP)</span>
+      <input class="input" type="number" id="cfg-min-bid" value="${config.minBid || 5}" min="1" max="1000">
+    </div>
+    <div class="field">
+      <span class="label">Raidteilnahme DKP (vollständig)</span>
+      <input class="input" type="number" id="cfg-raid-attendance" value="${config.raidAttendanceDkp || 10}" min="0" max="1000">
+    </div>
+    <div class="field">
+      <span class="label">Raidteilnahme DKP (teilweise)</span>
+      <input class="input" type="number" id="cfg-raid-partial" value="${config.raidPartialDkp || 5}" min="0" max="1000">
+    </div>
+    <div class="field">
+      <span class="label">Bench DKP</span>
+      <input class="input" type="number" id="cfg-raid-bench" value="${config.raidBenchDkp || 10}" min="0" max="1000">
+    </div>
+    <div class="field">
+      <span class="label">Bosskill DKP</span>
+      <input class="input" type="number" id="cfg-boss-kill" value="${config.bossKillDkp || 5}" min="0" max="1000">
+    </div>
+    <div class="field">
+      <span class="label">Startbonus (einmalig)</span>
+      <input class="input" type="number" id="cfg-starting-bonus" value="${config.startingBonus || 20}" min="0" max="10000">
+    </div>
+    <button class="btn-primary btn-p" id="dkp-cfg-save-2" style="margin-top:var(--sp-2)">Speichern</button>
 
     <div class="card-title" style="margin-top:var(--sp-6)">Rollenverwaltung</div>
     <div class="dkp-role-list">
@@ -619,6 +663,12 @@ async function _doSaveConfig(container) {
     allowNegativeBalance: container.querySelector('#cfg-neg')?.checked || false,
     transactionLimit: parseInt(container.querySelector('#cfg-tx-limit')?.value) || 0,
     reasonMaxLength: parseInt(container.querySelector('#cfg-reason-max')?.value) || 200,
+    minBid: parseInt(container.querySelector('#cfg-min-bid')?.value) || 5,
+    raidAttendanceDkp: parseInt(container.querySelector('#cfg-raid-attendance')?.value) || 10,
+    raidPartialDkp: parseInt(container.querySelector('#cfg-raid-partial')?.value) || 5,
+    raidBenchDkp: parseInt(container.querySelector('#cfg-raid-bench')?.value) || 10,
+    bossKillDkp: parseInt(container.querySelector('#cfg-boss-kill')?.value) || 5,
+    startingBonus: parseInt(container.querySelector('#cfg-starting-bonus')?.value) || 20,
   };
   try {
     await api.post(DKP_API, config);

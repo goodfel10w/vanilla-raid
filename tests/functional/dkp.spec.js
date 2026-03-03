@@ -335,7 +335,9 @@ test.describe('DKP', () => {
     test('applying decay reduces balances', async ({ page }) => {
       await page.click('.dkp-actions-bar button:has-text("Verfall")');
 
-      // Default 15% decay on 200 DKP = 30 lost = 170 remaining
+      // Explicitly set 15% decay (default changed to 50 for phase-reset)
+      await page.fill('#dkp-decay-pct', '15');
+      // 15% decay on 200 DKP = 30 lost = 170 remaining
       await page.click('.btn-p:has-text("Verfall anwenden")');
 
       // Confirm modal
@@ -762,6 +764,128 @@ test.describe('DKP', () => {
       // But the entry has userId matching, so it may match via entries
       // The SAMPLE_ENTRY has userId 'mock-user-1' which matches our auth
       await expect(page.locator('.dkp-my-btn')).toBeVisible();
+    });
+  });
+
+  // ─── Phase 1 — Config & Grundregeln ───
+  test.describe('Phase 1 — Config & Grundregeln', () => {
+
+    // ── Settings: new guild config fields ──
+    test.describe('new guild config fields in settings', () => {
+      test.beforeEach(async ({ page }) => {
+        await setupMockApi(page, []);
+        await seedAuth(page);
+        await gotoDkp(page);
+      });
+
+      test('settings view shows new raid DKP config fields', async ({ page }) => {
+        await page.click('.dkp-actions-bar button:has-text("Einstellungen")');
+        await expect(page.locator('#cfg-min-bid')).toBeVisible();
+        await expect(page.locator('#cfg-raid-attendance')).toBeVisible();
+        await expect(page.locator('#cfg-raid-partial')).toBeVisible();
+        await expect(page.locator('#cfg-raid-bench')).toBeVisible();
+        await expect(page.locator('#cfg-boss-kill')).toBeVisible();
+        await expect(page.locator('#cfg-starting-bonus')).toBeVisible();
+      });
+
+      test('new config fields show correct default values', async ({ page }) => {
+        await page.click('.dkp-actions-bar button:has-text("Einstellungen")');
+        await expect(page.locator('#cfg-min-bid')).toHaveValue('5');
+        await expect(page.locator('#cfg-raid-attendance')).toHaveValue('10');
+        await expect(page.locator('#cfg-raid-partial')).toHaveValue('5');
+        await expect(page.locator('#cfg-raid-bench')).toHaveValue('10');
+        await expect(page.locator('#cfg-boss-kill')).toHaveValue('5');
+        await expect(page.locator('#cfg-starting-bonus')).toHaveValue('20');
+      });
+
+      test('saving new config fields persists values', async ({ page }) => {
+        await page.click('.dkp-actions-bar button:has-text("Einstellungen")');
+        await page.fill('#cfg-min-bid', '10');
+        await page.fill('#cfg-boss-kill', '8');
+        await page.click('.btn-p:has-text("Speichern")');
+        await expect(page.locator('#toast')).toContainText('gespeichert');
+
+        // Re-navigate to settings and verify persisted values
+        await page.click('.dkp-actions-bar button:has-text("Übersicht")');
+        await page.click('.dkp-actions-bar button:has-text("Einstellungen")');
+        await expect(page.locator('#cfg-min-bid')).toHaveValue('10');
+        await expect(page.locator('#cfg-boss-kill')).toHaveValue('8');
+      });
+
+      test('settings shows Raid-DKP Regeln section heading', async ({ page }) => {
+        await page.click('.dkp-actions-bar button:has-text("Einstellungen")');
+        await expect(page.locator('#v-dkp')).toContainText('Raid-DKP Regeln');
+      });
+
+      test('default decay percent is 50 in settings', async ({ page }) => {
+        await page.click('.dkp-actions-bar button:has-text("Einstellungen")');
+        await expect(page.locator('#cfg-decay')).toHaveValue('50');
+      });
+
+      test('negative DKP is disabled by default', async ({ page }) => {
+        await page.click('.dkp-actions-bar button:has-text("Einstellungen")');
+        await expect(page.locator('#cfg-neg')).not.toBeChecked();
+      });
+    });
+
+    // ── No-negative-DKP enforcement ──
+    test.describe('no-negative-DKP enforcement', () => {
+      test.beforeEach(async ({ page }) => {
+        await setupMockApi(page, [SAMPLE_ENTRY]);
+        await seedAuth(page);
+        await gotoDkp(page);
+
+        // Award 50 DKP
+        await page.click('.dkp-actions-bar button:has-text("Vergeben")');
+        await page.locator('.dkp-pchip', { hasText: 'Thrallmächtig' }).click();
+        await page.fill('#dkp-award-amount', '50');
+        await page.fill('#dkp-award-reason', 'Setup');
+        await page.click('.btn-p:has-text("Vergeben")');
+        await expect(page.locator('#toast')).toHaveClass(/show/);
+      });
+
+      test('spend is rejected when amount exceeds balance', async ({ page }) => {
+        await page.click('.dkp-actions-bar button:has-text("Beute")');
+        await page.selectOption('#dkp-spend-player', 'Thrallmächtig');
+        await page.fill('#dkp-spend-amount', '60');
+        await page.fill('#dkp-spend-item', 'Test Item');
+        await page.click('.btn-p:has-text("Beute verbuchen")');
+        // Should show error toast
+        await expect(page.locator('#toast')).toContainText('Nicht genug DKP');
+      });
+
+      test('spend UI shows max available hint when player selected', async ({ page }) => {
+        await page.click('.dkp-actions-bar button:has-text("Beute")');
+        await page.selectOption('#dkp-spend-player', 'Thrallmächtig');
+        // Should show a max available hint
+        await expect(page.locator('.dkp-spend-max')).toContainText('50');
+      });
+    });
+
+    // ── Starting bonus flag ──
+    test.describe('starting bonus flag', () => {
+      test.beforeEach(async ({ page }) => {
+        await setupMockApi(page, [SAMPLE_ENTRY]);
+        await seedAuth(page);
+        await gotoDkp(page);
+      });
+
+      test('player detail shows starting bonus status', async ({ page }) => {
+        // Award DKP to create player entry
+        await page.click('.dkp-actions-bar button:has-text("Vergeben")');
+        await page.locator('.dkp-pchip', { hasText: 'Thrallmächtig' }).click();
+        await page.fill('#dkp-award-amount', '50');
+        await page.fill('#dkp-award-reason', 'Test');
+        await page.click('.btn-p:has-text("Vergeben")');
+        await expect(page.locator('#toast')).toHaveClass(/show/);
+
+        // Open player detail
+        await page.locator('.dkp-standings tbody tr').first().click();
+        await expect(page.locator('.dkp-player-detail')).toBeVisible();
+        // Should show starting bonus status
+        await expect(page.locator('.dkp-bonus-status')).toContainText('Startbonus');
+        await expect(page.locator('.dkp-bonus-status')).toContainText('ausstehend');
+      });
     });
   });
 });

@@ -4,12 +4,18 @@ import { validateSession, isSiteAdmin } from "./shared/auth-utils.mjs";
 
 const DEFAULT_CONFIG = {
   roles: { "goodfell0w": "admin" },
-  defaultDecayPercent: 15,
+  defaultDecayPercent: 50,
   maxDkpAmount: 10000,
-  allowNegativeBalance: true,
+  allowNegativeBalance: false,
   startingBalance: 0,
   transactionLimit: 50,
   reasonMaxLength: 200,
+  minBid: 5,
+  raidAttendanceDkp: 10,
+  raidPartialDkp: 5,
+  raidBenchDkp: 10,
+  bossKillDkp: 5,
+  startingBonus: 20,
 };
 
 const CONFIG_KEY = "dkp-settings";
@@ -148,6 +154,30 @@ export default async (req, context) => {
         if (body.reasonMaxLength !== undefined) {
           const v = Number(body.reasonMaxLength);
           if (v >= 50 && v <= 500) newCfg.reasonMaxLength = v;
+        }
+        if (body.minBid !== undefined) {
+          const v = Number(body.minBid);
+          if (v >= 1 && v <= 1000) newCfg.minBid = v;
+        }
+        if (body.raidAttendanceDkp !== undefined) {
+          const v = Number(body.raidAttendanceDkp);
+          if (v >= 0 && v <= 1000) newCfg.raidAttendanceDkp = v;
+        }
+        if (body.raidPartialDkp !== undefined) {
+          const v = Number(body.raidPartialDkp);
+          if (v >= 0 && v <= 1000) newCfg.raidPartialDkp = v;
+        }
+        if (body.raidBenchDkp !== undefined) {
+          const v = Number(body.raidBenchDkp);
+          if (v >= 0 && v <= 1000) newCfg.raidBenchDkp = v;
+        }
+        if (body.bossKillDkp !== undefined) {
+          const v = Number(body.bossKillDkp);
+          if (v >= 0 && v <= 1000) newCfg.bossKillDkp = v;
+        }
+        if (body.startingBonus !== undefined) {
+          const v = Number(body.startingBonus);
+          if (v >= 0 && v <= 10000) newCfg.startingBonus = v;
         }
 
         await configStore.setJSON(CONFIG_KEY, newCfg);
@@ -307,6 +337,7 @@ export default async (req, context) => {
             playerName: p.name.trim(),
             className: p.className || "",
             balance: cfg.startingBalance,
+            hasReceivedStartingBonus: false,
           };
           existing.playerName = p.name.trim();
           if (p.className) existing.className = p.className;
