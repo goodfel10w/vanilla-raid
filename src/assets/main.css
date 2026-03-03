@@ -1,1 +1,62 @@
 @import "tailwindcss";
+
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+/* WoW Theme Design Tokens */
+@theme {
+  --color-gold: #c9a84c;
+  --color-gold-light: #f0d878;
+  --color-gold-dark: #a8873a;
+  --color-bg: #0a0a12;
+  --color-bg2: #12101f;
+  --color-card: rgba(255,255,255,0.025);
+  --color-border: rgba(255,255,255,0.06);
+  --color-tx: #e0ddd4;
+  --color-tx2: #8a8098;
+  --color-tx3: #6a6278;
+  --color-tx4: #5a5268;
+  --color-tx5: #3a3548;
+  --color-tank: #5b9bd5;
+  --color-heal: #66bb6a;
+  --color-dps: #e57373;
+  --color-green: #66bb6a;
+  --color-green-bg: rgba(76,175,80,0.15);
+  --color-green-border: rgba(76,175,80,0.4);
+  --color-yellow: #e5c244;
+  --color-yellow-bg: rgba(229,194,68,0.15);
+  --color-yellow-border: rgba(229,194,68,0.4);
+  /* WoW Class Colors */
+  --color-class-druide: #FF7C0A;
+  --color-class-hexenmeister: #8788EE;
+  --color-class-jaeger: #AAD372;
+  --color-class-krieger: #C69B6D;
+  --color-class-magier: #3FC7EB;
+  --color-class-paladin: #F48CBA;
+  --color-class-priester: #FFFFFF;
+  --color-class-schamane: #0070DD;
+  --color-class-schurke: #FFF468;
+  /* Font families */
+  --font-heading: 'Cinzel', serif;
+  --font-body: 'Nunito Sans', system-ui, sans-serif;
+}
+
+/* Base styles */
+@layer base {
+  body {
+    @apply text-tx font-body;
+    min-height: 100vh;
+    background: linear-gradient(170deg, var(--color-bg) 0%, var(--color-bg2) 40%, #1a1028 70%, #0d0b16 100%);
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--color-tx5); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-tx4); }
+}
