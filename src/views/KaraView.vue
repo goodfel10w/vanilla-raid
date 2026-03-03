@@ -1,5 +1,849 @@
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+import { useEntriesStore } from '@/stores/entries'
+import { useToast } from '@/composables/useToast'
+import { useKaraPersistence, getIdWeekStart, getIdWeekEnd } from '@/composables/useKaraPersistence'
+import type { KaraLink } from '@/composables/useKaraPersistence'
+import { useKaraDragDrop } from '@/composables/useKaraDragDrop'
+import {
+  karaSuggestSlots,
+  karaAutoPickSlots,
+  karaAutoGenerate,
+  karaGroupRoles,
+  karaPlayersForSlotKey,
+  parseSlotKey,
+  KARA_TANKS,
+  KARA_HEALERS,
+  KARA_DPS,
+  KARA_SIZE,
+  KARA_GROUPS_COUNT,
+} from '@/composables/useKaraAutoSuggest'
+import { DAYS, HOUR_LABELS, SLOTS } from '@/lib/constants'
+import { formatDate, cc, h, hourQuarters } from '@/lib/utils'
+import ConfirmModal from '@/components/shared/ConfirmModal.vue'
+import KaraPool from '@/components/kara/KaraPool.vue'
+import KaraGroup from '@/components/kara/KaraGroup.vue'
+
+const entriesStore = useEntriesStore()
+const { toast } = useToast()
+const persistence = useKaraPersistence()
+const dragDrop = useKaraDragDrop()
+
+const suggestMode = ref(false)
+const showExport = ref(false)
+const filterDay = ref('')
+const filterTime = ref('')
+const linkPending = ref<string | null>(null)
+const showResetModal = ref(false)
+
+// Load state on mount and when entries or week change
+function reloadState() {
+  persistence.load(entriesStore.entries)
+}
+reloadState()
+
+watch(() => entriesStore.entries, reloadState)
+watch(() => persistence.weekOffset.value, reloadState)
+
+// Computed
+const weekStart = computed(() => getIdWeekStart(persistence.weekOffset.value))
+const weekEnd = computed(() => getIdWeekEnd(weekStart.value))
+const weekStartStr = computed(() => formatDateLocal(weekStart.value))
+const weekEndStr = computed(() => formatDateLocal(weekEnd.value))
+
+function formatDateLocal(d: Date): string {
+  return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + d.getFullYear()
+}
+
+const assignedIds = computed(() => {
+  const s = new Set<string>()
+  persistence.groups.value.forEach(g => g.forEach(p => s.add(p.entryId)))
+  return s
+})
+
+const pool = computed(() => {
+  let poolEntries = entriesStore.entries.filter(e => !assignedIds.value.has(e.id))
+  if (filterDay.value) {
+    poolEntries = poolEntries.filter(e => {
+      if (!e.availability) return false
+      if (filterTime.value) {
+        const qs = hourQuarters(filterTime.value).map(q => filterDay.value + '_' + q)
+        return qs.every(q => e.availability[q] === 'yes' || e.availability[q] === 'tentative')
+      }
+      return SLOTS.some(s => e.availability[filterDay.value + '_' + s])
+    })
+  }
+  return poolEntries
+})
+
+const totalAssigned = computed(() =>
+  persistence.groups.value.reduce((s, g) => s + g.length, 0)
+)
+const unassignedCount = computed(() =>
+  entriesStore.entries.filter(e => !assignedIds.value.has(e.id)).length
+)
+const linkCount = computed(() => persistence.links.value.length)
+const slotsSetCount = computed(() =>
+  persistence.groupSlots.value.filter(s => s).length
+)
+
+const hasAnySlot = computed(() => persistence.groupSlots.value.some(s => s))
+
+// Suggestions
+const suggestions = computed(() => {
+  if (!suggestMode.value) return []
+  const claimedIds = new Set<string>()
+  persistence.groupSlots.value.forEach((slot) => {
+    if (!slot) return
+    const slotPlayers = karaPlayersForSlotKey(entriesStore.entries, slot)
+    slotPlayers.slice(0, KARA_SIZE).forEach(p => claimedIds.add(p.id))
+  })
+  return karaSuggestSlots(entriesStore.entries, claimedIds).filter(s => s.total >= 3)
+})
+
+const maxSuggestTotal = computed(() =>
+  suggestions.value.length ? suggestions.value[0].total : 1
+)
+
+// Actions
+function prevWeek() {
+  persistence.weekOffset.value--
+  suggestMode.value = false
+}
+
+function nextWeek() {
+  persistence.weekOffset.value++
+  suggestMode.value = false
+}
+
+function toggleSuggest() {
+  suggestMode.value = !suggestMode.value
+}
+
+function autoPickSlots() {
+  const result = karaAutoPickSlots(entriesStore.entries)
+  if (result) {
+    persistence.groupSlots.value = result
+    persistence.save()
+    toast('Optimale Zeiten automatisch gewaehlt')
+  } else {
+    toast('Nicht genug Spieler fuer 3 Gruppen')
+  }
+}
+
+function assignSlot(gi: number, key: string) {
+  persistence.groupSlots.value[gi] = key
+  persistence.save()
+}
+
+function removeSlot(gi: number) {
+  persistence.groupSlots.value[gi] = ''
+  persistence.save()
+}
+
+function autoGenerate() {
+  const result = karaAutoGenerate(
+    entriesStore.entries,
+    persistence.groups.value.map(g => [...g]),
+    persistence.links.value,
+    persistence.groupSlots.value,
+    filterDay.value,
+    filterTime.value,
+  )
+  persistence.groups.value = result.groups
+  persistence.save()
+  toast(result.message)
+}
+
+function confirmReset() {
+  showResetModal.value = true
+}
+
+function doReset() {
+  persistence.reset()
+  showResetModal.value = false
+  toast('Gruppen zurueckgesetzt')
+}
+
+function toggleExport() {
+  showExport.value = !showExport.value
+}
+
+// Drag & Drop handlers
+function onSaved() {
+  persistence.save()
+}
+
+function handleDragStart(entryId: string, event: DragEvent) {
+  dragDrop.onDragStart(entryId, event)
+}
+
+function handleDragEnd() {
+  dragDrop.onDragEnd()
+}
+
+function handleDragOver(target: string, event: DragEvent) {
+  dragDrop.onDragOver(target, event)
+}
+
+function handleDragLeave(target: string, event: DragEvent) {
+  dragDrop.onDragLeave(target, event)
+}
+
+function handleDrop(target: string, event: DragEvent) {
+  dragDrop.onDrop(target, event, persistence.groups.value, persistence.links.value, onSaved, toast)
+}
+
+function handleUnassign(entryId: string) {
+  dragDrop.moveEntry(entryId, 'pool', persistence.groups.value, persistence.links.value, onSaved, toast)
+}
+
+function handlePin(entryId: string) {
+  dragDrop.togglePin(entryId, persistence.groups.value, onSaved)
+}
+
+// Link system
+const LINK_COLORS = ['#e57373', '#64b5f6', '#81c784', '#ffb74d', '#ce93d8', '#4dd0e1', '#fff176', '#a1887f']
+
+function nextLinkColor(): string {
+  const used = new Set(persistence.links.value.map(l => l.color))
+  return LINK_COLORS.find(c => !used.has(c)) || LINK_COLORS[persistence.links.value.length % LINK_COLORS.length]
+}
+
+function handleLink(entryId: string) {
+  const existingLink = persistence.links.value.find(l => l.ids.includes(entryId))
+
+  if (existingLink) {
+    if (linkPending.value && linkPending.value !== entryId) {
+      const pendingLink = persistence.links.value.find(l => l.ids.includes(linkPending.value!))
+      if (pendingLink && pendingLink === existingLink) {
+        linkPending.value = null
+        toast('Bereits verknuepft')
+        return
+      }
+      if (pendingLink) {
+        pendingLink.ids.forEach(id => {
+          if (!existingLink.ids.includes(id)) existingLink.ids.push(id)
+        })
+        persistence.links.value = persistence.links.value.filter(l => l !== pendingLink)
+      } else {
+        if (!existingLink.ids.includes(linkPending.value!)) existingLink.ids.push(linkPending.value!)
+      }
+      linkPending.value = null
+      persistence.save()
+      toast('Verknuepft')
+      return
+    }
+    // Remove from link
+    existingLink.ids = existingLink.ids.filter(id => id !== entryId)
+    if (existingLink.ids.length < 2) {
+      persistence.links.value = persistence.links.value.filter(l => l !== existingLink)
+    }
+    linkPending.value = null
+    persistence.save()
+    toast('Verknuepfung geloest')
+    return
+  }
+
+  if (linkPending.value === null) {
+    linkPending.value = entryId
+    toast('Klicke einen zweiten Spieler zum Verknuepfen')
+    return
+  }
+
+  if (linkPending.value === entryId) {
+    linkPending.value = null
+    toast('Verknuepfung abgebrochen')
+    return
+  }
+
+  const pendingLink = persistence.links.value.find(l => l.ids.includes(linkPending.value!))
+  if (pendingLink) {
+    pendingLink.ids.push(entryId)
+  } else {
+    persistence.links.value.push({ ids: [linkPending.value, entryId], color: nextLinkColor() })
+  }
+  linkPending.value = null
+  persistence.save()
+  toast('Spieler verknuepft')
+}
+
+// Export
+const exportText = computed(() => {
+  let text = `**Karazhan Gruppen \u2014 ID-Woche ${weekStartStr.value} \u2013 ${weekEndStr.value}**\n\n`
+  for (let gi = 0; gi < KARA_GROUPS_COUNT; gi++) {
+    const group = persistence.groups.value[gi] || []
+    const roles = karaGroupRoles(group, entriesStore.entries)
+    const slot = persistence.groupSlots.value[gi]
+    const parsedSlot = parseSlotKey(slot)
+    text += `__Karazhan ${gi + 1}__`
+    if (parsedSlot) text += ` \u2014 ${parsedSlot.day} ${parsedSlot.windowLabel}`
+    text += ` (${roles.t}T/${roles.hl}H/${roles.dp}D)\n`
+    if (group.length === 0) {
+      text += `  (leer)\n`
+    } else {
+      group.forEach(p => {
+        const entry = entriesStore.entries.find(e => e.id === p.entryId)
+        if (!entry) return
+        const role = (entry.roles || [])[0] || 'DPS'
+        const spec = (entry.specs || [])[0] || ''
+        text += `  ${entry.charName} \u2014 ${entry.className}${spec ? ' (' + spec + ')' : ''} [${role}]${p.pinned ? ' \uD83D\uDCCC' : ''}\n`
+      })
+    }
+    text += `\n`
+  }
+  const unassigned = entriesStore.entries.filter(e => !assignedIds.value.has(e.id))
+  if (unassigned.length > 0) {
+    text += `__Nicht eingeteilt (${unassigned.length}):__\n`
+    unassigned.forEach(e => {
+      text += `  ${e.charName} \u2014 ${e.className}\n`
+    })
+  }
+  return text
+})
+
+function copyExport() {
+  navigator.clipboard.writeText(exportText.value)
+    .then(() => toast('In Zwischenablage kopiert'))
+    .catch(() => toast('Kopieren fehlgeschlagen'))
+}
+
+function onFilterDayChange(event: Event) {
+  filterDay.value = (event.target as HTMLSelectElement).value
+  filterTime.value = ''
+}
+
+function onFilterTimeChange(event: Event) {
+  filterTime.value = (event.target as HTMLSelectElement).value
+}
+</script>
+
 <template>
   <div id="v-kara">
-    <p>Kara View (coming soon)</p>
+    <!-- Header -->
+    <div class="kara-header">
+      <div class="kara-week-nav">
+        <button @click="prevWeek">&#x25C0;</button>
+        <div class="kara-week-label">
+          ID-Woche
+          <small>{{ weekStartStr }} &ndash; {{ weekEndStr }}</small>
+        </div>
+        <button @click="nextWeek">&#x25B6;</button>
+      </div>
+      <div class="kara-actions">
+        <button
+          class="kara-btn"
+          :class="{ primary: suggestMode }"
+          title="Optimale Raidzeiten finden"
+          @click="toggleSuggest"
+        >&#x1F50D; Zeiten finden</button>
+        <button
+          class="kara-btn primary"
+          title="Spieler optimal auf Gruppen verteilen"
+          @click="autoGenerate"
+        >&#x2728; Auto-Verteilen</button>
+        <button
+          class="kara-btn"
+          title="Gruppenaufstellung als Text exportieren"
+          @click="toggleExport"
+        >&#x1F4CB; Export</button>
+        <button
+          class="kara-btn danger"
+          title="Alle Zuweisungen zuruecksetzen"
+          @click="confirmReset"
+        >&#x21BA; Reset</button>
+      </div>
+    </div>
+
+    <!-- Time slot suggestion picker -->
+    <div v-if="suggestMode" class="kara-suggest-section">
+      <div class="card">
+        <div class="kara-suggest-title">
+          <span>Raidzeit-Vorschlaege (3h-Fenster)</span>
+          <button class="kara-btn" title="Beste 3 Zeitfenster automatisch waehlen" @click="autoPickSlots">
+            &#x2728; Beste 3 automatisch
+          </button>
+        </div>
+
+        <div v-if="hasAnySlot" class="kara-slot-summary">
+          <span
+            v-for="gi in KARA_GROUPS_COUNT"
+            :key="gi"
+            class="kara-group-slot-label"
+            :style="{ opacity: persistence.groupSlots.value[gi - 1] ? 1 : 0.4 }"
+          >
+            <template v-if="persistence.groupSlots.value[gi - 1]">
+              <strong>Gruppe {{ gi }}:</strong>
+              {{ parseSlotKey(persistence.groupSlots.value[gi - 1])?.day }}
+              {{ parseSlotKey(persistence.groupSlots.value[gi - 1])?.windowLabel }}
+              <button class="kgs-remove" @click="removeSlot(gi - 1)">&#x2716;</button>
+            </template>
+            <template v-else>
+              Gruppe {{ gi }}: nicht zugewiesen
+            </template>
+          </span>
+        </div>
+
+        <div class="kara-suggest-list">
+          <div v-if="suggestions.length === 0" class="kara-empty">
+            Keine Verfuegbarkeitsdaten vorhanden. Spieler muessen erst Zeiten eintragen.
+          </div>
+          <div
+            v-for="s in suggestions.slice(0, 20)"
+            :key="s.key"
+            class="kara-suggest-item"
+            :class="{ assigned: persistence.groupSlots.value.includes(s.key) }"
+          >
+            <div class="kara-suggest-time">{{ s.day }} <small>{{ s.windowLabel }}</small></div>
+            <div class="kara-suggest-bar">
+              <div
+                class="kara-suggest-bar-fill"
+                :style="{ width: Math.round((s.total / Math.max(maxSuggestTotal, 1)) * 100) + '%' }"
+              ></div>
+            </div>
+            <div class="kara-suggest-count">{{ s.total }} Spieler</div>
+            <div class="kara-suggest-roles">
+              <span style="color: var(--role-tank)">{{ s.tanks }}T</span>
+              <span style="color: var(--role-heal)">{{ s.healers }}H</span>
+              <span style="color: var(--role-dps)">{{ s.dps }}D</span>
+            </div>
+            <div class="kara-suggest-assign">
+              <button
+                v-for="gi in KARA_GROUPS_COUNT"
+                :key="gi"
+                :class="{ active: persistence.groupSlots.value.indexOf(s.key) === gi - 1 }"
+                :disabled="!!persistence.groupSlots.value[gi - 1] && persistence.groupSlots.value[gi - 1] !== s.key"
+                @click="assignSlot(gi - 1, s.key)"
+              >G{{ gi }}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pool filter -->
+    <div class="kara-filter">
+      <div class="kara-filter-row">
+        <span>Pool-Filter:</span>
+        <select @change="onFilterDayChange">
+          <option value="">Alle Spieler</option>
+          <option v-for="d in DAYS" :key="d" :value="d" :selected="filterDay === d">{{ d }}</option>
+        </select>
+        <select v-if="filterDay" @change="onFilterTimeChange">
+          <option value="">Jede Uhrzeit</option>
+          <option v-for="hl in HOUR_LABELS" :key="hl" :value="hl" :selected="filterTime === hl">{{ hl }}:00</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Layout: pool + 3 groups -->
+    <div class="kara-layout">
+      <KaraPool
+        :pool="pool"
+        :links="persistence.links.value"
+        :is-drag-over="dragDrop.dragOverTarget.value === 'pool'"
+        :no-entries="entriesStore.entries.length === 0"
+        @link="handleLink"
+        @dragstart="handleDragStart"
+        @dragend="handleDragEnd"
+        @dragover="handleDragOver('pool', $event)"
+        @dragleave="handleDragLeave('pool', $event)"
+        @drop="handleDrop('pool', $event)"
+      />
+
+      <KaraGroup
+        v-for="gi in KARA_GROUPS_COUNT"
+        :key="gi"
+        :group-index="gi - 1"
+        :group="persistence.groups.value[gi - 1] || []"
+        :links="persistence.links.value"
+        :group-slot="persistence.groupSlots.value[gi - 1] || ''"
+        :is-drag-over="dragDrop.dragOverTarget.value === 'group-' + (gi - 1)"
+        @pin="handlePin"
+        @unassign="handleUnassign"
+        @link="handleLink"
+        @remove-slot="removeSlot"
+        @dragstart="handleDragStart"
+        @dragend="handleDragEnd"
+        @dragover="handleDragOver('group-' + (gi - 1), $event)"
+        @dragleave="handleDragLeave('group-' + (gi - 1), $event)"
+        @drop="handleDrop('group-' + (gi - 1), $event)"
+      />
+    </div>
+
+    <!-- Summary -->
+    <div class="kara-comp-summary">
+      <div class="kara-comp-card"><div class="num">{{ totalAssigned }}</div><div class="lbl">Verteilt</div></div>
+      <div class="kara-comp-card"><div class="num">{{ unassignedCount }}</div><div class="lbl">Offen</div></div>
+      <div class="kara-comp-card"><div class="num">{{ linkCount }}</div><div class="lbl">Links</div></div>
+      <div class="kara-comp-card"><div class="num">{{ slotsSetCount }}/3</div><div class="lbl">Zeiten</div></div>
+    </div>
+
+    <!-- Export -->
+    <div v-if="showExport" class="kara-export-area">
+      <div class="kara-export-header">
+        <span class="kara-export-label">Export</span>
+        <button class="kara-btn" @click="copyExport">&#x1F4CB; Kopieren</button>
+      </div>
+      <pre class="kara-export-text">{{ exportText }}</pre>
+    </div>
+
+    <!-- Reset modal -->
+    <ConfirmModal
+      :open="showResetModal"
+      title="Gruppen zuruecksetzen"
+      message="Alle Zuweisungen, Verknuepfungen und Zeitfenster fuer diese ID-Woche werden geloescht."
+      @confirm="doReset"
+      @cancel="showResetModal = false"
+    />
   </div>
 </template>
+
+<style scoped>
+.kara-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.kara-week-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kara-week-nav button {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-tx2);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s;
+}
+
+.kara-week-nav button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.kara-week-label {
+  font: 600 15px var(--font-heading);
+  color: var(--color-gold);
+  text-align: center;
+}
+
+.kara-week-label small {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-tx3);
+}
+
+.kara-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.kara-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-tx2);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s;
+}
+
+.kara-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.kara-btn.primary {
+  background: rgba(201, 168, 76, 0.12);
+  border-color: rgba(201, 168, 76, 0.25);
+  color: var(--color-gold);
+}
+
+.kara-btn.primary:hover {
+  background: rgba(201, 168, 76, 0.2);
+}
+
+.kara-btn.danger {
+  color: #e57373;
+  border-color: rgba(229, 115, 115, 0.2);
+}
+
+.kara-btn.danger:hover {
+  background: rgba(229, 115, 115, 0.08);
+}
+
+/* Suggest section */
+.kara-suggest-section {
+  margin-bottom: 16px;
+}
+
+.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.kara-suggest-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: 600 14px var(--font-heading);
+  color: var(--color-gold);
+  margin-bottom: 12px;
+}
+
+.kara-slot-summary {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.kara-group-slot-label {
+  font-size: 12px;
+  color: var(--color-tx2);
+  padding: 4px 10px;
+  background: rgba(201, 168, 76, 0.06);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kgs-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-tx4);
+  font-size: 10px;
+  padding: 1px;
+}
+
+.kgs-remove:hover {
+  color: #e57373;
+}
+
+.kara-suggest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.kara-suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+}
+
+.kara-suggest-item.assigned {
+  border-color: rgba(201, 168, 76, 0.2);
+  background: rgba(201, 168, 76, 0.04);
+}
+
+.kara-suggest-time {
+  min-width: 110px;
+  color: var(--color-tx2);
+}
+
+.kara-suggest-time small {
+  color: var(--color-tx4);
+}
+
+.kara-suggest-bar {
+  flex: 1;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.kara-suggest-bar-fill {
+  height: 100%;
+  background: rgba(201, 168, 76, 0.3);
+  border-radius: 3px;
+}
+
+.kara-suggest-count {
+  min-width: 65px;
+  text-align: right;
+  color: var(--color-tx3);
+}
+
+.kara-suggest-roles {
+  display: flex;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.kara-suggest-assign {
+  display: flex;
+  gap: 3px;
+}
+
+.kara-suggest-assign button {
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-tx3);
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 0.15s;
+}
+
+.kara-suggest-assign button.active {
+  background: rgba(201, 168, 76, 0.2);
+  border-color: rgba(201, 168, 76, 0.4);
+  color: var(--color-gold);
+}
+
+.kara-suggest-assign button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.kara-suggest-assign button:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Filter */
+.kara-filter {
+  margin-bottom: 12px;
+}
+
+.kara-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-tx3);
+}
+
+.kara-filter-row select {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-card);
+  color: var(--color-tx1);
+  font-size: 12px;
+}
+
+/* Layout */
+.kara-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* Summary */
+.kara-comp-summary {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.kara-comp-card {
+  text-align: center;
+  padding: 12px 20px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  min-width: 80px;
+}
+
+.kara-comp-card .num {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-gold);
+}
+
+.kara-comp-card .lbl {
+  font-size: 11px;
+  color: var(--color-tx4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Export */
+.kara-export-area {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.kara-export-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.kara-export-label {
+  font-size: 12px;
+  color: var(--color-tx4);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.kara-export-text {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 12px;
+  color: var(--color-tx2);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.kara-empty {
+  color: var(--color-tx4);
+  font-size: 13px;
+  text-align: center;
+  padding: 20px;
+}
+
+@media (max-width: 767px) {
+  .kara-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .kara-actions {
+    justify-content: center;
+  }
+
+  .kara-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .kara-suggest-item {
+    flex-wrap: wrap;
+  }
+}
+</style>
