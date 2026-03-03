@@ -2226,7 +2226,7 @@ function renderRaidCard(raid,isPast){
   const pct=Math.min(100,Math.round(total/raid.maxPlayers*100));
   const barCls=total>raid.maxPlayers?"over":total===raid.maxPlayers?"full":"";
   const deadlinePassed=raid.deadline&&new Date()>new Date(raid.deadline);
-  const isOwner=currentUser&&raid.createdBy===currentUser.userId;
+  const isOwner=currentUser&&(raid.createdBy===currentUser.userId||isOfficerUser());
 
   let t=0,hl=0,dp=0;
   signups.forEach(s=>{
@@ -3146,8 +3146,15 @@ async function loadDkp(){
 }
 
 function getDkpRole(){
-  if(!currentUser||!dkpConfig.roles)return null;
-  return dkpConfig.roles[currentUser.username.toLowerCase()]||null;
+  if(!currentUser)return null;
+  if(currentUser.isAdmin)return"admin";
+  if(!dkpConfig.roles)return null;
+  const lower=currentUser.username.toLowerCase();
+  const role=dkpConfig.roles[lower];
+  if(role)return role;
+  const prefix=lower.split("#")[0];
+  if(prefix!==lower&&dkpConfig.roles[prefix])return dkpConfig.roles[prefix];
+  return null;
 }
 function isDkpAdmin(){return getDkpRole()==="admin"}
 function isDkpOfficer(){const r=getDkpRole();return r==="admin"||r==="officer"}

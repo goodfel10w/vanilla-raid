@@ -1,7 +1,34 @@
 import { getStore } from "@netlify/blobs";
 import { randomUUID } from "crypto";
-import { validateSession } from "./shared/auth-utils.mjs";
+import { validateSession, isSiteAdmin } from "./shared/auth-utils.mjs";
 import { buildRaidEmbed, buildRaidButtons } from "./discord.mjs";
+
+// Check if user is a DKP officer or admin (via dkp-config roles)
+async function isDkpOfficerOrAdmin(username) {
+  if (!username) return false;
+  if (isSiteAdmin(username)) return true;
+  try {
+    const cfgStore = getStore({ name: "dkp-config", consistency: "strong" });
+    const cfg = await cfgStore.get("config", { type: "json" });
+    if (!cfg || !cfg.roles) return false;
+    const lower = username.toLowerCase();
+    const role = cfg.roles[lower];
+    if (role === "admin" || role === "officer") return true;
+    const prefix = lower.split("#")[0];
+    if (prefix !== lower && cfg.roles[prefix]) {
+      const r = cfg.roles[prefix];
+      return r === "admin" || r === "officer";
+    }
+  } catch (_) { /* non-fatal */ }
+  return false;
+}
+
+// Check if user can manage this raid (owner, site admin, or officer)
+async function canManageRaid(user, raid) {
+  if (raid.createdBy === user.userId) return true;
+  if (user.isAdmin) return true;
+  return isDkpOfficerOrAdmin(user.username);
+}
 
 const VALID_INSTANCES = [
   "Karazhan", "Gruuls Unterschlupf", "Magtheridons Kammer",
@@ -66,8 +93,8 @@ export default async (req) => {
         if (!raid) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        if (raid.createdBy !== user.userId) {
-          return new Response(JSON.stringify({ error: "Nur der Ersteller kann den Raid sperren" }), { status: 403, headers });
+        if (!await canManageRaid(user, raid)) {
+          return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
         raid.locked = action === "lock";
         await store.setJSON(raidId, raid);
@@ -104,12 +131,13 @@ export default async (req) => {
         if (!raid) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        // Block signups when raid is locked (raid creator exempt)
-        if (raid.locked && raid.createdBy !== user.userId) {
+        // Block signups when raid is locked (organizers exempt)
+        const isOrganizer = await canManageRaid(user, raid);
+        if (raid.locked && !isOrganizer) {
           return new Response(JSON.stringify({ error: "Raid ist gesperrt — Anmeldung nicht möglich" }), { status: 403, headers });
         }
-        // Block signups after deadline (raid creator exempt)
-        if (raid.deadline && raid.createdBy !== user.userId) {
+        // Block signups after deadline (organizers exempt)
+        if (raid.deadline && !isOrganizer) {
           const now = new Date();
           const dl = new Date(raid.deadline);
           if (now > dl) {
@@ -146,9 +174,8 @@ export default async (req) => {
         if (!raid) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        // Only raid creator can assign
-        if (raid.createdBy !== user.userId) {
-          return new Response(JSON.stringify({ error: "Nur der Raid-Ersteller kann Specs zuweisen" }), { status: 403, headers });
+        if (!await canManageRaid(user, raid)) {
+          return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
         if (!raid.signups) raid.signups = [];
         const signup = raid.signups.find(s => s.userId === targetUserId);
@@ -207,8 +234,8 @@ export default async (req) => {
         if (!raid) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        if (raid.createdBy !== user.userId) {
-          return new Response(JSON.stringify({ error: "Nur der Ersteller kann Spieler benchen" }), { status: 403, headers });
+        if (!await canManageRaid(user, raid)) {
+          return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
         if (!raid.signups) raid.signups = [];
         const signup = raid.signups.find(s => s.userId === targetUserId);
@@ -232,8 +259,8 @@ export default async (req) => {
         if (!raid) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        if (raid.createdBy !== user.userId) {
-          return new Response(JSON.stringify({ error: "Nur der Ersteller kann Spieler bestätigen" }), { status: 403, headers });
+        if (!await canManageRaid(user, raid)) {
+          return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
         if (!raid.signups) raid.signups = [];
         const signup = raid.signups.find(s => s.userId === targetUserId);
@@ -256,8 +283,8 @@ export default async (req) => {
         if (!raid) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        if (raid.createdBy !== user.userId) {
-          return new Response(JSON.stringify({ error: "Nur der Ersteller kann Bestätigung zurücknehmen" }), { status: 403, headers });
+        if (!await canManageRaid(user, raid)) {
+          return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
         if (!raid.signups) raid.signups = [];
         const signup = raid.signups.find(s => s.userId === targetUserId);
@@ -280,8 +307,8 @@ export default async (req) => {
         if (!raid) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        if (raid.createdBy !== user.userId) {
-          return new Response(JSON.stringify({ error: "Nur der Ersteller kann die Aufstellung bestätigen" }), { status: 403, headers });
+        if (!await canManageRaid(user, raid)) {
+          return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
         if (!raid.signups) raid.signups = [];
         const idSet = new Set(userIds);
@@ -305,8 +332,8 @@ export default async (req) => {
         if (!raid) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        if (raid.createdBy !== user.userId) {
-          return new Response(JSON.stringify({ error: "Nur der Ersteller kann Spieler entfernen" }), { status: 403, headers });
+        if (!await canManageRaid(user, raid)) {
+          return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
         if (!raid.signups) raid.signups = [];
         raid.signups = raid.signups.filter(s => s.userId !== targetUserId);
@@ -325,8 +352,8 @@ export default async (req) => {
         if (!raid) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        if (raid.createdBy !== user.userId) {
-          return new Response(JSON.stringify({ error: "Nur der Ersteller kann andere Spieler anmelden" }), { status: 403, headers });
+        if (!await canManageRaid(user, raid)) {
+          return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
         if (!VALID_ROLES.includes(role)) {
           return new Response(JSON.stringify({ error: "Ungültige Rolle" }), { status: 400, headers });
@@ -397,7 +424,7 @@ export default async (req) => {
         if (!existing) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        if (existing.createdBy !== user.userId) {
+        if (!await canManageRaid(user, existing)) {
           return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
         id = body.id;
@@ -440,7 +467,7 @@ export default async (req) => {
         return new Response(JSON.stringify({ error: "ID fehlt" }), { status: 400, headers });
       }
       const existing = await store.get(id, { type: "json" });
-      if (existing && existing.createdBy && existing.createdBy !== user.userId) {
+      if (existing && existing.createdBy && !await canManageRaid(user, existing)) {
         return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
       }
       await store.delete(id);
