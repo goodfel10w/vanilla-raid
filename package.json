@@ -9,7 +9,8 @@
     "dev:vue": "vite",
     "build:vue": "vue-tsc --noEmit && vite build",
     "preview:vue": "vite preview",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "test:vue": "npx playwright test --config=playwright-vue.config.ts"
   },
   "dependencies": {
     "@netlify/blobs": "^8.1.0",
