@@ -2,12 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { createRouter, createWebHashHistory } from 'vue-router'
-import App from '../App.vue'
+import TheSidebar from '@/components/layout/TheSidebar.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
-    { path: '/', redirect: '/dashboard' },
     { path: '/dashboard', component: { template: '<div>Dashboard</div>' } },
     { path: '/form', component: { template: '<div>Form</div>' } },
     { path: '/raids', component: { template: '<div>Raids</div>' } },
@@ -20,23 +19,26 @@ const router = createRouter({
   ],
 })
 
-describe('App', () => {
-  it('mounts without error', () => {
-    const wrapper = mount(App, {
-      global: {
-        plugins: [createPinia(), router],
-      }
+describe('TheSidebar', () => {
+  it('renders all navigation items', () => {
+    const wrapper = mount(TheSidebar, {
+      global: { plugins: [createPinia(), router] },
     })
-    expect(wrapper.exists()).toBe(true)
+    const tabs = wrapper.findAll('.tab')
+    expect(tabs.length).toBeGreaterThanOrEqual(8)
   })
 
-  it('renders guild name and title', () => {
-    const wrapper = mount(App, {
-      global: {
-        plugins: [createPinia(), router],
-      }
+  it('includes guild name', () => {
+    const wrapper = mount(TheSidebar, {
+      global: { plugins: [createPinia(), router] },
     })
     expect(wrapper.text()).toContain('Vanilla')
-    expect(wrapper.text()).toContain('Raid-Planer')
+  })
+
+  it('does not show admin tab by default', () => {
+    const wrapper = mount(TheSidebar, {
+      global: { plugins: [createPinia(), router] },
+    })
+    expect(wrapper.text()).not.toContain('Admin')
   })
 })
