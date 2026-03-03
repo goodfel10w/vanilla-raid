@@ -12,16 +12,15 @@
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
     X-XSS-Protection = "0"
 
+# Netlify Functions API redirect (must come before SPA fallback)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
 # SPA fallback — hash routing handles client-side routes,
 # but this ensures direct URL access works
 [[redirects]]
   from = "/*"
   to = "/index.html"
-  status = 200
-  conditions = {Role = ["admin", "user", "visitor"]}
-
-# Netlify Functions API redirect
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
   status = 200
