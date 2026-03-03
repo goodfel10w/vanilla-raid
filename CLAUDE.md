@@ -4,111 +4,122 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-WoW TBC guild raid planner with DKP loot system and Discord integration. German-language UI. No framework, no build step — pure vanilla ES modules frontend with a Netlify Functions serverless backend. Data stored in Netlify Blobs.
+WoW TBC guild raid planner with DKP loot system and Discord integration. German-language UI. Vue 3 + Vite frontend with Netlify Functions serverless backend. Data stored in Netlify Blobs.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Vue 3 (Composition API, `<script setup>`) |
+| Language | TypeScript (strict) |
+| Build | Vite 6 |
+| Routing | vue-router 4 (hash mode) |
+| State | Pinia |
+| UI Components | shadcn-vue (Radix Vue + Tailwind CSS) |
+| Styling | Tailwind CSS 4 + CSS variables for WoW theme tokens |
+| Component Tests | Vitest + Vue Test Utils |
+| E2E Tests | Playwright (4 viewport projects) |
+| Deploy | Netlify (Vite build output) |
+| Backend | Netlify Functions (unchanged from vanilla version) |
 
 ## Development Commands
 
 ```bash
-npm install                # Install dependencies (Playwright + http-server for tests)
-netlify dev                # Local dev server with backend (requires netlify-cli + env vars)
-npx http-server public -p 8888  # Frontend-only dev server (no backend, API calls fail)
+npm install                # Install dependencies
+npm run dev:vue            # Start Vite dev server (port 5173)
+npm run build:vue          # TypeScript check + production build → dist/
+npm run preview:vue        # Preview production build
+npm run test:unit          # Run Vitest component/unit tests (261 tests)
+npm run test:vue           # Run Playwright E2E tests against Vue app
+npm test                   # Run legacy Playwright tests (against old public/index.html)
+netlify dev                # Full local dev with backend (requires env vars)
 ```
-
-There is no build step or linter.
 
 ## Testing
 
-Playwright E2E tests run against a static server with mocked API routes (no Netlify account needed).
-
+### Unit Tests (Vitest)
 ```bash
-npm test                   # Run all 407 tests across 4 projects (desktop/tablet/mobile/responsive)
-npm run test:headed        # Run tests with visible browser
-npm run test:ui            # Interactive Playwright UI mode
-npx playwright test tests/functional/form.spec.js              # Run a single test file
-npx playwright test --project=desktop                          # Run one viewport only
-npx playwright test -g "edit pre-fills"                        # Run tests matching name
-npx playwright test tests/functional/form.spec.js --project=mobile  # Single file + viewport
+npm run test:unit                              # Run all 261 tests
+npx vitest run src/__tests__/utils.spec.ts     # Run single test file
+npx vitest --watch                             # Watch mode
 ```
 
-**Test architecture:** Tests use `page.route()` to intercept all API endpoints — no real backend needed. The `setupMockApi(page, initialEntries)` fixture in `tests/fixtures/mock-api.js` provides in-memory CRUD stores for entries, DKP (balances/transactions/config), and raids, plus mock auth endpoints. Sample entries are in `tests/fixtures/test-data.js`. Tests that need auth seed `localStorage` with `page.addInitScript()` before `page.goto()`.
+Tests are in `src/__tests__/` mirroring the source structure. Use `@vue/test-utils` for component mounting.
 
-**Projects:** `desktop` (1280×720), `tablet` (768×1024), `mobile` (375×667), `responsive` (viewport-switching at 375/641/768/1280px).
+### E2E Tests (Playwright)
+```bash
+npm run test:vue                               # All tests, all viewports
+npx playwright test --config=playwright-vue.config.ts --project=desktop  # Desktop only
+npx playwright test --config=playwright-vue.config.ts -g "edit"          # Pattern match
+```
 
-**Test navigation:** Tests use hash-based navigation (`page.goto('/#/view')` or `page.evaluate(() => { window.location.hash = '#/view'; })`) because sidebar tabs are hidden on mobile. Do NOT use `page.click('[data-v="X"]')` for navigation — it fails on mobile.
+**Test architecture:** Tests use `page.route()` to intercept all API endpoints — no real backend needed. Mock API in `tests-vue/fixtures/mock-api.js` provides in-memory CRUD. Auth seeded via `localStorage` with `page.addInitScript()`.
 
-**Web server:** Playwright auto-starts `http-server public -p 8888` — no manual setup required.
+**Projects:** `desktop` (1280×720), `tablet` (768×1024), `mobile` (375×667), `responsive` (viewport-switching).
+
+**Navigation:** Use hash-based navigation (`page.goto('/#/view')`). Do NOT use `page.click('[data-v="X"]')` — it fails on mobile.
 
 ## Branching
 
-- `dev` is the default branch for all development work
+- `feature/vue-migration` — Vue 3 migration branch
+- `dev` is the default branch for development
 - Merge to `master` only on explicit instruction (= production deployment)
 
 ## Frontend Architecture
 
-The frontend is a modular ES module SPA served from `public/`. No bundler — the browser loads modules directly.
-
-### Core Modules (`public/js/`)
-
-- **app.js** — Entry point: registers routes, loads data from API, sets up auth event delegation, initializes router. `loadData()` fetches entries, raids, and DKP on startup and after mutations.
-- **state.js** — Centralized reactive state store. `getState(path)`, `update(path, value)`, `subscribe(path, callback)`. Paths are dot-separated (`'dkp.balances'`, `'auth.user'`, `'ui.dkpView'`). Subscribers are notified when any path in the hierarchy changes.
-- **router.js** — Hash-based SPA router. Routes registered via `route(pattern, loader)` with dynamic segments (`:id`, `:name`). Views are lazy-loaded and cached. View CSS is lazy-loaded from `/styles/views/`. Uses View Transition API where available.
-- **api.js** — Fetch wrapper: `api.get()`, `api.post()`, `api.del()`. Auto-attaches Bearer token from state. Handles 401 session expiry by clearing auth.
-- **auth.js** — Battle.net OAuth flow, Discord linking, session validate/restore from localStorage. `initAuth()` runs on startup. `renderAuthBar()` renders login/logout UI.
-- **constants.js** — `CLS` (9 German WoW classes with colors), `CLASS_SPECS` (class→spec mappings with roles), `ROLES`, `DAYS`, `SLOTS` (48 per day, 15-min from 12:00–23:45), `TBC_RAIDS`.
-- **utils.js** — `h()` (HTML escape), `cc()` (class color), `specsToRoles()`, `collapseRanges()`, `migrateLegacyAvail()`, `linkItems()` ([Item]→Wowhead tooltip), `formatDate()`, `timeAgo()`.
-
-### View Lifecycle
-
-Each view module exports `render(container, params)` and optionally `unmount()`:
-
+### Directory Structure
 ```
-1. Router matches hash → lazy-imports view module
-2. If previous view has unmount(), call it (cleans up state subscriptions)
-3. View CSS loaded via <link> injection (one-time per view)
-4. render(container, params) called — builds HTML, subscribes to state
-5. State changes trigger re-render via subscriber callbacks
-6. On route change → unmount() → new view render()
-```
-
-Views rebuild `container.innerHTML` on each render and re-attach event listeners. Form views call `syncInputs()` before re-render to preserve user input.
-
-### State Shape
-
-```
-entries[]              — Character availability entries
-raids[]                — Scheduled raids
-dkp.balances[]         — DKP balance per player
-dkp.transactions[]     — DKP transaction history
-dkp.config             — Decay %, roles, limits
-auth.user              — { token, username, userId, discordLinked, ... } or null
-auth.bnetCharacters[]  — WoW characters from Battle.net
-ui.dkpView             — 'overview' | 'award' | 'spend' | 'decay' | 'settings'
-ui.dkpPlayerDetail     — player name when in detail view, null otherwise
-ui.dkpSortCol/Dir      — Table sort state
-ui.form                — Form field state { name, cls, specs, roles, avail, notes }
-ui.sidebarExpanded     — Sidebar collapse state
+src/
+  main.ts                  # App entry point
+  App.vue                  # Root layout (sidebar + main + bottom nav)
+  assets/main.css          # Tailwind CSS + WoW design tokens
+  components/
+    layout/                # TheSidebar, TheBottomNav, TheMoreSheet, TheHeader, TheAuthBar
+    shared/                # ConfirmModal, ClassChipSelector, SpecChipSelector, AvailabilityGrid, etc.
+    ui/                    # shadcn-vue base components (Button, Card, Dialog, etc.)
+    roster/                # RoleSummaryCards, EntryCard
+    raids/                 # RaidCard, RaidForm, SignupModal
+    dkp/                   # DkpStandings, DkpAwardForm, DkpSpendForm, DkpDecayForm, DkpSettings, etc.
+    kara/                  # KaraPool, KaraGroup, KaraPlayer
+    admin/                 # AdminOverview, AdminEntries, AdminManage
+  composables/             # useToast, useFormSubmit, useBnetCharPicker, useHeatmapData, useAnalyticsData, useRaidSignup, useKaraDragDrop, useKaraAutoSuggest, useKaraPersistence
+  lib/
+    api.ts                 # Typed fetch wrapper (get/post/del with Bearer token)
+    constants.ts           # CLS, CLASS_SPECS, ROLES, DAYS, SLOTS, TBC_RAIDS (typed)
+    utils.ts               # cn(), h(), cc(), specsToRoles(), collapseRanges(), linkItems(), formatDate(), timeAgo()
+  router/index.ts          # vue-router hash-mode routes
+  stores/
+    auth.ts                # Auth store (session, OAuth, Discord)
+    entries.ts             # Entries store (CRUD)
+    raids.ts               # Raids store (CRUD, signups)
+    dkp.ts                 # DKP store (balances, transactions, config, actions)
+    ui.ts                  # UI store (sidebar, form state, sort state)
+  types/index.ts           # TypeScript interfaces (Entry, Raid, DkpBalance, etc.)
+  views/                   # 11 view components (lazy-loaded by router)
 ```
 
-### Navigation
+### Pinia Stores
 
-- **Desktop (≥768px):** Persistent sidebar with all nav items + auth bar
-- **Mobile (<768px):** Sidebar hidden (`display: none`), bottom nav with 5 items: Dashboard, Eintragen, Raids, DKP, Mehr. "Mehr" opens a bottom sheet with remaining views.
-- Hash routes: `#/dashboard`, `#/form`, `#/raids`, `#/raids/:id`, `#/roster`, `#/heatmap`, `#/analytics`, `#/kara`, `#/dkp`, `#/dkp/player/:name`, `#/admin`
-- Default route: `#/dashboard`
+- **auth** — `user`, `bnetCharacters`, `isLoggedIn`, `isAdmin`. Actions: `validate()`, `bnetLogin()`, `logout()`, `discordLink()`
+- **entries** — `entries[]`, `loading`. Actions: `load()`, `save()`, `remove()`
+- **raids** — `raids[]`, `loading`. Actions: `load()`, `save()`, `remove()`
+- **dkp** — `balances[]`, `transactions[]`, `config`. Actions: `load()`, `award()`, `spend()`, `decay()`, `undo()`, `editTransaction()`, `deleteTransaction()`, `adjustBalance()`, `saveConfig()`, `manageRoles()`
+- **ui** — `dkpView`, `dkpPlayerDetail`, `dkpSortCol/Dir`, `dkpSearchQuery`, `formState`
 
-### CSS Architecture (`public/styles/`)
+### Routes (Hash Mode)
 
-Layered CSS loaded via `<link>` tags in `index.html`:
-- **tokens.css** — Design tokens: color primitives, WoW class colors, spacing scale, fluid typography (`clamp()`), role colors (Tank/Healer/DPS)
-- **reset.css** — Box-sizing, margin reset
-- **base.css** — Dark gradient body, Cinzel/Nunito Sans fonts, focus styles, scrollbar
-- **layout.css** — Grid shell (sidebar + main + bottom nav), responsive breakpoints
-- **components.css** — Buttons, cards, chips, modals, tables, forms, progress bars
-- **views/*.css** — Per-view styles, lazy-loaded by router on first visit
+`#/dashboard`, `#/form`, `#/roster`, `#/heatmap`, `#/analytics`, `#/raids`, `#/raids/:id`, `#/kara`, `#/dkp`, `#/dkp/player/:name`, `#/admin`
+
+Default: `#/dashboard`
+
+### Responsive Layout
+
+- **Desktop (≥768px):** Persistent sidebar (240px) + main content area
+- **Mobile (<768px):** Sidebar hidden, bottom nav with 5 items: Dashboard, Eintragen, Raids, DKP, Mehr
 
 ## Backend (Netlify Functions)
 
-Backend is **untouched** by the UX rebuild. All API contracts remain the same.
+Backend is **untouched** by the Vue migration. All API contracts remain the same.
 
 - `netlify/functions/entries.mjs` — `GET/POST/DELETE /api/entries`
 - `netlify/functions/auth.mjs` — `POST /api/auth` (validate, bnet-login, discord-link/unlink, logout)
@@ -137,34 +148,32 @@ Valid classes: Druide, Hexenmeister, Jäger, Krieger, Magier, Paladin, Priester,
 
 Battle.net OAuth 2.0 SSO. Reading is public; mutations require login.
 
-**Frontend auth state:** Stored in `auth.user` state path and persisted to `localStorage["raid-auth"]`. Validated on page load via `/api/auth { action: "validate" }`.
+**Frontend auth state:** Stored in auth Pinia store and persisted to `localStorage["raid-auth"]`. Validated on page load via `/api/auth { action: "validate" }`.
 
 **Ownership:** Users edit/delete only their own entries (`entry.userId === user.userId`). Legacy entries without `userId` are editable by any logged-in user. Admins can edit any entry.
 
 **DKP roles:** Admin and officer roles are stored in `dkp.config.roles` (map of username → "admin"/"officer"). Matched by BattleTag prefix (e.g. "goodfell0w" matches "goodfell0w#12345").
 
-## Key Selectors
+## Key Selectors (Preserved for E2E Tests)
 
-- **Views:** `#v-form`, `#v-raids`, `#v-roster`, `#v-heatmap`, `#v-analytics`, `#v-kara`, `#v-dkp`, `#v-admin` (only active view is in DOM)
-- **Navigation:** `.nav-item.tab` (sidebar), `.bottom-nav-item.tab` (bottom nav), `.more-sheet-item` (more sheet). Active tab has `.on` class.
-- **Form:** `#f-name`, `.chip` (class), `.rchip` (spec), `#f-submit`
-- **Roster:** `.entry`, `.e-name`, `.e-class`, `[data-edit]`, `[data-del]`
-- **Heatmap:** `.htable`, `.hcell`, `.ht-btn`
-- **Analytics:** `.bar-row`, `.bar-track`, `.bar-fill`, `.role-an-item`
-- **DKP:** `.dkp-standings`, `.dkp-bal`, `.dkp-pchip`, `.dkp-detail-bal`, `.dkp-detail-stat`, `[data-dkp-sort]`, `[data-dkp-player]`
-- **Modal:** `.modal-bg` (dialog element), `.modal-cancel`, `.modal-confirm`
-- **Toast:** `#toast`, `#toast.show` (visible)
+- **Views:** `#v-form`, `#v-raids`, `#v-roster`, `#v-heatmap`, `#v-analytics`, `#v-kara`, `#v-dkp`, `#v-admin` (only active view in DOM — Vue router mounts one at a time)
+- **Navigation:** `.tab` (nav items), `.tab.on` (active)
+- **Form:** `#f-name`, `.chip`/`.chip.active`, `.rchip`/`.rchip.active`, `#f-submit`, `.tl-cell`/`.tl-cell.on`/`.tl-cell.tent`
+- **Roster:** `.entry`, `.e-name`, `.e-class`, `[data-edit]`, `[data-del]`, `.rcard`, `.sort-sel`, `.btn-export`
+- **Heatmap:** `.htable`, `.hcell`, `.ht-btn`, `#htooltip`
+- **Analytics:** `.bar-row`, `.bar-fill`, `.role-an-item`
+- **DKP:** `.dkp-standings`, `.dkp-bal`, `.dkp-pchip`, `[data-dkp-sort]`, `[data-dkp-player]`, `#dkp-search-input`, `.dkp-player-detail`, `.dkp-detail-name`, `.dkp-detail-bal`, `.dkp-undo`, `.dkp-tx`
+- **Modal:** `.modal-bg`, `.modal-cancel`, `.modal-confirm`
+- **Toast:** `#toast`, `#toast.show`
 - **Auth:** `#auth-bar`, `.btn-bnet`, `.btn-logout`, `.auth-user`, `.auth-hint`
 
 ## Key Conventions
 
 - All UI text in German
-- XSS protection via `h()` for all user-supplied data in HTML
+- Vue template auto-escaping handles XSS; `h()` utility for manual HTML construction
 - Dark WoW-themed UI with gold accents; class/role colors follow WoW conventions
-- Mobile breakpoint: `max-width: 767px` (layout.css), `max-width: 640px` (components.css)
-- Views re-render entirely on state change (no DOM diffing)
-- Event listeners re-attached after each render
-- `loadData()` in app.js is called after every mutation to refresh state from API
-- Modal uses native `<dialog>` element. `onConfirm` runs before `close()` — form values must be read synchronously before any `await`
+- Mobile breakpoint: `max-width: 767px`
+- Vue components use `<script setup lang="ts">` with Composition API
+- Stores reload data after mutations (e.g., `await load()` after `save()`)
 
 **Required env vars (backend):** `BNET_CLIENT_ID`, `BNET_CLIENT_SECRET`, `TOKEN_ENCRYPTION_KEY`, `DISCORD_BOT_TOKEN`, `DISCORD_WEBHOOK_URL`, `DISCORD_CHANNEL_ID`, `DISCORD_GUILD_ID`, `DISCORD_PUBLIC_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`
