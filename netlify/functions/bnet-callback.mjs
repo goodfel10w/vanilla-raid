@@ -161,11 +161,11 @@ export default async (req) => {
       expiresAt,
     });
 
-    // Redirect back to app with session token in URL fragment (#)
-    // Fragment is NOT sent to the server on subsequent requests, not logged in access logs,
-    // and not included in Referer headers — unlike query parameters (?).
+    // Redirect back to app with session token as query parameter.
+    // The frontend reads it from window.location.search and immediately strips it.
+    // Using a hash fragment would conflict with vue-router's hash-mode routing.
     return Response.redirect(
-      `${origin}/#bnet_token=${encodeURIComponent(sessionToken)}`,
+      `${origin}/?bnet_token=${encodeURIComponent(sessionToken)}`,
       302
     );
   } catch (err) {
