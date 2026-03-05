@@ -21,8 +21,8 @@ async function doPurgeUsers() {
   try {
     await api.post('/api/admin', { action: 'purge-users' })
     toast('Accounts zurueckgesetzt')
-  } catch (e: any) {
-    toast('Fehler: ' + e.message)
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
   purging.value = false
   showPurgeUsersModal.value = false
@@ -36,8 +36,8 @@ async function doPurgeEntries() {
       await entriesStore.remove(e.id)
     }
     toast('Alle Raider entfernt')
-  } catch (e: any) {
-    toast('Fehler: ' + e.message)
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
   purging.value = false
   showPurgeEntriesModal.value = false

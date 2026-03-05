@@ -4,6 +4,10 @@ import type { RoleName } from '@/lib/constants'
 import type { Entry } from '@/types'
 import { hourQuarters, cc } from '@/lib/utils'
 
+/** Check availability value, supporting legacy boolean `true` from old data */
+function isAvail(v: unknown): boolean { return v === 'yes' || v === true || v === 'tentative' }
+function isYes(v: unknown): boolean { return v === 'yes' || v === true }
+
 export type HeatMode = '1h' | '3h' | '4h'
 
 export interface HeatDatum {
@@ -39,9 +43,9 @@ export function useHeatmapData(entriesRef: () => Entry[]) {
       let yes = 0, tent = 0
       entries.forEach(e => {
         const vals = qs.map(q => e.availability?.[q])
-        const allAvail = vals.every(v => v === 'yes' || v === true as any || v === 'tentative')
+        const allAvail = vals.every(v => isAvail(v))
         if (!allAvail) return
-        if (vals.every(v => v === 'yes' || v === true as any)) yes++; else tent++
+        if (vals.every(v => isYes(v))) yes++; else tent++
       })
       hd[k] = { yes, tent, total: yes + tent }
     }))
@@ -52,7 +56,7 @@ export function useHeatmapData(entriesRef: () => Entry[]) {
     const entries = entriesRef()
     const qs = hourQuarters(hl).map(q => d + '_' + q)
     return entries.filter(e => qs.every(q => e.availability?.[q])).map(e => {
-      const allYes = qs.every(q => { const v = e.availability[q]; return v === 'yes' || v === true as any })
+      const allYes = qs.every(q => { const v = e.availability[q]; return isYes(v) })
       return { ...e, _availType: allYes ? 'yes' : 'tentative' } as PlayerWithAvailType
     })
   }
@@ -105,8 +109,8 @@ export function useHeatmapData(entriesRef: () => Entry[]) {
         let yes = 0, tent = 0
         entries.forEach(e => {
           const vals = qs.map(q => e.availability?.[q])
-          if (!vals.every(v => v === 'yes' || v === true as any || v === 'tentative')) return
-          if (vals.every(v => v === 'yes' || v === true as any)) yes++; else tent++
+          if (!vals.every(v => isAvail(v))) return
+          if (vals.every(v => isYes(v))) yes++; else tent++
         })
         hd[k] = { yes, tent, total: yes + tent }
       }
@@ -119,7 +123,7 @@ export function useHeatmapData(entriesRef: () => Entry[]) {
     const { startH, endH } = _parseWindowLabel(label)
     const qs = _buildWindowSlots(d, startH, endH)
     return entries.filter(e => qs.every(q => e.availability?.[q])).map(e => {
-      const allYes = qs.every(q => { const v = e.availability[q]; return v === 'yes' || v === true as any })
+      const allYes = qs.every(q => { const v = e.availability[q]; return isYes(v) })
       return { ...e, _availType: allYes ? 'yes' : 'tentative' } as PlayerWithAvailType
     })
   }
@@ -136,8 +140,8 @@ export function useHeatmapData(entriesRef: () => Entry[]) {
         let yes = 0, tent = 0
         entries.forEach(e => {
           const vals = qs.map(q => e.availability?.[q])
-          if (!vals.every(v => v === 'yes' || v === true as any || v === 'tentative')) return
-          if (vals.every(v => v === 'yes' || v === true as any)) yes++; else tent++
+          if (!vals.every(v => isAvail(v))) return
+          if (vals.every(v => isYes(v))) yes++; else tent++
         })
         hd[k] = { yes, tent, total: yes + tent }
       }
@@ -150,7 +154,7 @@ export function useHeatmapData(entriesRef: () => Entry[]) {
     const { startH, endH } = _parseWindowLabel(label)
     const qs = _buildWindowSlots(d, startH, endH)
     return entries.filter(e => qs.every(q => e.availability?.[q])).map(e => {
-      const allYes = qs.every(q => { const v = e.availability[q]; return v === 'yes' || v === true as any })
+      const allYes = qs.every(q => { const v = e.availability[q]; return isYes(v) })
       return { ...e, _availType: allYes ? 'yes' : 'tentative' } as PlayerWithAvailType
     })
   }

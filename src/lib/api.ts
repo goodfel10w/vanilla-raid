@@ -24,7 +24,7 @@ class ApiClient {
     return res.json()
   }
 
-  async post<T = any>(url: string, data?: any): Promise<T> {
+  async post<T = any>(url: string, data?: unknown): Promise<T> {
     const res = await fetch(url, {
       method: 'POST',
       headers: {

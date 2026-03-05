@@ -41,8 +41,8 @@ async function doDecay() {
     toast(`${decayPercent.value}% Verfall angewendet`)
     ui.dkpView = 'overview'
     showConfirm.value = false
-  } catch (e: any) {
-    toast('Fehler: ' + e.message)
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   } finally {
     submitting.value = false
   }

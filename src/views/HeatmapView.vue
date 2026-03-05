@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useEntriesStore } from '@/stores/entries'
 import { WEEKDAYS, WEEKEND, DAY_SHORT, ROLE_ICONS, ROLE_COLORS } from '@/lib/constants'
 import { cc, h } from '@/lib/utils'

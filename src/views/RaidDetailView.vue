@@ -133,8 +133,8 @@ async function toggleLock() {
       await raidsStore.lock(raidId.value)
       toast('Raid gesperrt')
     }
-  } catch (e: any) {
-    toast('Fehler: ' + (e.message || e))
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
   showLockConfirm.value = false
 }
@@ -144,8 +144,8 @@ async function deleteRaid() {
     await raidsStore.remove(raidId.value)
     toast('Raid geloescht')
     router.push('/raids')
-  } catch (e: any) {
-    toast('Fehler: ' + (e.message || e))
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
   showDeleteConfirm.value = false
 }
@@ -155,8 +155,8 @@ async function postDiscord() {
   try {
     await raidsStore.postDiscord(raidId.value)
     toast('In Discord gepostet')
-  } catch (e: any) {
-    toast('Discord: ' + (e.message || e))
+  } catch (e: unknown) {
+    toast('Discord: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   } finally {
     discordPosting.value = false
   }
@@ -166,35 +166,35 @@ async function onConfirmPlayer(targetUserId: string) {
   try {
     await raidsStore.confirmPlayer(raidId.value, targetUserId)
     toast('Spieler bestaetigt')
-  } catch (e: any) { toast('Fehler: ' + (e.message || e)) }
+  } catch (e: unknown) { toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler')) }
 }
 
 async function onUnconfirmPlayer(targetUserId: string) {
   try {
     await raidsStore.unconfirmPlayer(raidId.value, targetUserId)
     toast('Bestaetigung zurueckgenommen')
-  } catch (e: any) { toast('Fehler: ' + (e.message || e)) }
+  } catch (e: unknown) { toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler')) }
 }
 
 async function onBenchPlayer(targetUserId: string) {
   try {
     await raidsStore.benchPlayer(raidId.value, targetUserId)
     toast('Spieler gebankt')
-  } catch (e: any) { toast('Fehler: ' + (e.message || e)) }
+  } catch (e: unknown) { toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler')) }
 }
 
 async function onRemovePlayer(targetUserId: string) {
   try {
     await raidsStore.removePlayer(raidId.value, targetUserId)
     toast('Spieler entfernt')
-  } catch (e: any) { toast('Fehler: ' + (e.message || e)) }
+  } catch (e: unknown) { toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler')) }
 }
 
 async function onAssignSpec(targetUserId: string, spec: string) {
   try {
     await raidsStore.assignSpec(raidId.value, targetUserId, spec || null)
     toast(spec ? 'Spec zugewiesen: ' + spec : 'Zuweisung entfernt')
-  } catch (e: any) { toast('Fehler: ' + (e.message || e)) }
+  } catch (e: unknown) { toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler')) }
 }
 
 function onEditSaved() {

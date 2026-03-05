@@ -53,7 +53,7 @@ const reasonHtml = computed(() => {
   return ''
 })
 
-const edited = computed(() => !!(props.tx as any).editedAt)
+const edited = computed(() => !!('editedAt' in props.tx && props.tx.editedAt))
 </script>
 
 <template>
@@ -65,8 +65,8 @@ const edited = computed(() => !!(props.tx as any).editedAt)
     <span class="dkp-tx-amount" :class="amtCls">{{ amtStr }}</span>
     <span class="dkp-tx-meta">{{ tx.createdBy || '' }} &middot; {{ dateStr }}</span>
     <span v-if="showActions" class="dkp-tx-actions">
-      <button class="dkp-tx-btn" @click.stop="emit('edit', tx.id)">&#x270E;</button>
-      <button class="dkp-tx-btn dkp-tx-del" @click.stop="emit('delete', tx.id)">&#x2715;</button>
+      <button class="dkp-tx-btn" aria-label="Bearbeiten" @click.stop="emit('edit', tx.id)">&#x270E;</button>
+      <button class="dkp-tx-btn dkp-tx-del" aria-label="Löschen" @click.stop="emit('delete', tx.id)">&#x2715;</button>
     </span>
   </div>
 </template>

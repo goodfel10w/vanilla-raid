@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useEntriesStore } from '@/stores/entries'
 import { useAuthStore } from '@/stores/auth'
 import { CLS, ROLES, DAYS, DAY_SHORT } from '@/lib/constants'
-import { collapseRanges } from '@/lib/utils'
+import { collapseRanges, csvVal } from '@/lib/utils'
 import { useToast } from '@/composables/useToast'
 import RoleSummaryCards from '@/components/roster/RoleSummaryCards.vue'
 import EntryCard from '@/components/roster/EntryCard.vue'
@@ -69,12 +69,6 @@ async function confirmDelete() {
     toast('Fehler beim L\u00f6schen')
   }
   deleteId.value = null
-}
-
-function csvVal(str: string): string {
-  str = String(str)
-  if (str.includes('"') || str.includes(',') || str.includes('\n')) return '"' + str.replace(/"/g, '""') + '"'
-  return str
 }
 
 function exportCSV() {

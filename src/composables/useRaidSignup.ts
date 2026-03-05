@@ -129,8 +129,8 @@ export function useRaidSignup(raidId: () => string) {
         selectedStatus.value === 'tentative' ? 'Vielleicht' : 'Abgesagt'
       toast(label)
       showForm.value = false
-    } catch (e: any) {
-      toast('Fehler: ' + (e.message || e))
+    } catch (e: unknown) {
+      toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
     } finally {
       submitting.value = false
     }
@@ -141,8 +141,8 @@ export function useRaidSignup(raidId: () => string) {
     try {
       await raidsStore.unsignup(raidId())
       toast('Abgemeldet')
-    } catch (e: any) {
-      toast('Fehler: ' + (e.message || e))
+    } catch (e: unknown) {
+      toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
     } finally {
       submitting.value = false
     }

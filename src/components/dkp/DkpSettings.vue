@@ -47,8 +47,8 @@ async function saveConfig() {
     configSaved.value = true
     setTimeout(() => { configSaved.value = false }, 2000)
     toast('Einstellungen gespeichert')
-  } catch (e: any) {
-    toast('Fehler: ' + e.message)
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
 }
 
@@ -59,8 +59,8 @@ async function addRole() {
     await dkp.manageRoles('add', username, roleAddRole.value)
     toast(`${username} als ${roleAddRole.value === 'admin' ? 'Admin' : 'Offizier'} hinzugefügt`)
     roleAddUser.value = ''
-  } catch (e: any) {
-    toast('Fehler: ' + e.message)
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
 }
 
@@ -69,8 +69,8 @@ async function changeRole(username: string, currentRole: string) {
   try {
     await dkp.manageRoles('add', username, newRole as 'admin' | 'officer')
     toast(`${username} ist jetzt ${newRole === 'admin' ? 'Admin' : 'Offizier'}`)
-  } catch (e: any) {
-    toast('Fehler: ' + e.message)
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
 }
 
@@ -84,8 +84,8 @@ async function doRemoveRole() {
     await dkp.manageRoles('remove', removeUsername.value, 'officer')
     toast(`${removeUsername.value} entfernt`)
     showRemoveModal.value = false
-  } catch (e: any) {
-    toast('Fehler: ' + e.message)
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
 }
 

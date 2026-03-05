@@ -7,6 +7,7 @@ import TheSidebar from '@/components/layout/TheSidebar.vue'
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
+    { path: '/', redirect: '/dashboard' },
     { path: '/dashboard', component: { template: '<div>Dashboard</div>' } },
     { path: '/form', component: { template: '<div>Form</div>' } },
     { path: '/raids', component: { template: '<div>Raids</div>' } },

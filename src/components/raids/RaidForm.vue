@@ -74,8 +74,8 @@ async function submit() {
     } as Partial<Raid>)
     toast(isEdit.value ? 'Raid aktualisiert' : 'Raid erstellt')
     emit('saved')
-  } catch (e: any) {
-    toast('Fehler: ' + (e.message || e))
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   } finally {
     submitting.value = false
   }

@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useDkpStore } from '@/stores/dkp'
-import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import { cc, linkItems } from '@/lib/utils'
 import { CLS } from '@/lib/constants'
 import { useToast } from '@/composables/useToast'
+import { useDkpRole } from '@/composables/useDkpRole'
 import { api } from '@/lib/api'
+import type { DkpTransaction } from '@/types'
 import ConfirmModal from '@/components/shared/ConfirmModal.vue'
 import DkpTransactionRow from './DkpTransactionRow.vue'
 
@@ -19,19 +20,12 @@ const emit = defineEmits<{
 }>()
 
 const dkp = useDkpStore()
-const auth = useAuthStore()
 const ui = useUiStore()
 const { toast } = useToast()
+const { isDkpAdmin: isAdmin } = useDkpRole()
 
-const playerTx = ref<any[]>([])
+const playerTx = ref<DkpTransaction[]>([])
 const loadingTx = ref(false)
-
-const isAdmin = computed(() => {
-  if (!auth.user) return false
-  const uname = auth.user.username?.toLowerCase().split('#')[0]
-  const roles = dkp.config.roles || {}
-  return roles[uname] === 'admin' || auth.isAdmin
-})
 
 const bal = computed(() => dkp.balances.find(b => b.playerName === props.playerName))
 const playerColor = computed(() => cc(bal.value?.className || ''))
@@ -40,21 +34,21 @@ const balCls = computed(() => {
   return bal.value.balance > 0 ? 'dkp-pos' : bal.value.balance < 0 ? 'dkp-neg' : 'dkp-zero'
 })
 
-const earned = computed(() => playerTx.value.filter(t => t.type === 'earn').reduce((s: number, t: any) => s + t.amount, 0))
-const spent = computed(() => playerTx.value.filter(t => t.type === 'spend').reduce((s: number, t: any) => s + Math.abs(t.amount), 0))
-const decayed = computed(() => playerTx.value.filter(t => t.type === 'decay').reduce((s: number, t: any) => s + Math.abs(t.amount), 0))
-const adjusted = computed(() => playerTx.value.filter(t => t.type === 'adjust').reduce((s: number, t: any) => s + t.amount, 0))
+const earned = computed(() => playerTx.value.filter(t => t.type === 'earn').reduce((s, t) => s + t.amount, 0))
+const spent = computed(() => playerTx.value.filter(t => t.type === 'spend').reduce((s, t) => s + Math.abs(t.amount), 0))
+const decayed = computed(() => playerTx.value.filter(t => t.type === 'decay').reduce((s, t) => s + Math.abs(t.amount), 0))
+const adjusted = computed(() => playerTx.value.filter(t => t.type === 'adjust').reduce((s, t) => s + t.amount, 0))
 
 const filteredPlayerTx = computed(() => {
   const f = ui.dkpTxFilter
   if (f === 'all') return playerTx.value
-  return playerTx.value.filter((t: any) => t.type === f)
+  return playerTx.value.filter(t => t.type === f)
 })
 
 async function loadPlayerTx() {
   loadingTx.value = true
   try {
-    const data = await api.get<{ transactions: any[] }>(`/api/dkp?player=${encodeURIComponent(props.playerName)}`)
+    const data = await api.get<{ transactions: DkpTransaction[] }>(`/api/dkp?player=${encodeURIComponent(props.playerName)}`)
     playerTx.value = data.transactions || []
   } catch {
     playerTx.value = []
@@ -81,7 +75,7 @@ const showDeleteModal = ref(false)
 const deleteTransactions = ref(true)
 
 const showEditTxModal = ref(false)
-const editingTx = ref<any>(null)
+const editingTx = ref<DkpTransaction | null>(null)
 const editTxAmount = ref(0)
 const editTxReason = ref('')
 
@@ -100,8 +94,8 @@ async function doAdjust() {
     toast(`DKP von ${props.playerName} auf ${adjBalance.value} gesetzt`)
     showAdjustModal.value = false
     await loadPlayerTx()
-  } catch (e: any) {
-    toast('Fehler: ' + e.message)
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
 }
 
@@ -118,8 +112,8 @@ async function doEditPlayer() {
     toast('Spieler aktualisiert')
     showEditModal.value = false
     await loadPlayerTx()
-  } catch (e: any) {
-    toast('Fehler: ' + e.message)
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
 }
 
@@ -134,13 +128,13 @@ async function doDeletePlayer() {
     toast(`${props.playerName} aus DKP entfernt`)
     showDeleteModal.value = false
     emit('close')
-  } catch (e: any) {
-    toast('Fehler: ' + e.message)
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
 }
 
 function openEditTx(txId: string) {
-  const tx = playerTx.value.find((t: any) => t.id === txId)
+  const tx = playerTx.value.find(t => t.id === txId)
   if (!tx) return
   editingTx.value = tx
   editTxAmount.value = Math.abs(tx.amount)
@@ -149,14 +143,14 @@ function openEditTx(txId: string) {
 }
 
 async function doEditTx() {
-  if (!editTxAmount.value || editTxAmount.value <= 0) { toast('Ungültiger Betrag'); return }
+  if (!editingTx.value || !editTxAmount.value || editTxAmount.value <= 0) { toast('Ungültiger Betrag'); return }
   try {
     await dkp.editTransaction(editingTx.value.id, editTxAmount.value, editTxReason.value)
     toast('Transaktion aktualisiert')
     showEditTxModal.value = false
     await loadPlayerTx()
-  } catch (e: any) {
-    toast('Fehler: ' + e.message)
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
 }
 
@@ -171,16 +165,15 @@ async function doDeleteTx() {
     toast('Transaktion gelöscht')
     showDeleteTxModal.value = false
     await loadPlayerTx()
-  } catch (e: any) {
-    toast('Fehler: ' + e.message)
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
 }
 
-const deletingTx = computed(() => {
-  const tx = playerTx.value.find((t: any) => t.id === deletingTxId.value) ||
-    dkp.transactions.find(t => t.id === deletingTxId.value)
-  return tx
-})
+const deletingTx = computed(() =>
+  playerTx.value.find(t => t.id === deletingTxId.value) ||
+  dkp.transactions.find(t => t.id === deletingTxId.value)
+)
 
 const deleteTxMessage = computed(() => {
   const tx = deletingTx.value
