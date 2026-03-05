@@ -8,13 +8,14 @@ import AdminManage from '@/components/admin/AdminManage.vue'
 const authStore = useAuthStore()
 const activeTab = ref<'overview' | 'entries' | 'manage'>('overview')
 
-const isAdmin = computed(() => authStore.isAdmin)
+const hasAccess = computed(() => authStore.hasAdminAccess)
+const isSiteAdmin = computed(() => authStore.isAdmin)
 </script>
 
 <template>
   <div id="v-admin">
-    <div v-if="!isAdmin" class="adm-no-access">
-      Kein Zugriff &mdash; nur fuer Admins sichtbar.
+    <div v-if="!hasAccess" class="adm-no-access">
+      Kein Zugriff &mdash; nur fuer Admins und Offiziere sichtbar.
     </div>
 
     <template v-else>
@@ -30,6 +31,7 @@ const isAdmin = computed(() => authStore.isAdmin)
           @click="activeTab = 'entries'"
         >Eintraege</button>
         <button
+          v-if="isSiteAdmin"
           class="adm-tab"
           :class="{ active: activeTab === 'manage' }"
           @click="activeTab = 'manage'"

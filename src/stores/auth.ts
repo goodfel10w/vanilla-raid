@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { AuthUser, BnetCharacter } from '@/types'
+import { useDkpStore } from '@/stores/dkp'
 
 const STORAGE_KEY = 'raid-auth'
 
@@ -10,8 +11,24 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isLoggedIn = computed(() => !!user.value?.token)
   const isAdmin = computed(() => !!user.value?.isAdmin || !!user.value?.isSiteAdmin)
+
+  const hasAdminAccess = computed(() => {
+    if (isAdmin.value) return true
+    if (!user.value) return false
+    const dkp = useDkpStore()
+    const uname = user.value.username?.toLowerCase().split('#')[0]
+    if (!uname) return false
+    const roles = dkp.config.roles || {}
+    return roles[uname] === 'admin' || roles[uname] === 'officer'
+  })
+
   const dkpRole = computed(() => {
-    return null as string | null
+    if (!user.value) return null
+    const dkp = useDkpStore()
+    const uname = user.value.username?.toLowerCase().split('#')[0]
+    if (!uname) return null
+    const roles = dkp.config.roles || {}
+    return roles[uname] || null
   })
 
   function clearSession() {
@@ -145,6 +162,7 @@ export const useAuthStore = defineStore('auth', () => {
     bnetCharacters,
     isLoggedIn,
     isAdmin,
+    hasAdminAccess,
     dkpRole,
     clearSession,
     validate,

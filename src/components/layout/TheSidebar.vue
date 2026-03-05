@@ -51,7 +51,7 @@ function isActive(navRoute: string): boolean {
 
       <!-- Admin (conditional) -->
       <router-link
-        v-if="auth.isAdmin"
+        v-if="auth.hasAdminAccess"
         to="/admin"
         class="tab nav-item"
         :class="{ on: isActive('/admin') }"

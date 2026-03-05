@@ -37,7 +37,7 @@ function navigate() {
         <span>{{ item.label }}</span>
       </router-link>
       <router-link
-        v-if="auth.isAdmin"
+        v-if="auth.hasAdminAccess"
         to="/admin"
         class="more-sheet-item tab"
         :class="{ on: route.path === '/admin' }"
