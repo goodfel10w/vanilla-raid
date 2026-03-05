@@ -36,14 +36,15 @@ export function useFormSubmit() {
       toast(editId ? 'Eintrag aktualisiert \u2713' : 'Eintrag gespeichert \u2713')
       router.push('/roster')
       return true
-    } catch (e: any) {
-      if (e.message === 'Nicht angemeldet' || e.message === 'Sitzung ungültig') {
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : ''
+      if (msg === 'Nicht angemeldet' || msg === 'Sitzung ungültig') {
         auth.clearSession()
         toast('Sitzung abgelaufen \u2014 bitte erneut anmelden')
-      } else if (e.message === 'Keine Berechtigung') {
+      } else if (msg === 'Keine Berechtigung') {
         toast('Du kannst nur eigene Einträge bearbeiten')
       } else {
-        toast('Fehler: ' + e.message)
+        toast('Fehler: ' + (msg || 'Unbekannter Fehler'))
       }
       return false
     }

@@ -2,22 +2,15 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '@/stores/ui'
-import { useAuthStore } from '@/stores/auth'
 import { useDkpStore } from '@/stores/dkp'
-import { cc } from '@/lib/utils'
+import { cc, csvVal } from '@/lib/utils'
+import { useDkpRole } from '@/composables/useDkpRole'
 import DkpTransactionRow from './DkpTransactionRow.vue'
 
 const router = useRouter()
 const ui = useUiStore()
-const auth = useAuthStore()
 const dkp = useDkpStore()
-
-const isAdmin = computed(() => {
-  if (!auth.user) return false
-  const uname = auth.user.username?.toLowerCase().split('#')[0]
-  const roles = dkp.config.roles || {}
-  return roles[uname] === 'admin' || auth.isAdmin
-})
+const { isDkpAdmin: isAdmin } = useDkpRole()
 
 const sorted = computed(() => {
   const list = [...dkp.balances]
@@ -66,11 +59,6 @@ function showPlayer(name: string) {
 }
 
 function exportCsv() {
-  function csvVal(str: string | number) {
-    const s = String(str)
-    if (s.includes('"') || s.includes(',') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"'
-    return s
-  }
   let csv = 'Rang,Spieler,Klasse,DKP,Zuletzt aktualisiert\n'
   sorted.value.forEach((b, i) => {
     const date = b.lastUpdated ? new Date(b.lastUpdated).toLocaleDateString('de-DE') : ''
@@ -114,6 +102,7 @@ const emit = defineEmits<{
 
     <!-- Search -->
     <div class="dkp-search">
+      <label for="dkp-search-input" class="sr-only">Spieler suchen</label>
       <input
         id="dkp-search-input"
         type="text"
@@ -373,5 +362,17 @@ const emit = defineEmits<{
   padding: 24px;
   color: var(--color-tx3);
   font-size: 13px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 </style>

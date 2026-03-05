@@ -20,8 +20,8 @@ async function doDelete() {
   try {
     await entriesStore.remove(deleteTarget.value.id)
     toast(`${name} geloescht`)
-  } catch (e: any) {
-    toast('Fehler: ' + e.message)
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
   deleteTarget.value = null
 }

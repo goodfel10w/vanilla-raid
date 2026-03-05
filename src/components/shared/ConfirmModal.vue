@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref, watch, nextTick } from 'vue'
+
 const props = withDefaults(defineProps<{
   open: boolean
   title: string
@@ -15,17 +17,33 @@ const emit = defineEmits<{
   confirm: []
   cancel: []
 }>()
+
+const cancelBtn = ref<HTMLButtonElement | null>(null)
+
+watch(() => props.open, (isOpen) => {
+  if (isOpen) {
+    nextTick(() => cancelBtn.value?.focus())
+  }
+})
 </script>
 
 <template>
   <Teleport to="body">
-    <div v-if="open" class="modal-bg" @click.self="emit('cancel')">
+    <div
+      v-if="open"
+      class="modal-bg"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="title"
+      @click.self="emit('cancel')"
+      @keydown.escape="emit('cancel')"
+    >
       <div class="modal">
         <div class="modal-title">{{ title }}</div>
         <div v-if="message" class="modal-msg" v-html="message"></div>
         <slot />
         <div class="modal-btns">
-          <button class="modal-cancel" @click="emit('cancel')">{{ cancelLabel }}</button>
+          <button ref="cancelBtn" class="modal-cancel" @click="emit('cancel')">{{ cancelLabel }}</button>
           <button class="modal-confirm" @click="emit('confirm')">{{ confirmLabel }}</button>
         </div>
       </div>

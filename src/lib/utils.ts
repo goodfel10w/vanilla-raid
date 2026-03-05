@@ -102,6 +102,13 @@ export function linkItems(text: string): string {
   })
 }
 
+/** Escape a value for CSV output */
+export function csvVal(str: string | number): string {
+  const s = String(str)
+  if (s.includes('"') || s.includes(',') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"'
+  return s
+}
+
 /** Format ISO date to German format */
 export function formatDate(iso: string): string {
   if (!iso) return ''

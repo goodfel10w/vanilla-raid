@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useUiStore } from '@/stores/ui'
-import { useAuthStore } from '@/stores/auth'
 import { useDkpStore } from '@/stores/dkp'
 import { useToast } from '@/composables/useToast'
+import { useDkpRole } from '@/composables/useDkpRole'
 import { linkItems } from '@/lib/utils'
+import type { DkpTransaction } from '@/types'
 import DkpActionsBar from '@/components/dkp/DkpActionsBar.vue'
 import DkpStandings from '@/components/dkp/DkpStandings.vue'
 import DkpAwardForm from '@/components/dkp/DkpAwardForm.vue'
@@ -15,23 +16,9 @@ import ConfirmModal from '@/components/shared/ConfirmModal.vue'
 import { ref } from 'vue'
 
 const ui = useUiStore()
-const auth = useAuthStore()
 const dkp = useDkpStore()
 const { toast } = useToast()
-
-const isOfficer = computed(() => {
-  if (!auth.user) return false
-  const uname = auth.user.username?.toLowerCase().split('#')[0]
-  const roles = dkp.config.roles || {}
-  return roles[uname] === 'admin' || roles[uname] === 'officer' || auth.isAdmin
-})
-
-const isAdmin = computed(() => {
-  if (!auth.user) return false
-  const uname = auth.user.username?.toLowerCase().split('#')[0]
-  const roles = dkp.config.roles || {}
-  return roles[uname] === 'admin' || auth.isAdmin
-})
+const { isDkpAdmin: isAdmin, isDkpOfficer: isOfficer } = useDkpRole()
 
 // Undo modal
 const showUndoModal = ref(false)
@@ -55,14 +42,14 @@ async function doUndo() {
     await dkp.undo(lastTx.value.id)
     toast('Transaktion rückgängig gemacht')
     showUndoModal.value = false
-  } catch (e: any) {
-    toast('Fehler: ' + e.message)
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
 }
 
 // Edit/Delete transaction modals
 const showEditTxModal = ref(false)
-const editingTx = ref<any>(null)
+const editingTx = ref<DkpTransaction | null>(null)
 const editTxAmount = ref(0)
 const editTxReason = ref('')
 
@@ -79,13 +66,13 @@ function handleEditTx(txId: string) {
 }
 
 async function doEditTx() {
-  if (!editTxAmount.value || editTxAmount.value <= 0) { toast('Ungültiger Betrag'); return }
+  if (!editingTx.value || !editTxAmount.value || editTxAmount.value <= 0) { toast('Ungültiger Betrag'); return }
   try {
     await dkp.editTransaction(editingTx.value.id, editTxAmount.value, editTxReason.value)
     toast('Transaktion aktualisiert')
     showEditTxModal.value = false
-  } catch (e: any) {
-    toast('Fehler: ' + e.message)
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
 }
 
@@ -99,8 +86,8 @@ async function doDeleteTx() {
     await dkp.deleteTransaction(deletingTxId.value)
     toast('Transaktion gelöscht')
     showDeleteTxModal.value = false
-  } catch (e: any) {
-    toast('Fehler: ' + e.message)
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
 }
 

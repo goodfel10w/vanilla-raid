@@ -10,9 +10,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isLoggedIn = computed(() => !!user.value?.token)
   const isAdmin = computed(() => !!user.value?.isAdmin || !!user.value?.isSiteAdmin)
-  const dkpRole = computed(() => {
-    return null as string | null
-  })
 
   function clearSession() {
     user.value = null
@@ -75,6 +72,7 @@ export const useAuthStore = defineStore('auth', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'bnet-login' }),
     })
+    if (!res.ok) throw new Error('Login-Anfrage fehlgeschlagen')
     const j = await res.json()
     if (j.url) {
       window.location.href = j.url
@@ -106,6 +104,7 @@ export const useAuthStore = defineStore('auth', () => {
       },
       body: JSON.stringify({ action: 'discord-link' }),
     })
+    if (!res.ok) throw new Error('Discord-Link fehlgeschlagen')
     const j = await res.json()
     if (j.url) {
       window.location.href = j.url
@@ -113,14 +112,19 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function discordUnlink() {
-    await fetch('/api/auth', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(user.value?.token ? { Authorization: `Bearer ${user.value.token}` } : {}),
-      },
-      body: JSON.stringify({ action: 'discord-unlink' }),
-    })
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(user.value?.token ? { Authorization: `Bearer ${user.value.token}` } : {}),
+        },
+        body: JSON.stringify({ action: 'discord-unlink' }),
+      })
+      if (!res.ok) throw new Error('Discord-Unlink fehlgeschlagen')
+    } catch {
+      // Best-effort: update local state even if API fails
+    }
     if (user.value) {
       user.value = { ...user.value, discordLinked: false, discordUsername: undefined }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user.value))
@@ -145,7 +149,6 @@ export const useAuthStore = defineStore('auth', () => {
     bnetCharacters,
     isLoggedIn,
     isAdmin,
-    dkpRole,
     clearSession,
     validate,
     restoreSession,
