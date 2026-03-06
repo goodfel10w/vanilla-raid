@@ -6,20 +6,26 @@ export function useDkpRole() {
   const auth = useAuthStore()
   const dkp = useDkpStore()
 
-  const dkpUsername = computed(() =>
-    auth.user?.username?.toLowerCase().split('#')[0] ?? ''
-  )
+  function getRole(): string | null {
+    const username = auth.user?.username
+    if (!username) return null
+    const roles = dkp.config.roles || {}
+    const lower = username.toLowerCase()
+    if (roles[lower]) return roles[lower]
+    const prefix = lower.split('#')[0]
+    if (prefix !== lower && roles[prefix]) return roles[prefix]
+    return null
+  }
 
   const isDkpAdmin = computed(() => {
     if (!auth.user) return false
-    const roles = dkp.config.roles || {}
-    return roles[dkpUsername.value] === 'admin' || auth.isAdmin
+    return getRole() === 'admin' || auth.isAdmin
   })
 
   const isDkpOfficer = computed(() => {
     if (!auth.user) return false
-    const roles = dkp.config.roles || {}
-    return roles[dkpUsername.value] === 'admin' || roles[dkpUsername.value] === 'officer' || auth.isAdmin
+    const role = getRole()
+    return role === 'admin' || role === 'officer' || auth.isAdmin
   })
 
   return { isDkpAdmin, isDkpOfficer }
