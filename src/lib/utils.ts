@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { CLS, CLASS_SPECS, SLOTS, ROLES } from '@/lib/constants'
-import type { RoleName, AvailabilityMap } from '@/types'
+import type { RoleName, DayName, AvailabilityMap } from '@/types'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -114,6 +114,28 @@ export function formatDate(iso: string): string {
   if (!iso) return ''
   const d = new Date(iso)
   return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+const DE_DAYS: DayName[] = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
+
+/** Convert YYYY-MM-DD date string to German weekday name */
+export function getGermanWeekday(dateStr: string): DayName {
+  const d = new Date(dateStr + 'T12:00:00')
+  return DE_DAYS[d.getDay()]
+}
+
+/** Get the current WoW weekly reset window (Wednesday → Tuesday) */
+export function getWeeklyResetWindow(now?: Date): { start: Date; end: Date } {
+  const n = now ? new Date(now) : new Date()
+  const jsDay = n.getDay()
+  const daysSinceWed = (jsDay + 4) % 7
+  const start = new Date(n)
+  start.setDate(start.getDate() - daysSinceWed)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(start)
+  end.setDate(end.getDate() + 6)
+  end.setHours(23, 59, 59, 999)
+  return { start, end }
 }
 
 /** Relative time display */

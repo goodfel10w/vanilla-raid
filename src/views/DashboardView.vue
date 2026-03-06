@@ -1,10 +1,28 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { useEntriesStore } from '@/stores/entries'
+import { useRaidsStore } from '@/stores/raids'
+import { useDashboardData } from '@/composables/useDashboardData'
 import { CLS, ROLES, ROLE_COLORS, ROLE_ICONS } from '@/lib/constants'
 import type { RoleName } from '@/lib/constants'
+import MyRaidsCard from '@/components/dashboard/MyRaidsCard.vue'
+import NotificationsCard from '@/components/dashboard/NotificationsCard.vue'
+import SuggestedRaidsCard from '@/components/dashboard/SuggestedRaidsCard.vue'
 
+const authStore = useAuthStore()
 const entriesStore = useEntriesStore()
+const raidsStore = useRaidsStore()
+
+const { myRaidsThisWeek, notifications, suggestedRaids, updateSnapshot } = useDashboardData()
+
+onMounted(async () => {
+  const promises: Promise<void>[] = []
+  if (!entriesStore.entries.length) promises.push(entriesStore.load())
+  if (!raidsStore.raids.length) promises.push(raidsStore.load())
+  await Promise.all(promises)
+  if (authStore.isLoggedIn) updateSnapshot()
+})
 
 const entryCount = computed(() => entriesStore.entries.length)
 
@@ -60,6 +78,13 @@ function roleIcon(role: RoleName): string {
         DKP
       </router-link>
     </div>
+
+    <!-- Personalized sections for logged-in users -->
+    <template v-if="authStore.isLoggedIn">
+      <NotificationsCard v-if="notifications.length" :notifications="notifications" />
+      <MyRaidsCard :raids="myRaidsThisWeek" />
+      <SuggestedRaidsCard v-if="suggestedRaids.length" :raids="suggestedRaids" />
+    </template>
 
     <template v-if="entryCount > 0">
       <!-- Role Distribution -->
