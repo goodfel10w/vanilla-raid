@@ -5,26 +5,14 @@ import { useAuthStore } from '@/stores/auth'
 import { useDkpStore } from '@/stores/dkp'
 import { useEntriesStore } from '@/stores/entries'
 import { useRouter } from 'vue-router'
+import { useDkpRole } from '@/composables/useDkpRole'
 
 const ui = useUiStore()
 const auth = useAuthStore()
 const dkp = useDkpStore()
 const entries = useEntriesStore()
 const router = useRouter()
-
-const isOfficer = computed(() => {
-  if (!auth.user) return false
-  const uname = auth.user.username?.toLowerCase().split('#')[0]
-  const roles = dkp.config.roles || {}
-  return roles[uname] === 'admin' || roles[uname] === 'officer' || auth.isAdmin
-})
-
-const isAdmin = computed(() => {
-  if (!auth.user) return false
-  const uname = auth.user.username?.toLowerCase().split('#')[0]
-  const roles = dkp.config.roles || {}
-  return roles[uname] === 'admin' || auth.isAdmin
-})
+const { isDkpAdmin: isAdmin, isDkpOfficer: isOfficer } = useDkpRole()
 
 const myDkpPlayer = computed(() => {
   if (!auth.user) return null
