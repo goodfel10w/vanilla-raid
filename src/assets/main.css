@@ -12,8 +12,8 @@
   --color-border: rgba(255,255,255,0.06);
   --color-tx: #e0ddd4;
   --color-tx2: #8a8098;
-  --color-tx3: #6a6278;
-  --color-tx4: #5a5268;
+  --color-tx3: #8a8298;
+  --color-tx4: #7a7288;
   --color-tx5: #3a3548;
   --color-tank: #5b9bd5;
   --color-heal: #66bb6a;
@@ -44,7 +44,13 @@
   body {
     @apply text-tx font-body;
     min-height: 100vh;
+    color-scheme: dark;
     background: linear-gradient(170deg, var(--color-bg) 0%, var(--color-bg2) 40%, #1a1028 70%, #0d0b16 100%);
+  }
+
+  select option {
+    background: var(--color-bg2);
+    color: var(--color-tx);
   }
 
   *:focus-visible {

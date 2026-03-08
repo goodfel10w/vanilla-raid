@@ -139,7 +139,7 @@ onMounted(async () => {
   }
 
   .main-area {
-    padding: 20px 16px 80px 16px;
+    padding: 20px 16px calc(80px + env(safe-area-inset-bottom, 0px)) 16px;
   }
 }
 </style>
