@@ -106,6 +106,29 @@ describe('Constants', () => {
     expect(kara?.tier).toBe('T4')
   })
 
+  it('all TBC raids have boss lists', () => {
+    TBC_RAIDS.forEach(r => {
+      expect(r.bosses).toBeDefined()
+      expect(r.bosses!.length).toBeGreaterThan(0)
+    })
+  })
+
+  it('each boss has name and positive dkp value', () => {
+    TBC_RAIDS.forEach(r => {
+      r.bosses!.forEach(b => {
+        expect(b.name).toBeTruthy()
+        expect(b.dkp).toBeGreaterThan(0)
+      })
+    })
+  })
+
+  it('Gruuls Unterschlupf has Maulgar and Gruul', () => {
+    const gruul = TBC_RAIDS.find(r => r.name === 'Gruuls Unterschlupf')
+    const bossNames = gruul!.bosses!.map(b => b.name)
+    expect(bossNames).toContain('Maulgar')
+    expect(bossNames).toContain('Gruul')
+  })
+
   it('WOW_ICONS is a valid CDN URL', () => {
     expect(WOW_ICONS).toContain('cdn.jsdelivr.net')
   })

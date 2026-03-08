@@ -112,22 +112,131 @@ for (let hh = 12; hh < 24; hh++) {
   HOUR_LABELS.push(String(hh).padStart(2, '0'))
 }
 
+export interface TbcBoss {
+  name: string
+  dkp: number
+}
+
 export interface TbcRaid {
   name: string
   maxPlayers: number
   tier: string
+  bosses?: TbcBoss[]
 }
 
 export const TBC_RAIDS: TbcRaid[] = [
-  { name: 'Karazhan', maxPlayers: 10, tier: 'T4' },
-  { name: 'Gruuls Unterschlupf', maxPlayers: 25, tier: 'T4' },
-  { name: 'Magtheridons Kammer', maxPlayers: 25, tier: 'T4' },
-  { name: 'Höhle des Schlangenschreins', maxPlayers: 25, tier: 'T5' },
-  { name: 'Festung der Stürme', maxPlayers: 25, tier: 'T5' },
-  { name: 'Hyjalgipfel', maxPlayers: 25, tier: 'T6' },
-  { name: 'Schwarzer Tempel', maxPlayers: 25, tier: 'T6' },
-  { name: "Zul'Aman", maxPlayers: 10, tier: 'ZA' },
-  { name: 'Sonnenbrunnenplateau', maxPlayers: 25, tier: 'T6.5' },
+  {
+    name: 'Karazhan',
+    maxPlayers: 10,
+    tier: 'T4',
+    bosses: [
+      { name: 'Attumen', dkp: 2 },
+      { name: 'Moroes', dkp: 2 },
+      { name: 'Maiden', dkp: 2 },
+      { name: 'Opera', dkp: 2 },
+      { name: 'Curator', dkp: 3 },
+      { name: 'Schach', dkp: 2 },
+      { name: 'Aran', dkp: 3 },
+      { name: 'Netherspite', dkp: 3 },
+      { name: 'Nightbane', dkp: 3 },
+      { name: 'Prinz', dkp: 3 },
+    ],
+  },
+  {
+    name: 'Gruuls Unterschlupf',
+    maxPlayers: 25,
+    tier: 'T4',
+    bosses: [
+      { name: 'Maulgar', dkp: 3 },
+      { name: 'Gruul', dkp: 5 },
+    ],
+  },
+  {
+    name: 'Magtheridons Kammer',
+    maxPlayers: 25,
+    tier: 'T4',
+    bosses: [
+      { name: 'Magtheridon', dkp: 5 },
+    ],
+  },
+  {
+    name: 'Höhle des Schlangenschreins',
+    maxPlayers: 25,
+    tier: 'T5',
+    bosses: [
+      { name: 'Hydross', dkp: 5 },
+      { name: 'Lurker', dkp: 5 },
+      { name: 'Leotheras', dkp: 5 },
+      { name: 'Fathom-Lord', dkp: 5 },
+      { name: 'Tidewalker', dkp: 5 },
+      { name: 'Lady Vashj', dkp: 8 },
+    ],
+  },
+  {
+    name: 'Festung der Stürme',
+    maxPlayers: 25,
+    tier: 'T5',
+    bosses: [
+      { name: "Al'ar", dkp: 5 },
+      { name: 'Void Reaver', dkp: 5 },
+      { name: 'Solarian', dkp: 5 },
+      { name: "Kael'thas", dkp: 8 },
+    ],
+  },
+  {
+    name: 'Hyjalgipfel',
+    maxPlayers: 25,
+    tier: 'T6',
+    bosses: [
+      { name: 'Rage Winterchill', dkp: 5 },
+      { name: 'Anetheron', dkp: 5 },
+      { name: "Kaz'rogal", dkp: 5 },
+      { name: 'Azgalor', dkp: 5 },
+      { name: 'Archimonde', dkp: 8 },
+    ],
+  },
+  {
+    name: 'Schwarzer Tempel',
+    maxPlayers: 25,
+    tier: 'T6',
+    bosses: [
+      { name: "Naj'entus", dkp: 5 },
+      { name: 'Supremus', dkp: 5 },
+      { name: 'Akama', dkp: 5 },
+      { name: 'Teron Gorefiend', dkp: 5 },
+      { name: 'Gurtogg', dkp: 5 },
+      { name: 'Reliquary', dkp: 5 },
+      { name: 'Mother Shahraz', dkp: 5 },
+      { name: 'Council', dkp: 5 },
+      { name: 'Illidan', dkp: 10 },
+    ],
+  },
+  {
+    name: "Zul'Aman",
+    maxPlayers: 10,
+    tier: 'ZA',
+    bosses: [
+      { name: "Nalorakk", dkp: 3 },
+      { name: "Akil'zon", dkp: 3 },
+      { name: "Jan'alai", dkp: 3 },
+      { name: "Halazzi", dkp: 3 },
+      { name: "Hex Lord", dkp: 4 },
+      { name: "Zul'jin", dkp: 5 },
+    ],
+  },
+  {
+    name: 'Sonnenbrunnenplateau',
+    maxPlayers: 25,
+    tier: 'T6.5',
+    bosses: [
+      { name: 'Kalecgos', dkp: 5 },
+      { name: 'Brutallus', dkp: 8 },
+      { name: 'Felmyst', dkp: 8 },
+      { name: 'Eredar Twins', dkp: 8 },
+      { name: "M'uru", dkp: 10 },
+      { name: "Kil'jaeden", dkp: 10 },
+    ],
+  },
 ]
 
 // Raid-ready thresholds (25-man TBC)
