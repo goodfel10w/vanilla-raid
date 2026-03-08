@@ -12,6 +12,8 @@ import ClassIcon from '@/components/shared/ClassIcon.vue'
 import ConfirmModal from '@/components/shared/ConfirmModal.vue'
 import SignupModal from '@/components/raids/SignupModal.vue'
 import RaidForm from '@/components/raids/RaidForm.vue'
+import RaidCompletionForm from '@/components/raids/RaidCompletionForm.vue'
+import { useDkpRole } from '@/composables/useDkpRole'
 import type { Raid, RaidSignup as RaidSignupType } from '@/types'
 import type { RoleName } from '@/lib/constants'
 
@@ -54,6 +56,8 @@ const showDeleteConfirm = ref(false)
 const showLockConfirm = ref(false)
 const discordPosting = ref(false)
 const compOpen = ref(false)
+const showCompletion = ref(false)
+const { isDkpOfficer } = useDkpRole()
 
 const inst = computed(() =>
   TBC_RAIDS.find(i => i.name === raid.value?.instance) || { name: raid.value?.instance || '', tier: '?' }
@@ -387,7 +391,26 @@ function getMyStatusColor(): string {
             </button>
             <button class="btn-raid-del" @click="showDeleteConfirm = true">Loeschen</button>
           </template>
+          <button v-if="isDkpOfficer && activeSignups.length" class="btn-complete" @click="showCompletion = !showCompletion">
+            {{ showCompletion ? 'Abbrechen' : 'Raid abschliessen' }}
+          </button>
         </div>
+
+        <!-- Also show completion button for past raids -->
+        <div v-if="authStore.isLoggedIn && isRaidPast && isDkpOfficer && activeSignups.length && !showCompletion" class="raid-actions">
+          <button class="btn-complete" @click="showCompletion = true">Raid abschliessen</button>
+        </div>
+
+        <!-- Raid completion form -->
+        <RaidCompletionForm
+          v-if="showCompletion && raid"
+          :raid-instance="raid.instance"
+          :raid-date="raid.date"
+          :active-signups="activeSignups"
+          :benched-signups="benchedSignups"
+          @close="showCompletion = false"
+          @completed="showCompletion = false"
+        />
 
         <!-- Signup modal -->
         <SignupModal
@@ -650,6 +673,12 @@ function getMyStatusColor(): string {
   color: #7289da;
 }
 .btn-discord:disabled { opacity: 0.5; }
+.btn-complete {
+  border: 1px solid rgba(102, 187, 106, 0.3);
+  background: none;
+  color: var(--color-heal);
+  font-weight: 600;
+}
 .btn-raid-del {
   border: 1px solid rgba(229, 115, 115, 0.3);
   background: none;

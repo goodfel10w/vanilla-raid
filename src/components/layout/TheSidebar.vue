@@ -88,7 +88,7 @@ function isActive(navRoute: string): boolean {
   font-size: 11px;
   letter-spacing: 6px;
   text-transform: uppercase;
-  color: #7a6f8a;
+  color: var(--color-tx3);
   margin-bottom: 4px;
 }
 

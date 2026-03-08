@@ -4,6 +4,7 @@ import { useDkpStore } from '@/stores/dkp'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import ConfirmModal from '@/components/shared/ConfirmModal.vue'
+import type { RaidPointCategory } from '@/types'
 
 const dkp = useDkpStore()
 const auth = useAuthStore()
@@ -92,6 +93,34 @@ async function doRemoveRole() {
 function isMe(username: string) {
   return auth.user && username === auth.user.username?.toLowerCase()
 }
+
+// Raid point categories
+const categories = ref<RaidPointCategory[]>(
+  (dkp.config.raidPointCategories || []).map(c => ({ ...c }))
+)
+const newCatName = ref('')
+const newCatPoints = ref(10)
+
+function addCategory() {
+  const name = newCatName.value.trim()
+  if (!name) { toast('Name eingeben'); return }
+  categories.value.push({ id: crypto.randomUUID(), name, points: newCatPoints.value })
+  newCatName.value = ''
+  newCatPoints.value = 10
+}
+
+function removeCategory(id: string) {
+  categories.value = categories.value.filter(c => c.id !== id)
+}
+
+async function saveCategories() {
+  try {
+    await dkp.saveConfig({ raidPointCategories: categories.value })
+    toast('Raid-Punkte Kategorien gespeichert')
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
+  }
+}
 </script>
 
 <template>
@@ -166,6 +195,38 @@ function isMe(username: string) {
           <option value="admin">Admin</option>
         </select>
         <button class="btn-p" style="padding:8px 16px;font-size:13px" @click="addRole">Hinzufügen</button>
+      </div>
+    </div>
+
+    <!-- Raid Point Categories -->
+    <div class="dkp-roles-section">
+      <div class="card-t">Raid-Punkte Kategorien</div>
+      <p style="font-size:13px;color:var(--color-tx3);margin:8px 0 12px">
+        Definiere Kategorien fuer die Punktvergabe beim Raid-Abschluss (z.B. Puenktlichkeit, Bosskill, Full Clear).
+      </p>
+      <div class="dkp-role-list">
+        <div v-for="cat in categories" :key="cat.id" class="dkp-role-row">
+          <span class="dkp-role-name">{{ cat.name }}</span>
+          <span class="rp-cat-points">{{ cat.points }} DKP</span>
+          <input
+            v-model.number="cat.points"
+            type="number"
+            min="1"
+            class="rp-cat-input"
+          >
+          <button class="dkp-role-btn dkp-role-del" @click="removeCategory(cat.id)">Entfernen</button>
+        </div>
+        <div v-if="!categories.length" style="font-size:12px;color:var(--color-tx4)">
+          Keine Kategorien definiert. Fuege welche hinzu, um Raid-Punkte vergeben zu koennen.
+        </div>
+      </div>
+      <div class="dkp-role-add">
+        <input v-model="newCatName" type="text" placeholder="z.B. Puenktlichkeit">
+        <input v-model.number="newCatPoints" type="number" min="1" placeholder="DKP" class="rp-cat-input">
+        <button class="btn-p" style="padding:8px 16px;font-size:13px" @click="addCategory">Hinzufuegen</button>
+      </div>
+      <div class="brow" style="margin-top:14px">
+        <button class="btn-p" @click="saveCategories">Kategorien speichern</button>
       </div>
     </div>
   </div>
@@ -359,6 +420,28 @@ function isMe(username: string) {
 
 .dkp-role-add input:focus,
 .dkp-role-add select:focus {
+  border-color: rgba(201, 168, 76, 0.4);
+}
+
+.rp-cat-points {
+  font-size: 12px;
+  color: var(--color-gold);
+  font-weight: 600;
+  min-width: 60px;
+}
+
+.rp-cat-input {
+  width: 70px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: var(--color-tx);
+  font: 13px var(--font-body);
+  outline: none;
+}
+
+.rp-cat-input:focus {
   border-color: rgba(201, 168, 76, 0.4);
 }
 </style>
