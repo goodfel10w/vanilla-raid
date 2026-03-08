@@ -66,6 +66,12 @@ export interface DkpTransaction {
   timestamp: string
 }
 
+export interface RaidPointCategory {
+  id: string
+  name: string
+  points: number
+}
+
 export interface DkpConfig {
   roles: Record<string, 'admin' | 'officer'>
   defaultDecayPercent: number
@@ -74,6 +80,7 @@ export interface DkpConfig {
   startingBalance: number
   transactionLimit: number
   reasonMaxLength: number
+  raidPointCategories?: RaidPointCategory[]
 }
 
 export interface AuthUser {

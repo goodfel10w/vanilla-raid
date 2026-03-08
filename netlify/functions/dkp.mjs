@@ -150,6 +150,14 @@ export default async (req, context) => {
           if (v >= 50 && v <= 500) newCfg.reasonMaxLength = v;
         }
 
+        if (body.raidPointCategories !== undefined) {
+          if (Array.isArray(body.raidPointCategories)) {
+            newCfg.raidPointCategories = body.raidPointCategories.filter(
+              (c) => c && typeof c.id === "string" && typeof c.name === "string" && typeof c.points === "number" && c.points > 0
+            );
+          }
+        }
+
         await configStore.setJSON(CONFIG_KEY, newCfg);
         return new Response(JSON.stringify({ ok: true, config: newCfg }), { status: 200, headers });
       }
