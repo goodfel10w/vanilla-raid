@@ -39,6 +39,7 @@ const {
   isRaidPast,
   deadlinePassed,
   isOwner,
+  canManageRaid,
   canSignup,
   specRole,
   openForm: openSignupForm,
@@ -305,8 +306,8 @@ function getMyStatusColor(): string {
                 <span v-if="s.status === 'tentative'" class="raid-signup-status tent">Vielleicht</span>
                 <span v-if="s.note" class="signup-note">{{ s.note }}</span>
 
-                <!-- Owner controls -->
-                <span v-if="isOwner && !isRaidPast" class="raid-signup-actions">
+                <!-- Raid manager controls -->
+                <span v-if="canManageRaid && !isRaidPast" class="raid-signup-actions">
                   <template v-if="s.offeredSpecs && s.offeredSpecs.length > 1">
                     <select
                       class="spec-assign-select"
@@ -340,7 +341,7 @@ function getMyStatusColor(): string {
             <div v-for="s in benchedSignups" :key="s.userId || s.charName" class="raid-signup-row">
               <span class="raid-signup-name" style="color: var(--color-tx4)">{{ s.charName }}</span>
               <span class="raid-signup-status bench">Gebankt</span>
-              <span v-if="isOwner && !isRaidPast" class="raid-signup-actions">
+              <span v-if="canManageRaid && !isRaidPast" class="raid-signup-actions">
                 <button class="btn-confirm" @click="onUnconfirmPlayer(s.userId!)">Aufnehmen</button>
                 <button class="btn-kick" @click="onRemovePlayer(s.userId!)">Entfernen</button>
               </span>
@@ -367,10 +368,10 @@ function getMyStatusColor(): string {
         </div>
 
         <!-- Locked/deadline messages -->
-        <div v-if="authStore.isLoggedIn && !isRaidPast && !mySignup && raid.locked && !isOwner" class="locked-msg">
+        <div v-if="authStore.isLoggedIn && !isRaidPast && !mySignup && raid.locked && !canManageRaid" class="locked-msg">
           Raid gesperrt -- Anmeldung nicht mehr moeglich.
         </div>
-        <div v-if="authStore.isLoggedIn && !isRaidPast && !mySignup && !raid.locked && deadlinePassed && !isOwner" class="locked-msg">
+        <div v-if="authStore.isLoggedIn && !isRaidPast && !mySignup && !raid.locked && deadlinePassed && !canManageRaid" class="locked-msg">
           Anmeldefrist abgelaufen -- Anmeldung nicht mehr moeglich.
         </div>
 
@@ -381,7 +382,7 @@ function getMyStatusColor(): string {
             <button v-if="mySignup.status !== 'declined' && canSignup" class="btn-unsignup" @click="doUnsignup">Abmelden</button>
             <button v-if="canSignup" class="btn-raid-edit" @click="openSignupForm">Aendern</button>
           </template>
-          <template v-if="isOwner">
+          <template v-if="canManageRaid">
             <button class="btn-raid-edit" @click="editing = true">Bearbeiten</button>
             <button class="btn-raid-lock" @click="showLockConfirm = true">
               {{ raid.locked ? 'Entsperren' : 'Sperren' }}
@@ -389,8 +390,8 @@ function getMyStatusColor(): string {
             <button class="btn-discord" :disabled="discordPosting" @click="postDiscord">
               {{ discordPosting ? 'Senden...' : 'Discord' }}
             </button>
-            <button class="btn-raid-del" @click="showDeleteConfirm = true">Loeschen</button>
           </template>
+          <button v-if="isOwner" class="btn-raid-del" @click="showDeleteConfirm = true">Loeschen</button>
           <button v-if="isDkpOfficer && activeSignups.length" class="btn-complete" @click="showCompletion = !showCompletion">
             {{ showCompletion ? 'Abbrechen' : 'Raid abschliessen' }}
           </button>
