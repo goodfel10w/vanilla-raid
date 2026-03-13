@@ -1,13 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useDkpStore } from '@/stores/dkp'
-import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
-import ConfirmModal from '@/components/shared/ConfirmModal.vue'
 import type { RaidPointCategory } from '@/types'
 
 const dkp = useDkpStore()
-const auth = useAuthStore()
 const { toast } = useToast()
 
 // Config fields
@@ -19,21 +16,6 @@ const cfgTxLimit = ref(dkp.config.transactionLimit || 50)
 const cfgReasonLen = ref(dkp.config.reasonMaxLength || 200)
 const configSaved = ref(false)
 
-// Role management
-const roleAddUser = ref('')
-const roleAddRole = ref<'officer' | 'admin'>('officer')
-const showRemoveModal = ref(false)
-const removeUsername = ref('')
-
-const roleEntries = computed(() => {
-  const roles = dkp.config.roles || {}
-  return Object.entries(roles)
-    .sort((a, b) => {
-      if (a[1] === 'admin' && b[1] !== 'admin') return -1
-      if (b[1] === 'admin' && a[1] !== 'admin') return 1
-      return a[0].localeCompare(b[0])
-    })
-})
 
 async function saveConfig() {
   try {
@@ -51,47 +33,6 @@ async function saveConfig() {
   } catch (e: unknown) {
     toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
   }
-}
-
-async function addRole() {
-  const username = roleAddUser.value.trim()
-  if (!username) { toast('Benutzername eingeben'); return }
-  try {
-    await dkp.manageRoles('add', username, roleAddRole.value)
-    toast(`${username} als ${roleAddRole.value === 'admin' ? 'Admin' : 'Offizier'} hinzugefügt`)
-    roleAddUser.value = ''
-  } catch (e: unknown) {
-    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
-  }
-}
-
-async function changeRole(username: string, currentRole: string) {
-  const newRole = currentRole === 'admin' ? 'officer' : 'admin'
-  try {
-    await dkp.manageRoles('add', username, newRole as 'admin' | 'officer')
-    toast(`${username} ist jetzt ${newRole === 'admin' ? 'Admin' : 'Offizier'}`)
-  } catch (e: unknown) {
-    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
-  }
-}
-
-function confirmRemoveRole(username: string) {
-  removeUsername.value = username
-  showRemoveModal.value = true
-}
-
-async function doRemoveRole() {
-  try {
-    await dkp.manageRoles('remove', removeUsername.value, 'officer')
-    toast(`${removeUsername.value} entfernt`)
-    showRemoveModal.value = false
-  } catch (e: unknown) {
-    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
-  }
-}
-
-function isMe(username: string) {
-  return auth.user && username === auth.user.username?.toLowerCase()
 }
 
 // Raid point categories
@@ -165,39 +106,6 @@ async function saveCategories() {
       <span class="dkp-cfg-saved" :class="{ show: configSaved }" id="cfg-saved">Gespeichert!</span>
     </div>
 
-    <!-- Role management -->
-    <div class="dkp-roles-section">
-      <div class="card-t">Rollen-Verwaltung</div>
-      <p style="font-size:13px;color:var(--color-tx3);margin:8px 0 12px">
-        <strong>Admin</strong> = Volle Kontrolle (Einstellungen, Verfall, Rollen).
-        <strong>Offizier</strong> = DKP vergeben und Beute verbuchen.
-      </p>
-      <div class="dkp-role-list">
-        <div v-for="[uname, role] in roleEntries" :key="uname" class="dkp-role-row">
-          <span class="dkp-role-name">{{ uname }}{{ isMe(uname) ? ' (Du)' : '' }}</span>
-          <span class="dkp-role-badge" :class="role === 'admin' ? 'dkp-role-admin' : 'dkp-role-officer'">
-            {{ role === 'admin' ? 'Admin' : 'Offizier' }}
-          </span>
-          <template v-if="!isMe(uname)">
-            <button class="dkp-role-btn" @click="changeRole(uname, role)">
-              {{ role === 'admin' ? '→ Offizier' : '→ Admin' }}
-            </button>
-            <button class="dkp-role-btn dkp-role-del" @click="confirmRemoveRole(uname)">Entfernen</button>
-          </template>
-        </div>
-        <div v-if="!roleEntries.length" style="font-size:12px;color:var(--color-tx4)">Keine Rollen zugewiesen.</div>
-      </div>
-
-      <div class="dkp-role-add">
-        <input id="dkp-role-user" v-model="roleAddUser" type="text" placeholder="Benutzername">
-        <select id="dkp-role-type" v-model="roleAddRole">
-          <option value="officer">Offizier</option>
-          <option value="admin">Admin</option>
-        </select>
-        <button class="btn-p" style="padding:8px 16px;font-size:13px" @click="addRole">Hinzufügen</button>
-      </div>
-    </div>
-
     <!-- Raid Point Categories -->
     <div class="dkp-roles-section">
       <div class="card-t">Raid-Punkte Kategorien</div>
@@ -231,14 +139,6 @@ async function saveCategories() {
     </div>
   </div>
 
-  <ConfirmModal
-    :open="showRemoveModal"
-    title="Rolle entfernen"
-    :message="`Wirklich <strong>${removeUsername}</strong> als DKP-Verwalter entfernen?`"
-    confirm-label="Entfernen"
-    @confirm="doRemoveRole"
-    @cancel="showRemoveModal = false"
-  />
 </template>
 
 <style scoped>
@@ -352,23 +252,6 @@ async function saveCategories() {
   color: var(--color-tx2);
   flex: 1;
   min-width: 100px;
-}
-
-.dkp-role-badge {
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.dkp-role-admin {
-  background: rgba(201, 168, 76, 0.15);
-  color: var(--color-gold);
-}
-
-.dkp-role-officer {
-  background: rgba(102, 187, 106, 0.15);
-  color: var(--color-green);
 }
 
 .dkp-role-btn {

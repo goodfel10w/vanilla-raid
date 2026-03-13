@@ -4,9 +4,10 @@ import { useAuthStore } from '@/stores/auth'
 import AdminOverview from '@/components/admin/AdminOverview.vue'
 import AdminEntries from '@/components/admin/AdminEntries.vue'
 import AdminManage from '@/components/admin/AdminManage.vue'
+import AdminRoles from '@/components/admin/AdminRoles.vue'
 
 const authStore = useAuthStore()
-const activeTab = ref<'overview' | 'entries' | 'manage'>('overview')
+const activeTab = ref<'overview' | 'entries' | 'roles' | 'manage'>('overview')
 
 const isAdmin = computed(() => authStore.isAdmin)
 </script>
@@ -31,6 +32,11 @@ const isAdmin = computed(() => authStore.isAdmin)
         >Eintraege</button>
         <button
           class="adm-tab"
+          :class="{ active: activeTab === 'roles' }"
+          @click="activeTab = 'roles'"
+        >Rollen</button>
+        <button
+          class="adm-tab"
           :class="{ active: activeTab === 'manage' }"
           @click="activeTab = 'manage'"
         >Verwaltung</button>
@@ -38,6 +44,7 @@ const isAdmin = computed(() => authStore.isAdmin)
 
       <AdminOverview v-if="activeTab === 'overview'" />
       <AdminEntries v-else-if="activeTab === 'entries'" />
+      <AdminRoles v-else-if="activeTab === 'roles'" />
       <AdminManage v-else-if="activeTab === 'manage'" />
     </template>
   </div>
