@@ -74,10 +74,11 @@ describe('AdminView', () => {
       global: { plugins: [router] },
     })
     const tabs = wrapper.findAll('.adm-tab')
-    expect(tabs.length).toBe(3)
+    expect(tabs.length).toBe(4)
     expect(tabs[0].text()).toBe('Uebersicht')
     expect(tabs[1].text()).toBe('Eintraege')
-    expect(tabs[2].text()).toBe('Verwaltung')
+    expect(tabs[2].text()).toBe('Rollen')
+    expect(tabs[3].text()).toBe('Verwaltung')
   })
 
   it('shows overview stats when admin', () => {
@@ -141,7 +142,7 @@ describe('AdminView', () => {
     const wrapper = mount(AdminView, {
       global: { plugins: [router] },
     })
-    await wrapper.findAll('.adm-tab')[2].trigger('click')
+    await wrapper.findAll('.adm-tab')[3].trigger('click')
     expect(wrapper.text()).toContain('Verwaltung')
     expect(wrapper.text()).toContain('Gefahrenzone')
   })

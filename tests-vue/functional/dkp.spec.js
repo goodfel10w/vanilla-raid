@@ -410,22 +410,7 @@ test.describe('DKP', () => {
       await expect(page.locator('#toast')).toContainText('gespeichert');
     });
 
-    test('role management shows current admin', async ({ page }) => {
-      await page.click('.dkp-actions-bar button:has-text("Einstellungen")');
-      // "testuser" should be listed as admin
-      await expect(page.locator('.dkp-role-list')).toContainText('testuser');
-      await expect(page.locator('.dkp-role-badge')).toContainText('Admin');
-    });
-
-    test('adding a new officer role', async ({ page }) => {
-      await page.click('.dkp-actions-bar button:has-text("Einstellungen")');
-      await page.fill('#dkp-role-user', 'NewOfficer');
-      // Officer is already selected by default
-      await page.click('.dkp-role-add .btn-p');
-      await expect(page.locator('#toast')).toContainText('Offizier');
-      // New officer should appear in the list
-      await expect(page.locator('.dkp-role-list')).toContainText('newofficer');
-    });
+    // Role management has moved to Admin panel (AdminRoles component)
   });
 
   // --- Player detail ---
