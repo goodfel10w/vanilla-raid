@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { useRaidsStore } from '@/stores/raids'
 import { useAuthStore } from '@/stores/auth'
 import { useEntriesStore } from '@/stores/entries'
+import { useDkpStore } from '@/stores/dkp'
 import { useToast } from '@/composables/useToast'
 import { CLASS_SPECS } from '@/lib/constants'
 import type { Raid } from '@/types'
@@ -10,6 +11,7 @@ export function useRaidSignup(raidId: () => string) {
   const raidsStore = useRaidsStore()
   const authStore = useAuthStore()
   const entriesStore = useEntriesStore()
+  const dkpStore = useDkpStore()
   const { toast } = useToast()
 
   const showForm = ref(false)
@@ -45,9 +47,21 @@ export function useRaidSignup(raidId: () => string) {
     return raid.value?.createdBy === authStore.user.userId || authStore.isAdmin
   })
 
+  const canManageRaid = computed(() => {
+    if (isOwner.value) return true
+    if (!authStore.user) return false
+    const username = authStore.user.username
+    if (!username) return false
+    const roles = dkpStore.config.roles || {}
+    const lower = username.toLowerCase()
+    const prefix = lower.split('#')[0]
+    const role = roles[lower] || roles[prefix]
+    return role === 'admin' || role === 'officer'
+  })
+
   const canSignup = computed(() => {
     if (!authStore.isLoggedIn || isRaidPast.value) return false
-    if (isOwner.value) return true
+    if (canManageRaid.value) return true
     return !deadlinePassed.value && !raid.value?.locked
   })
 
@@ -162,6 +176,7 @@ export function useRaidSignup(raidId: () => string) {
     isRaidPast,
     deadlinePassed,
     isOwner,
+    canManageRaid,
     canSignup,
     specRole,
     openForm,
