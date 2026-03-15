@@ -9,7 +9,7 @@ async function isDkpOfficerOrAdmin(username) {
   if (isSiteAdmin(username)) return true;
   try {
     const cfgStore = getStore({ name: "dkp-config", consistency: "strong" });
-    const cfg = await cfgStore.get("config", { type: "json" });
+    const cfg = await cfgStore.get("dkp-settings", { type: "json" });
     if (!cfg || !cfg.roles) return false;
     const lower = username.toLowerCase();
     const role = cfg.roles[lower];
