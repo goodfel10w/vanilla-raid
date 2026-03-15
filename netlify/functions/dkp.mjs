@@ -13,6 +13,9 @@ const DEFAULT_CONFIG = {
 };
 
 const CONFIG_KEY = "dkp-settings";
+const BALANCES_KEY = "all-balances";
+const TRANSACTIONS_KEY = "all-transactions";
+const MIGRATED_KEY = "migrated-to-single-blob";
 
 async function loadConfig(configStore) {
   const stored = await configStore.get(CONFIG_KEY, { type: "json" });
@@ -35,12 +38,102 @@ async function loadConfig(configStore) {
   return cfg;
 }
 
+// ── Single-blob data helpers ──
+
+async function loadBalances(balanceStore) {
+  return (await balanceStore.get(BALANCES_KEY, { type: "json" })) || {};
+}
+
+async function saveBalances(balanceStore, balMap) {
+  await balanceStore.setJSON(BALANCES_KEY, balMap);
+}
+
+async function loadTransactions(txStore) {
+  return (await txStore.get(TRANSACTIONS_KEY, { type: "json" })) || {};
+}
+
+async function saveTransactions(txStore, txMap) {
+  await txStore.setJSON(TRANSACTIONS_KEY, txMap);
+}
+
+// ── One-time migration from individual blobs to single blob ──
+
+async function migrateIfNeeded(balanceStore, txStore, configStore) {
+  const flag = await configStore.get(MIGRATED_KEY, { type: "json" });
+  if (flag) return; // already migrated
+
+  // Check if single blobs already have data (fresh install or already migrated)
+  const existing = await balanceStore.get(BALANCES_KEY, { type: "json" });
+  if (existing) {
+    await configStore.setJSON(MIGRATED_KEY, { migratedAt: new Date().toISOString() });
+    return;
+  }
+
+  // Read all individual balance blobs
+  const { blobs: balBlobs } = await balanceStore.list();
+  const individualBlobs = balBlobs.filter(b => b.key !== BALANCES_KEY);
+
+  if (individualBlobs.length === 0) {
+    // No old data to migrate
+    await configStore.setJSON(MIGRATED_KEY, { migratedAt: new Date().toISOString() });
+    return;
+  }
+
+  console.log(`Migrating ${individualBlobs.length} balance blobs to single-blob storage...`);
+
+  // Migrate balances
+  const balMap = {};
+  const balData = await Promise.all(individualBlobs.map(b => balanceStore.get(b.key, { type: "json" })));
+  for (let i = 0; i < individualBlobs.length; i++) {
+    if (balData[i]) {
+      balMap[individualBlobs[i].key] = balData[i];
+    }
+  }
+  await saveBalances(balanceStore, balMap);
+
+  // Migrate transactions
+  const { blobs: txBlobs } = await txStore.list();
+  const individualTxBlobs = txBlobs.filter(b => b.key !== TRANSACTIONS_KEY);
+  const txMap = {};
+  if (individualTxBlobs.length > 0) {
+    console.log(`Migrating ${individualTxBlobs.length} transaction blobs...`);
+    const txData = await Promise.all(individualTxBlobs.map(b => txStore.get(b.key, { type: "json" })));
+    for (let i = 0; i < individualTxBlobs.length; i++) {
+      if (txData[i]) {
+        txMap[individualTxBlobs[i].key] = txData[i];
+      }
+    }
+    await saveTransactions(txStore, txMap);
+  }
+
+  // Verify single blobs were written correctly before deleting old data
+  const verifyBal = await balanceStore.get(BALANCES_KEY, { type: "json" });
+  const verifyTx = await txStore.get(TRANSACTIONS_KEY, { type: "json" });
+  if (!verifyBal || Object.keys(verifyBal).length !== Object.keys(balMap).length) {
+    console.error("Migration verification failed for balances — keeping old blobs");
+    return;
+  }
+  if (individualTxBlobs.length > 0 && (!verifyTx || Object.keys(verifyTx).length !== Object.keys(txMap).length)) {
+    console.error("Migration verification failed for transactions — keeping old blobs");
+    return;
+  }
+
+  // Clean up old individual blobs (safe — verified data exists in single blob)
+  await Promise.all(individualBlobs.map(b => balanceStore.delete(b.key)));
+  if (individualTxBlobs.length > 0) {
+    await Promise.all(individualTxBlobs.map(b => txStore.delete(b.key)));
+  }
+
+  await configStore.setJSON(MIGRATED_KEY, { migratedAt: new Date().toISOString() });
+  console.log("Migration complete.");
+}
+
+// ── Role helpers ──
+
 function getRole(username, cfg) {
   if (!username || !cfg.roles) return null;
   const lower = username.toLowerCase();
-  // Exact match first (full BattleTag or plain name)
   if (cfg.roles[lower]) return cfg.roles[lower];
-  // Prefix match: "goodfell0w" matches "goodfell0w#12345"
   const prefix = lower.split("#")[0];
   if (prefix !== lower && cfg.roles[prefix]) return cfg.roles[prefix];
   return null;
@@ -68,30 +161,27 @@ export default async (req, context) => {
   }
 
   try {
+    // Run migration on first request (no-op after first run)
+    await migrateIfNeeded(balanceStore, txStore, configStore);
+
     const cfg = await loadConfig(configStore);
 
-    // GET — list balances, transactions, config
+    // GET — list balances, transactions, config (now just 2 blob reads)
     if (req.method === "GET") {
       const url = new URL(req.url);
       const playerFilter = url.searchParams.get("player");
 
-      const [{ blobs: balBlobs }, { blobs: txBlobs }] = await Promise.all([
-        balanceStore.list(),
-        txStore.list(),
+      const [balMap, txMap] = await Promise.all([
+        loadBalances(balanceStore),
+        loadTransactions(txStore),
       ]);
 
-      const [balResults, txResults] = await Promise.all([
-        Promise.all(balBlobs.map(blob => balanceStore.get(blob.key, { type: "json" }))),
-        Promise.all(txBlobs.map(blob => txStore.get(blob.key, { type: "json" }))),
-      ]);
-
-      const balances = balResults.filter(Boolean);
+      const balances = Object.values(balMap);
       balances.sort((a, b) => b.balance - a.balance);
 
-      const transactions = txResults.filter(Boolean);
+      const transactions = Object.values(txMap);
       transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-      // If player filter, return all transactions for that player
       if (playerFilter) {
         const playerTx = transactions.filter(
           (t) => t.playerName.toLowerCase() === playerFilter.toLowerCase()
@@ -183,7 +273,6 @@ export default async (req, context) => {
         const newCfg = { ...cfg, roles: { ...cfg.roles } };
 
         if (remove) {
-          // Prevent removing yourself as admin
           if (key === user.username.toLowerCase()) {
             return new Response(
               JSON.stringify({ error: "Du kannst dich nicht selbst entfernen" }),
@@ -198,7 +287,6 @@ export default async (req, context) => {
               { status: 400, headers }
             );
           }
-          // Prevent demoting yourself from admin
           if (key === user.username.toLowerCase() && role !== "admin") {
             return new Response(
               JSON.stringify({ error: "Du kannst dich nicht selbst herunterstufen" }),
@@ -208,7 +296,6 @@ export default async (req, context) => {
           newCfg.roles[key] = role;
         }
 
-        // Ensure at least one admin remains
         const adminCount = Object.values(newCfg.roles).filter((r) => r === "admin").length;
         if (adminCount === 0) {
           return new Response(
@@ -238,7 +325,12 @@ export default async (req, context) => {
           );
         }
 
-        const tx = await txStore.get(transactionId, { type: "json" });
+        const [balMap, txMap] = await Promise.all([
+          loadBalances(balanceStore),
+          loadTransactions(txStore),
+        ]);
+
+        const tx = txMap[transactionId];
         if (!tx) {
           return new Response(
             JSON.stringify({ error: "Transaktion nicht gefunden" }),
@@ -248,15 +340,19 @@ export default async (req, context) => {
 
         // Reverse the balance change
         const key = tx.playerName.trim().toLowerCase();
-        const existing = await balanceStore.get(key, { type: "json" });
+        const existing = balMap[key];
         if (existing) {
-          existing.balance -= tx.amount; // subtract what was added (or add back what was subtracted)
+          existing.balance -= tx.amount;
           existing.lastUpdated = new Date().toISOString();
-          await balanceStore.setJSON(key, existing);
         }
 
         // Delete the transaction
-        await txStore.delete(transactionId);
+        delete txMap[transactionId];
+
+        await Promise.all([
+          saveBalances(balanceStore, balMap),
+          saveTransactions(txStore, txMap),
+        ]);
 
         return new Response(
           JSON.stringify({ ok: true, reversed: tx, balance: existing }),
@@ -308,10 +404,15 @@ export default async (req, context) => {
           }
         }
 
+        const [balMap, txMap] = await Promise.all([
+          loadBalances(balanceStore),
+          loadTransactions(txStore),
+        ]);
+
         const results = [];
         for (const p of players) {
           const key = p.name.trim().toLowerCase();
-          const existing = (await balanceStore.get(key, { type: "json" })) || {
+          const existing = balMap[key] || {
             playerName: p.name.trim(),
             className: p.className || "",
             balance: cfg.startingBalance,
@@ -320,10 +421,10 @@ export default async (req, context) => {
           if (p.className) existing.className = p.className;
           existing.balance += parsedAmount;
           existing.lastUpdated = new Date().toISOString();
-          await balanceStore.setJSON(key, existing);
+          balMap[key] = existing;
 
           const txId = randomUUID();
-          await txStore.setJSON(txId, {
+          txMap[txId] = {
             id: txId,
             playerName: p.name.trim(),
             type: "earn",
@@ -331,9 +432,14 @@ export default async (req, context) => {
             reason: reason.trim().slice(0, maxReason),
             createdBy: user.username,
             timestamp: new Date().toISOString(),
-          });
+          };
           results.push(existing);
         }
+
+        await Promise.all([
+          saveBalances(balanceStore, balMap),
+          saveTransactions(txStore, txMap),
+        ]);
 
         return new Response(JSON.stringify({ ok: true, balances: results }), { status: 200, headers });
       }
@@ -358,7 +464,12 @@ export default async (req, context) => {
         }
 
         const key = playerName.trim().toLowerCase();
-        const existing = await balanceStore.get(key, { type: "json" });
+        const [balMap, txMap] = await Promise.all([
+          loadBalances(balanceStore),
+          loadTransactions(txStore),
+        ]);
+
+        const existing = balMap[key];
         if (!existing) {
           return new Response(
             JSON.stringify({ error: "Spieler nicht im DKP-System gefunden" }),
@@ -377,10 +488,9 @@ export default async (req, context) => {
 
         existing.balance -= parsedAmount;
         existing.lastUpdated = new Date().toISOString();
-        await balanceStore.setJSON(key, existing);
 
         const txId = randomUUID();
-        await txStore.setJSON(txId, {
+        txMap[txId] = {
           id: txId,
           playerName: playerName.trim(),
           type: "spend",
@@ -388,7 +498,12 @@ export default async (req, context) => {
           reason: (itemName || "Loot").trim().slice(0, maxReason),
           createdBy: user.username,
           timestamp: new Date().toISOString(),
-        });
+        };
+
+        await Promise.all([
+          saveBalances(balanceStore, balMap),
+          saveTransactions(txStore, txMap),
+        ]);
 
         return new Response(JSON.stringify({ ok: true, balance: existing }), { status: 200, headers });
       }
@@ -410,11 +525,13 @@ export default async (req, context) => {
           );
         }
 
-        const { blobs } = await balanceStore.list();
+        const [balMap, txMap] = await Promise.all([
+          loadBalances(balanceStore),
+          loadTransactions(txStore),
+        ]);
+
         const results = [];
-        for (const blob of blobs) {
-          const data = await balanceStore.get(blob.key, { type: "json" });
-          if (!data) continue;
+        for (const [key, data] of Object.entries(balMap)) {
           const decayAmount = Math.round(data.balance * percent / 100);
           if (decayAmount === 0) {
             results.push(data);
@@ -423,10 +540,9 @@ export default async (req, context) => {
 
           data.balance -= decayAmount;
           data.lastUpdated = new Date().toISOString();
-          await balanceStore.setJSON(blob.key, data);
 
           const txId = randomUUID();
-          await txStore.setJSON(txId, {
+          txMap[txId] = {
             id: txId,
             playerName: data.playerName,
             type: "decay",
@@ -434,9 +550,14 @@ export default async (req, context) => {
             reason: `${percent}% Verfall`,
             createdBy: user.username,
             timestamp: new Date().toISOString(),
-          });
+          };
           results.push(data);
         }
+
+        await Promise.all([
+          saveBalances(balanceStore, balMap),
+          saveTransactions(txStore, txMap),
+        ]);
 
         return new Response(JSON.stringify({ ok: true, balances: results }), { status: 200, headers });
       }
@@ -458,7 +579,12 @@ export default async (req, context) => {
           );
         }
 
-        const tx = await txStore.get(transactionId, { type: "json" });
+        const [balMap, txMap] = await Promise.all([
+          loadBalances(balanceStore),
+          loadTransactions(txStore),
+        ]);
+
+        const tx = txMap[transactionId];
         if (!tx) {
           return new Response(
             JSON.stringify({ error: "Transaktion nicht gefunden" }),
@@ -477,7 +603,6 @@ export default async (req, context) => {
               { status: 400, headers }
             );
           }
-          // For spend/decay, amount is stored negative; for earn, positive
           if (tx.type === "earn") {
             if (parsed <= 0 || parsed > cfg.maxDkpAmount) {
               return new Response(
@@ -507,22 +632,24 @@ export default async (req, context) => {
           tx.reason = reason.trim().slice(0, maxReason);
         }
 
-        // Adjust player balance by the difference
         if (newAmount !== oldAmount) {
           const diff = newAmount - oldAmount;
           const key = tx.playerName.trim().toLowerCase();
-          const existing = await balanceStore.get(key, { type: "json" });
+          const existing = balMap[key];
           if (existing) {
             existing.balance += diff;
             existing.lastUpdated = new Date().toISOString();
-            await balanceStore.setJSON(key, existing);
           }
           tx.amount = newAmount;
         }
 
         tx.editedBy = user.username;
         tx.editedAt = new Date().toISOString();
-        await txStore.setJSON(transactionId, tx);
+
+        await Promise.all([
+          saveBalances(balanceStore, balMap),
+          saveTransactions(txStore, txMap),
+        ]);
 
         return new Response(
           JSON.stringify({ ok: true, transaction: tx }),
@@ -547,7 +674,12 @@ export default async (req, context) => {
           );
         }
 
-        const tx = await txStore.get(transactionId, { type: "json" });
+        const [balMap, txMap] = await Promise.all([
+          loadBalances(balanceStore),
+          loadTransactions(txStore),
+        ]);
+
+        const tx = txMap[transactionId];
         if (!tx) {
           return new Response(
             JSON.stringify({ error: "Transaktion nicht gefunden" }),
@@ -557,14 +689,18 @@ export default async (req, context) => {
 
         // Reverse the balance change
         const key = tx.playerName.trim().toLowerCase();
-        const existing = await balanceStore.get(key, { type: "json" });
+        const existing = balMap[key];
         if (existing) {
           existing.balance -= tx.amount;
           existing.lastUpdated = new Date().toISOString();
-          await balanceStore.setJSON(key, existing);
         }
 
-        await txStore.delete(transactionId);
+        delete txMap[transactionId];
+
+        await Promise.all([
+          saveBalances(balanceStore, balMap),
+          saveTransactions(txStore, txMap),
+        ]);
 
         return new Response(
           JSON.stringify({ ok: true, reversed: tx, balance: existing }),
@@ -598,7 +734,12 @@ export default async (req, context) => {
         }
 
         const key = playerName.trim().toLowerCase();
-        const existing = await balanceStore.get(key, { type: "json" });
+        const [balMap, txMap] = await Promise.all([
+          loadBalances(balanceStore),
+          loadTransactions(txStore),
+        ]);
+
+        const existing = balMap[key];
         if (!existing) {
           return new Response(
             JSON.stringify({ error: "Spieler nicht im DKP-System gefunden" }),
@@ -609,11 +750,9 @@ export default async (req, context) => {
         const diff = parsedBalance - existing.balance;
         existing.balance = parsedBalance;
         existing.lastUpdated = new Date().toISOString();
-        await balanceStore.setJSON(key, existing);
 
-        // Log the adjustment as a transaction
         const txId = randomUUID();
-        await txStore.setJSON(txId, {
+        txMap[txId] = {
           id: txId,
           playerName: playerName.trim(),
           type: "adjust",
@@ -621,7 +760,12 @@ export default async (req, context) => {
           reason: ((reason || "Manuelle Anpassung").trim()).slice(0, maxReason),
           createdBy: user.username,
           timestamp: new Date().toISOString(),
-        });
+        };
+
+        await Promise.all([
+          saveBalances(balanceStore, balMap),
+          saveTransactions(txStore, txMap),
+        ]);
 
         return new Response(
           JSON.stringify({ ok: true, balance: existing }),
@@ -647,7 +791,12 @@ export default async (req, context) => {
         }
 
         const key = playerName.trim().toLowerCase();
-        const existing = await balanceStore.get(key, { type: "json" });
+        const [balMap, txMap] = await Promise.all([
+          loadBalances(balanceStore),
+          loadTransactions(txStore),
+        ]);
+
+        const existing = balMap[key];
         if (!existing) {
           return new Response(
             JSON.stringify({ error: "Spieler nicht im DKP-System gefunden" }),
@@ -661,9 +810,7 @@ export default async (req, context) => {
 
         if (newName && newName.trim() !== playerName.trim()) {
           const newKey = newName.trim().toLowerCase();
-          // Check target doesn't already exist
-          const conflict = await balanceStore.get(newKey, { type: "json" });
-          if (conflict) {
+          if (balMap[newKey]) {
             return new Response(
               JSON.stringify({ error: "Ein Spieler mit diesem Namen existiert bereits" }),
               { status: 400, headers }
@@ -672,22 +819,23 @@ export default async (req, context) => {
 
           existing.playerName = newName.trim();
           existing.lastUpdated = new Date().toISOString();
-          await balanceStore.setJSON(newKey, existing);
-          await balanceStore.delete(key);
+          balMap[newKey] = existing;
+          delete balMap[key];
 
           // Update all transactions for this player
-          const { blobs: txBlobs } = await txStore.list();
-          for (const blob of txBlobs) {
-            const tx = await txStore.get(blob.key, { type: "json" });
-            if (tx && tx.playerName.trim().toLowerCase() === key) {
+          for (const tx of Object.values(txMap)) {
+            if (tx.playerName.trim().toLowerCase() === key) {
               tx.playerName = newName.trim();
-              await txStore.setJSON(blob.key, tx);
             }
           }
         } else {
           existing.lastUpdated = new Date().toISOString();
-          await balanceStore.setJSON(key, existing);
         }
+
+        await Promise.all([
+          saveBalances(balanceStore, balMap),
+          saveTransactions(txStore, txMap),
+        ]);
 
         return new Response(
           JSON.stringify({ ok: true, balance: existing }),
@@ -713,26 +861,32 @@ export default async (req, context) => {
         }
 
         const key = playerName.trim().toLowerCase();
-        const existing = await balanceStore.get(key, { type: "json" });
-        if (!existing) {
+        const [balMap, txMap] = await Promise.all([
+          loadBalances(balanceStore),
+          loadTransactions(txStore),
+        ]);
+
+        if (!balMap[key]) {
           return new Response(
             JSON.stringify({ error: "Spieler nicht im DKP-System gefunden" }),
             { status: 404, headers }
           );
         }
 
-        await balanceStore.delete(key);
+        delete balMap[key];
 
-        // Optionally delete all transactions for this player
         if (deleteTransactions) {
-          const { blobs: txBlobs } = await txStore.list();
-          for (const blob of txBlobs) {
-            const tx = await txStore.get(blob.key, { type: "json" });
-            if (tx && tx.playerName.trim().toLowerCase() === key) {
-              await txStore.delete(blob.key);
+          for (const [txId, tx] of Object.entries(txMap)) {
+            if (tx.playerName.trim().toLowerCase() === key) {
+              delete txMap[txId];
             }
           }
         }
+
+        await Promise.all([
+          saveBalances(balanceStore, balMap),
+          saveTransactions(txStore, txMap),
+        ]);
 
         return new Response(
           JSON.stringify({ ok: true }),
