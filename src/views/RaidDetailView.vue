@@ -13,6 +13,7 @@ import ConfirmModal from '@/components/shared/ConfirmModal.vue'
 import SignupModal from '@/components/raids/SignupModal.vue'
 import RaidForm from '@/components/raids/RaidForm.vue'
 import RaidCompletionForm from '@/components/raids/RaidCompletionForm.vue'
+import OrgaSignupModal from '@/components/raids/OrgaSignupModal.vue'
 import { useDkpRole } from '@/composables/useDkpRole'
 import type { Raid, RaidSignup as RaidSignupType } from '@/types'
 import type { RoleName } from '@/lib/constants'
@@ -58,6 +59,7 @@ const showLockConfirm = ref(false)
 const discordPosting = ref(false)
 const compOpen = ref(false)
 const showCompletion = ref(false)
+const showOrgaSignup = ref(false)
 const { isDkpOfficer } = useDkpRole()
 
 const inst = computed(() =>
@@ -200,6 +202,23 @@ async function onAssignSpec(targetUserId: string, spec: string) {
     await raidsStore.assignSpec(raidId.value, targetUserId, spec || null)
     toast(spec ? 'Spec zugewiesen: ' + spec : 'Zuweisung entfernt')
   } catch (e: unknown) { toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler')) }
+}
+
+async function onOrgaSignup(payload: { charName: string; className: string; role: string; status: string; note: string; targetUserId?: string }) {
+  try {
+    await raidsStore.signupOther(raidId.value, {
+      charName: payload.charName,
+      className: payload.className,
+      role: payload.role,
+      status: payload.status,
+      note: payload.note || undefined,
+      targetUserId: payload.targetUserId,
+    })
+    toast(payload.charName + ' angemeldet')
+    showOrgaSignup.value = false
+  } catch (e: unknown) {
+    toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
+  }
 }
 
 function onEditSaved() {
@@ -383,6 +402,7 @@ function getMyStatusColor(): string {
             <button v-if="canSignup" class="btn-raid-edit" @click="openSignupForm">Aendern</button>
           </template>
           <template v-if="canManageRaid">
+            <button class="btn-orga-signup" @click="showOrgaSignup = true">Spieler anmelden</button>
             <button class="btn-raid-edit" @click="editing = true">Bearbeiten</button>
             <button class="btn-raid-lock" @click="showLockConfirm = true">
               {{ raid.locked ? 'Entsperren' : 'Sperren' }}
@@ -432,6 +452,15 @@ function getMyStatusColor(): string {
           @update:note="signupNote = $event"
           @confirm="doSignup"
           @cancel="closeSignupForm"
+        />
+
+        <!-- Orga signup modal (add player from pool) -->
+        <OrgaSignupModal
+          :open="showOrgaSignup"
+          :entries="entriesStore.entries"
+          :signups="raid.signups || []"
+          @confirm="onOrgaSignup"
+          @cancel="showOrgaSignup = false"
         />
 
         <!-- Confirm modals -->
@@ -675,6 +704,12 @@ function getMyStatusColor(): string {
 }
 .btn-discord:disabled { opacity: 0.5; }
 .btn-complete {
+  border: 1px solid rgba(102, 187, 106, 0.3);
+  background: none;
+  color: var(--color-heal);
+  font-weight: 600;
+}
+.btn-orga-signup {
   border: 1px solid rgba(102, 187, 106, 0.3);
   background: none;
   color: var(--color-heal);
