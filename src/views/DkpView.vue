@@ -107,7 +107,9 @@ const editTxTypeLabel = computed(() => {
 })
 
 onMounted(() => {
-  dkp.load()
+  if (!dkp.balances.length) {
+    dkp.load()
+  }
 })
 </script>
 

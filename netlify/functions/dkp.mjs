@@ -75,20 +75,20 @@ export default async (req, context) => {
       const url = new URL(req.url);
       const playerFilter = url.searchParams.get("player");
 
-      const { blobs: balBlobs } = await balanceStore.list();
-      const balances = [];
-      for (const blob of balBlobs) {
-        const data = await balanceStore.get(blob.key, { type: "json" });
-        if (data) balances.push(data);
-      }
+      const [{ blobs: balBlobs }, { blobs: txBlobs }] = await Promise.all([
+        balanceStore.list(),
+        txStore.list(),
+      ]);
+
+      const [balResults, txResults] = await Promise.all([
+        Promise.all(balBlobs.map(blob => balanceStore.get(blob.key, { type: "json" }))),
+        Promise.all(txBlobs.map(blob => txStore.get(blob.key, { type: "json" }))),
+      ]);
+
+      const balances = balResults.filter(Boolean);
       balances.sort((a, b) => b.balance - a.balance);
 
-      const { blobs: txBlobs } = await txStore.list();
-      const transactions = [];
-      for (const blob of txBlobs) {
-        const data = await txStore.get(blob.key, { type: "json" });
-        if (data) transactions.push(data);
-      }
+      const transactions = txResults.filter(Boolean);
       transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       // If player filter, return all transactions for that player
