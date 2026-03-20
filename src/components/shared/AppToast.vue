@@ -31,4 +31,10 @@ const { message, visible } = useToast()
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+@media (max-width: 767px) {
+  #toast {
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px) + 12px);
+  }
+}
 </style>

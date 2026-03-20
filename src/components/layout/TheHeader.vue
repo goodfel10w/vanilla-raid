@@ -48,6 +48,16 @@ h1 {
   transition: opacity 0.3s;
 }
 
+@media (max-width: 767px) {
+  .app-header {
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-size: 22px;
+  }
+}
+
 @media (min-width: 768px) {
   .guild {
     display: none;

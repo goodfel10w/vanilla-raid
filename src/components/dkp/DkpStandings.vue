@@ -375,4 +375,24 @@ const emit = defineEmits<{
   white-space: nowrap;
   border-width: 0;
 }
+
+@media (max-width: 767px) {
+  .card {
+    padding: 14px;
+  }
+
+  .dkp-tx-filter {
+    padding: 6px 12px;
+    font-size: 12px;
+    min-height: 32px;
+  }
+
+  .dkp-standings td {
+    padding: 10px 6px;
+  }
+
+  .dkp-standings th {
+    padding: 8px 6px;
+  }
+}
 </style>

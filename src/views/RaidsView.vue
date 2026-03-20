@@ -265,4 +265,17 @@ function onCalSelectRaid(id: string) {
   color: var(--color-tx3);
   font-size: 14px;
 }
+
+@media (max-width: 767px) {
+  .rt-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-height: 36px;
+  }
+
+  .rf-btn {
+    padding: 6px 12px;
+    min-height: 32px;
+  }
+}
 </style>

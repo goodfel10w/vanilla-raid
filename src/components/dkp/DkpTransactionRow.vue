@@ -158,4 +158,19 @@ const edited = computed(() => !!('editedAt' in props.tx && props.tx.editedAt))
   background: rgba(229, 115, 115, 0.15);
   color: var(--color-red, #e57373);
 }
+
+@media (max-width: 767px) {
+  .dkp-tx {
+    padding: 10px 0;
+  }
+
+  .dkp-tx-btn {
+    padding: 6px 10px;
+    min-height: 32px;
+    min-width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
 </style>
