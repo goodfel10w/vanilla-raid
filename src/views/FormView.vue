@@ -377,4 +377,14 @@ input[type="text"]:focus {
   background: rgba(255, 255, 255, 0.08);
   color: var(--color-tx);
 }
+
+@media (max-width: 767px) {
+  .form-card {
+    padding: 16px;
+  }
+
+  .fld {
+    margin-bottom: 16px;
+  }
+}
 </style>

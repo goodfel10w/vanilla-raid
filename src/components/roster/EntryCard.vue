@@ -252,5 +252,15 @@ const slotTags = computed<SlotTag[]>(() => {
     margin-left: 0;
     width: 100%;
   }
+
+  .btn-edit {
+    padding: 8px 16px;
+    min-height: 36px;
+  }
+
+  .btn-del {
+    padding: 6px 12px;
+    min-height: 36px;
+  }
 }
 </style>

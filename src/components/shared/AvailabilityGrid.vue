@@ -178,4 +178,21 @@ function onTouchMove(e: TouchEvent) {
 .tl-cell.tent:hover {
   background: rgba(229, 194, 68, 0.25);
 }
+
+@media (max-width: 767px) {
+  .tl-cell {
+    width: 24px;
+    min-width: 24px;
+    height: 38px;
+  }
+
+  .tl-table th {
+    font-size: 9px;
+  }
+
+  .dl {
+    font-size: 11px;
+    padding-right: 4px;
+  }
+}
 </style>
