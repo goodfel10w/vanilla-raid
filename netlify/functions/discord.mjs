@@ -521,7 +521,7 @@ export default async (req) => {
       // Check if already posted
       const existing = await discordStore.get(raidId, { type: "json" });
       if (existing?.messageId) {
-        // Update instead
+        console.log(`Discord post: raid already posted (messageId=${existing.messageId}, channelId=${existing.channelId}), updating instead`);
         return await updateDiscordMessage(webhookUrl, existing.messageId, raid, siteUrl, discordStore, raidId, headers);
       }
 
@@ -531,6 +531,10 @@ export default async (req) => {
       const buttons = buildRaidButtons(raidId, raid.locked);
 
       let discordMsg;
+
+      // Log embed size for debugging
+      const embedJson = JSON.stringify({ embeds: [embed], components: buttons });
+      console.log(`Discord post: raidId=${raidId}, channel=${channelId || "webhook"}, embedSize=${embedJson.length}, fields=${embed.fields.length}`);
 
       if (botToken && channelId) {
         // Post via bot API — supports interactive buttons
@@ -583,7 +587,8 @@ export default async (req) => {
         usedBot: !!(botToken && channelId),
       });
 
-      return new Response(JSON.stringify({ ok: true, messageId: discordMsg.id }), { status: 200, headers });
+      console.log(`Discord post SUCCESS: messageId=${discordMsg.id}, channelId=${discordMsg.channel_id || channelId}`);
+      return new Response(JSON.stringify({ ok: true, messageId: discordMsg.id, channelId: discordMsg.channel_id || channelId }), { status: 200, headers });
     }
 
     if (action === "update") {
@@ -603,6 +608,7 @@ export default async (req) => {
 };
 
 async function updateDiscordMessage(webhookUrl, messageId, raid, siteUrl, discordStore, raidId, headers) {
+  console.log(`Discord update: raidId=${raidId}, messageId=${messageId}`);
   const embed = buildRaidEmbed(raid, siteUrl);
   const botToken = process.env.DISCORD_BOT_TOKEN;
   const mapping = await discordStore.get(raidId, { type: "json" });
