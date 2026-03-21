@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Raid } from '@/types'
+import type { Raid, RaidLogEntry } from '@/types'
 import { api } from '@/lib/api'
 
 export const useRaidsStore = defineStore('raids', () => {
@@ -90,6 +90,15 @@ export const useRaidsStore = defineStore('raids', () => {
     await api.post('/api/discord', { action: 'post', raidId })
   }
 
+  async function loadLog(raidId: string): Promise<RaidLogEntry[]> {
+    try {
+      const data = await api.post<RaidLogEntry[]>('/api/raids', { action: 'get-log', raidId })
+      return Array.isArray(data) ? data : []
+    } catch {
+      return []
+    }
+  }
+
   function getRaid(id: string): Raid | undefined {
     return raids.value.find(r => r.id === id)
   }
@@ -113,6 +122,6 @@ export const useRaidsStore = defineStore('raids', () => {
     signup, unsignup, lock, unlock,
     confirmPlayer, unconfirmPlayer, benchPlayer, removePlayer,
     assignSpec, confirmLineup, signupOther, postDiscord,
-    getRaid, upcomingRaids, pastRaids,
+    getRaid, upcomingRaids, pastRaids, loadLog,
   }
 })

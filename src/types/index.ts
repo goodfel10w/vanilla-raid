@@ -94,6 +94,16 @@ export interface AuthUser {
   isSiteAdmin?: boolean
 }
 
+export interface RaidLogEntry {
+  id: string
+  raidId: string
+  action: string
+  performedBy: string
+  targetPlayer?: string
+  details?: string
+  timestamp: string
+}
+
 export interface BnetCharacter {
   name: string
   className: WowClassName
