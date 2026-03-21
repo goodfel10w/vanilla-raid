@@ -137,10 +137,37 @@ function getSpecEmoji(cls, specName, role) {
 
 const DAY_NAMES_SHORT = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 
+// Raid tier mapping
+const RAID_TIERS = {
+  "Karazhan": "T4", "Gruuls Unterschlupf": "T4", "Magtheridons Kammer": "T4",
+  "Höhle des Schlangenschreins": "T5", "Festung der Stürme": "T5",
+  "Hyjalgipfel": "T6", "Schwarzer Tempel": "T6",
+  "Zul'Aman": "ZA", "Sonnenbrunnenplateau": "T6.5",
+};
+
 function fmtDate(ds) {
   const d = new Date(ds + "T00:00:00");
   const dn = DAY_NAMES_SHORT[d.getDay()];
   return dn + ", " + String(d.getDate()).padStart(2, "0") + "." + String(d.getMonth() + 1).padStart(2, "0") + "." + d.getFullYear();
+}
+
+// German relative time countdown
+function timeUntil(dateStr, timeStr) {
+  const target = new Date(dateStr + "T" + (timeStr || "20:00") + ":00");
+  const now = new Date();
+  const diffMs = target - now;
+
+  if (diffMs < 0) return "vergangen";
+
+  const diffH = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffD = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffD === 0 && diffH < 1) return "in Kürze";
+  if (diffD === 0) return diffH === 1 ? "in einer Stunde" : `in ${diffH} Stunden`;
+  if (diffD === 1) return "morgen";
+  if (diffD < 7) return `in ${diffD} Tagen`;
+  if (diffD < 14) return "in einer Woche";
+  return `in ${diffD} Tagen`;
 }
 
 // Role targets for raid composition
@@ -191,6 +218,13 @@ function buildRaidEmbed(raid, siteUrl) {
   const is10 = raid.maxPlayers <= 10;
   const targets = is10 ? RAID_TARGETS_10 : RAID_TARGETS_25;
 
+  // Build global position map (sorted by signup timestamp)
+  const sortedSignups = [...signups].sort((a, b) =>
+    (a.timestamp || "").localeCompare(b.timestamp || "")
+  );
+  const positionMap = new Map();
+  sortedSignups.forEach((s, i) => { positionMap.set(s, i + 1); });
+
   // Count by role
   const roleCounts = {};
   ROLES.forEach(r => { roleCounts[r] = 0; });
@@ -205,10 +239,6 @@ function buildRaidEmbed(raid, siteUrl) {
     else rangedDps++;
   });
 
-  // Count classes
-  const classCounts = {};
-  signups.forEach(s => { if (s.className) classCounts[s.className] = (classCounts[s.className] || 0) + 1; });
-
   // Progress bar
   const barLen = 20;
   const filled = Math.round(pct / 100 * barLen);
@@ -219,13 +249,30 @@ function buildRaidEmbed(raid, siteUrl) {
   if (total >= raid.maxPlayers) statusEmoji = "🟢";
   if (total > raid.maxPlayers) statusEmoji = "🔴";
 
+  // Countdown
+  const countdown = timeUntil(raid.date, raid.time);
+
   // Compact description
   const descParts = [
-    `📅 **${fmtDate(raid.date)}** • 🕒 **${raid.time} Uhr**`,
+    `📅 **${fmtDate(raid.date)}** • 🕒 **${raid.time} Uhr** — *${countdown}*`,
   ];
 
   if (raid.locked) {
     descParts.push("", "🔒 **Raid gesperrt — Anmeldung geschlossen**");
+  }
+
+  // Deadline display
+  if (raid.deadline) {
+    const dl = new Date(raid.deadline);
+    const dlDate = dl.toISOString().slice(0, 10);
+    const dlTime = dl.toTimeString().slice(0, 5);
+    const dlCountdown = timeUntil(dlDate, dlTime);
+    const dlFormatted = fmtDate(dlDate) + ", " + dlTime + " Uhr";
+    if (dlCountdown === "vergangen") {
+      descParts.push(`⏰ **Anmeldeschluss:** ~~${dlFormatted}~~ — *abgelaufen*`);
+    } else {
+      descParts.push(`⏰ **Anmeldeschluss:** ${dlFormatted} — *${dlCountdown}*`);
+    }
   }
 
   descParts.push(
@@ -252,7 +299,7 @@ function buildRaidEmbed(raid, siteUrl) {
   }
 
   if (siteUrl) {
-    descParts.push("", `🔗 **[Jetzt anmelden!](${siteUrl}#raids)**`);
+    descParts.push("", `🔗 **[Jetzt anmelden!](${siteUrl}#/raids/${raid.id})**`);
   }
 
   // ── Fields ──
@@ -273,6 +320,11 @@ function buildRaidEmbed(raid, siteUrl) {
     });
   });
 
+  // Separator between role targets and class signups
+  if (signups.length > 0) {
+    fields.push({ name: "─── Anmeldungen ───", value: ZWS, inline: false });
+  }
+
   // Class-grouped signup list (grouped by class with icons)
   let classFieldCount = 0;
   CLASS_DISPLAY_ORDER.forEach(cls => {
@@ -283,12 +335,13 @@ function buildRaidEmbed(raid, siteUrl) {
     const enName = CLASS_ENGLISH[cls];
 
     const lines = clsSignups.map(s => {
+      const pos = positionMap.get(s) || "";
       const tent = s.status === "tentative" ? " 🔸" : "";
       const conf = s.status === "confirmed" ? " ✅" : "";
       const spec = s.assignedSpec || (s.offeredSpecs && s.offeredSpecs.length ? s.offeredSpecs[0] : "");
       const specEmoji = spec ? getSpecEmoji(cls, spec, s.role) : (ROLE_EMOJI[s.role] || "⚔️");
       const specLabel = spec || s.role || "";
-      return `${specEmoji} **${s.charName}** *${specLabel}*${tent}${conf}`;
+      return `${specEmoji} \`${pos}\` **${s.charName}** *${specLabel}*${tent}${conf}`;
     });
 
     fields.push({
@@ -353,17 +406,30 @@ function buildRaidEmbed(raid, siteUrl) {
   if (total >= raid.maxPlayers) color = 0x66BB6A; // green = full
   if (total > raid.maxPlayers) color = 0xE57373; // red = over
 
+  // Title with tier badge
+  const tier = RAID_TIERS[raid.instance];
+  const title = tier ? `⚔️  ${raid.instance}  ·  ${tier}` : `⚔️  ${raid.instance}`;
+
+  // Author with creator name
+  const authorName = raid.createdByName
+    ? `<Vanilla> Raid-Planer  ·  👑 ${raid.createdByName}`
+    : "<Vanilla> Raid-Planer";
+
   const embed = {
     author: {
-      name: "<Vanilla> Raid-Planer",
+      name: authorName,
       icon_url: `${WOW_ICONS}/class/64/warrior.png`,
     },
-    title: `⚔️  ${raid.instance}`,
+    title,
     description: descParts.join("\n"),
     color,
     fields,
     thumbnail: {
       url: RAID_THUMBNAILS[raid.instance] || `${WH_ICONS}/inv_misc_head_dragon_01.jpg`,
+    },
+    footer: {
+      text: `Erstellt von ${raid.createdByName || "Unbekannt"} • Aktualisiert`,
+      icon_url: `${WOW_ICONS}/class/64/warrior.png`,
     },
     timestamp: new Date().toISOString(),
   };
