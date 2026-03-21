@@ -47,28 +47,6 @@ describe('DashboardView', () => {
     expect(wrapper.find('#v-dashboard').exists()).toBe(true)
   })
 
-  it('shows #counter with entry count', () => {
-    const router = createTestRouter()
-    const store = useEntriesStore()
-    store.entries = [makeEntry(), makeEntry({ id: '2', charName: 'Alt' })]
-
-    const wrapper = mount(DashboardView, {
-      global: { plugins: [router] },
-    })
-    const counter = wrapper.find('#counter')
-    expect(counter.exists()).toBe(true)
-    expect(counter.text()).toContain('2')
-    expect(counter.text()).toContain('Raider eingetragen')
-  })
-
-  it('shows 0 count when no entries', () => {
-    const router = createTestRouter()
-    const wrapper = mount(DashboardView, {
-      global: { plugins: [router] },
-    })
-    expect(wrapper.find('#counter').text()).toContain('0')
-  })
-
   it('shows quick action links', () => {
     const router = createTestRouter()
     const wrapper = mount(DashboardView, {

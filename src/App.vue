@@ -130,7 +130,9 @@ onMounted(async () => {
   }
 
   .bottom-nav-area {
-    display: block;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
     position: fixed;
     bottom: 0;
     left: 0;
