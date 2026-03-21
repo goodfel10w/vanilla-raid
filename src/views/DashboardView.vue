@@ -62,10 +62,6 @@ function roleIcon(role: RoleName): string {
 
 <template>
   <div id="v-dashboard">
-    <div id="counter" class="counter">
-      {{ entryCount }} Raider eingetragen
-    </div>
-
     <!-- Quick Actions -->
     <div class="quick-actions">
       <router-link to="/form" class="qa-link">
@@ -131,13 +127,6 @@ function roleIcon(role: RoleName): string {
 </template>
 
 <style scoped>
-.counter {
-  text-align: center;
-  color: var(--color-tx2);
-  font-size: 14px;
-  margin-bottom: 24px;
-}
-
 .quick-actions {
   display: flex;
   gap: 12px;
