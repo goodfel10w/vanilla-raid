@@ -14,6 +14,7 @@ import SignupModal from '@/components/raids/SignupModal.vue'
 import RaidForm from '@/components/raids/RaidForm.vue'
 import RaidCompletionForm from '@/components/raids/RaidCompletionForm.vue'
 import OrgaSignupModal from '@/components/raids/OrgaSignupModal.vue'
+import RaidActivityLog from '@/components/raids/RaidActivityLog.vue'
 import { useDkpRole } from '@/composables/useDkpRole'
 import type { Raid, RaidSignup as RaidSignupType } from '@/types'
 import type { RoleName } from '@/lib/constants'
@@ -376,6 +377,9 @@ function getMyStatusColor(): string {
             </div>
           </div>
         </div>
+
+        <!-- Activity log (organizers only) -->
+        <RaidActivityLog v-if="canManageRaid" :raid-id="raidId" />
 
         <!-- My signup status -->
         <div v-if="authStore.isLoggedIn && !isRaidPast && mySignup" class="my-signup-status" :style="{ color: getMyStatusColor() }">

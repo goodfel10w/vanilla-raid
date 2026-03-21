@@ -3,6 +3,29 @@ import { randomUUID } from "crypto";
 import { validateSession, isSiteAdmin } from "./shared/auth-utils.mjs";
 import { buildRaidEmbed, buildRaidButtons } from "./discord.mjs";
 
+// ── Audit log helper ──
+async function writeAuditLog(raidId, { action, performedBy, targetPlayer, details }) {
+  try {
+    const logStore = getStore({ name: "raid-audit-logs", consistency: "strong" });
+    const existing = await logStore.get(raidId, { type: "json" }).catch(() => null);
+    const logs = Array.isArray(existing) ? existing : [];
+    logs.push({
+      id: randomUUID(),
+      raidId,
+      action,
+      performedBy: performedBy || "System",
+      targetPlayer: targetPlayer || undefined,
+      details: details || undefined,
+      timestamp: new Date().toISOString(),
+    });
+    // Keep max 200 entries per raid
+    if (logs.length > 200) logs.splice(0, logs.length - 200);
+    await logStore.setJSON(raidId, logs);
+  } catch (err) {
+    console.error("Audit log write failed (non-fatal):", err);
+  }
+}
+
 // Check if user is a DKP officer or admin (via dkp-config roles)
 async function isDkpOfficerOrAdmin(username) {
   if (!username) return false;
@@ -83,6 +106,24 @@ export default async (req) => {
       const body = await req.json();
       const { action } = body;
 
+      // ── Get audit log for a raid (organizers only) ──
+      if (action === "get-log") {
+        const { raidId } = body;
+        if (!raidId) {
+          return new Response(JSON.stringify({ error: "Raid-ID fehlt" }), { status: 400, headers });
+        }
+        const raid = await store.get(raidId, { type: "json" });
+        if (!raid) {
+          return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
+        }
+        if (!await canManageRaid(user, raid)) {
+          return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
+        }
+        const logStore = getStore({ name: "raid-audit-logs", consistency: "strong" });
+        const logs = await logStore.get(raidId, { type: "json" }).catch(() => []);
+        return new Response(JSON.stringify(Array.isArray(logs) ? logs : []), { status: 200, headers });
+      }
+
       // ── Lock / Unlock ──
       if (action === "lock" || action === "unlock") {
         const { raidId } = body;
@@ -98,6 +139,10 @@ export default async (req) => {
         }
         raid.locked = action === "lock";
         await store.setJSON(raidId, raid);
+        writeAuditLog(raidId, {
+          action: action === "lock" ? "raid-locked" : "raid-unlocked",
+          performedBy: user.username,
+        });
         autoUpdateDiscord(raidId, raid);
         return new Response(JSON.stringify(raid), { status: 200, headers });
       }
@@ -145,6 +190,10 @@ export default async (req) => {
           }
         }
         if (!raid.signups) raid.signups = [];
+        // Check if this is a re-signup (status change)
+        const prevSignup = raid.signups.find(s => s.userId === user.userId);
+        const isResignup = !!prevSignup;
+        const prevStatus = prevSignup?.status;
         // Remove existing signup from this user (to replace)
         raid.signups = raid.signups.filter(s => s.userId !== user.userId);
         const signup = {
@@ -160,6 +209,21 @@ export default async (req) => {
         if (validSpecs.length) signup.offeredSpecs = validSpecs;
         raid.signups.push(signup);
         await store.setJSON(raidId, raid);
+        if (isResignup) {
+          writeAuditLog(raidId, {
+            action: "signup-changed",
+            performedBy: user.username,
+            targetPlayer: signup.charName,
+            details: prevStatus !== signup.status ? `${prevStatus} → ${signup.status}` : undefined,
+          });
+        } else {
+          writeAuditLog(raidId, {
+            action: "signup",
+            performedBy: user.username,
+            targetPlayer: signup.charName,
+            details: `${signup.className} / ${signup.status}`,
+          });
+        }
         autoUpdateDiscord(raidId, raid);
         return new Response(JSON.stringify(raid), { status: 200, headers });
       }
@@ -182,6 +246,7 @@ export default async (req) => {
         if (!signup) {
           return new Response(JSON.stringify({ error: "Spieler nicht angemeldet" }), { status: 404, headers });
         }
+        const prevSpec = signup.assignedSpec;
         if (assignedSpec) {
           // Validate the assigned spec is one of the offered specs
           if (signup.offeredSpecs && !signup.offeredSpecs.includes(assignedSpec)) {
@@ -203,6 +268,12 @@ export default async (req) => {
           }
         }
         await store.setJSON(raidId, raid);
+        writeAuditLog(raidId, {
+          action: "assign-spec",
+          performedBy: user.username,
+          targetPlayer: signup.charName,
+          details: assignedSpec ? `${prevSpec || '–'} → ${assignedSpec}` : "Zuweisung entfernt",
+        });
         autoUpdateDiscord(raidId, raid);
         return new Response(JSON.stringify(raid), { status: 200, headers });
       }
@@ -218,8 +289,14 @@ export default async (req) => {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
         if (!raid.signups) raid.signups = [];
+        const removed = raid.signups.find(s => s.userId === user.userId);
         raid.signups = raid.signups.filter(s => s.userId !== user.userId);
         await store.setJSON(raidId, raid);
+        writeAuditLog(raidId, {
+          action: "unsignup",
+          performedBy: user.username,
+          targetPlayer: removed?.charName || user.username,
+        });
         autoUpdateDiscord(raidId, raid);
         return new Response(JSON.stringify(raid), { status: 200, headers });
       }
@@ -245,6 +322,11 @@ export default async (req) => {
         signup.status = "benched";
         signup.benchedBy = user.username;
         await store.setJSON(raidId, raid);
+        writeAuditLog(raidId, {
+          action: "bench",
+          performedBy: user.username,
+          targetPlayer: signup.charName,
+        });
         autoUpdateDiscord(raidId, raid);
         return new Response(JSON.stringify(raid), { status: 200, headers });
       }
@@ -269,6 +351,11 @@ export default async (req) => {
         }
         signup.status = "confirmed";
         await store.setJSON(raidId, raid);
+        writeAuditLog(raidId, {
+          action: "confirm",
+          performedBy: user.username,
+          targetPlayer: signup.charName,
+        });
         autoUpdateDiscord(raidId, raid);
         return new Response(JSON.stringify(raid), { status: 200, headers });
       }
@@ -293,6 +380,11 @@ export default async (req) => {
         }
         signup.status = "accepted";
         await store.setJSON(raidId, raid);
+        writeAuditLog(raidId, {
+          action: "unconfirm",
+          performedBy: user.username,
+          targetPlayer: signup.charName,
+        });
         autoUpdateDiscord(raidId, raid);
         return new Response(JSON.stringify(raid), { status: 200, headers });
       }
@@ -312,12 +404,19 @@ export default async (req) => {
         }
         if (!raid.signups) raid.signups = [];
         const idSet = new Set(userIds);
+        const confirmedNames = [];
         for (const signup of raid.signups) {
           if (idSet.has(signup.userId)) {
             signup.status = "confirmed";
+            confirmedNames.push(signup.charName);
           }
         }
         await store.setJSON(raidId, raid);
+        writeAuditLog(raidId, {
+          action: "confirm-lineup",
+          performedBy: user.username,
+          details: `${confirmedNames.length} Spieler bestaetigt`,
+        });
         autoUpdateDiscord(raidId, raid);
         return new Response(JSON.stringify(raid), { status: 200, headers });
       }
@@ -336,8 +435,14 @@ export default async (req) => {
           return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
         if (!raid.signups) raid.signups = [];
+        const removedPlayer = raid.signups.find(s => s.userId === targetUserId);
         raid.signups = raid.signups.filter(s => s.userId !== targetUserId);
         await store.setJSON(raidId, raid);
+        writeAuditLog(raidId, {
+          action: "remove-signup",
+          performedBy: user.username,
+          targetPlayer: removedPlayer?.charName || targetUserId,
+        });
         autoUpdateDiscord(raidId, raid);
         return new Response(JSON.stringify(raid), { status: 200, headers });
       }
@@ -365,10 +470,11 @@ export default async (req) => {
         // Use targetUserId if provided (existing user), otherwise generate a placeholder
         const uid = targetUserId || ("manual-" + randomUUID());
         raid.signups = raid.signups.filter(s => s.userId !== uid);
+        const cleanCharName = String(charName).trim().slice(0, 50);
         raid.signups.push({
           userId: uid,
           username: "",
-          charName: String(charName).trim().slice(0, 50),
+          charName: cleanCharName,
           className: String(className || "").slice(0, 50),
           role,
           status: status || "accepted",
@@ -377,6 +483,12 @@ export default async (req) => {
           timestamp: new Date().toISOString(),
         });
         await store.setJSON(raidId, raid);
+        writeAuditLog(raidId, {
+          action: "signup-other",
+          performedBy: user.username,
+          targetPlayer: cleanCharName,
+          details: `${className || ""} / ${role}`,
+        });
         autoUpdateDiscord(raidId, raid);
         return new Response(JSON.stringify(raid), { status: 200, headers });
       }
@@ -471,10 +583,14 @@ export default async (req) => {
         return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
       }
       await store.delete(id);
-      // Clean up Discord message mapping
+      // Clean up Discord message mapping and audit logs
       try {
         const discordStore = getStore({ name: "discord-messages", consistency: "strong" });
         await discordStore.delete(id);
+      } catch (_) { /* non-fatal */ }
+      try {
+        const logStore = getStore({ name: "raid-audit-logs", consistency: "strong" });
+        await logStore.delete(id);
       } catch (_) { /* non-fatal */ }
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }
