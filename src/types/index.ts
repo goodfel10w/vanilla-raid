@@ -110,3 +110,13 @@ export interface BnetCharacter {
   realm: string
   level: number
 }
+
+export interface NewsPost {
+  id: string
+  title: string
+  content: string
+  author: string
+  pinned: boolean
+  createdAt: string
+  updatedAt: string
+}
