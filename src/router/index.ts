@@ -48,6 +48,11 @@ const router = createRouter({
       component: () => import('@/views/KaraView.vue'),
     },
     {
+      path: '/news',
+      name: 'news',
+      component: () => import('@/views/NewsView.vue'),
+    },
+    {
       path: '/dkp',
       name: 'dkp',
       component: () => import('@/views/DkpView.vue'),

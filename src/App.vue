@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useEntriesStore } from '@/stores/entries'
 import { useRaidsStore } from '@/stores/raids'
 import { useDkpStore } from '@/stores/dkp'
+import { useNewsStore } from '@/stores/news'
 import { useToast } from '@/composables/useToast'
 import TheSidebar from '@/components/layout/TheSidebar.vue'
 import TheBottomNav from '@/components/layout/TheBottomNav.vue'
@@ -14,6 +15,7 @@ const auth = useAuthStore()
 const entries = useEntriesStore()
 const raids = useRaidsStore()
 const dkp = useDkpStore()
+const news = useNewsStore()
 const { toast } = useToast()
 
 onMounted(async () => {
@@ -41,7 +43,7 @@ onMounted(async () => {
     await auth.validate()
   }
 
-  await Promise.all([entries.load(), raids.load(), dkp.load()])
+  await Promise.all([entries.load(), raids.load(), dkp.load(), news.load()])
 })
 </script>
 
