@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MyRaidInfo } from '@/composables/useDashboardData'
 import ClassIcon from '@/components/shared/ClassIcon.vue'
-import { cc } from '@/lib/utils'
+import { cc, timeAgo } from '@/lib/utils'
 
 defineProps<{
   raids: MyRaidInfo[]
@@ -54,6 +54,7 @@ function statusClass(status: string): string {
           <div class="mr-meta">
             <span :style="{ color: cc(ri.signup.className) }">{{ ri.signup.charName }}</span>
             &middot; {{ fmtDate(ri.raid.date) }} &middot; {{ ri.raid.time }} Uhr
+            <span v-if="ri.signup.timestamp" class="mr-ago">&middot; {{ timeAgo(ri.signup.timestamp) }}</span>
           </div>
         </div>
       </div>
@@ -127,4 +128,8 @@ function statusClass(status: string): string {
 .st-tentative { background: rgba(229, 194, 68, 0.12); color: var(--color-ylw); }
 .st-benched { background: rgba(229, 115, 115, 0.12); color: var(--color-dps); }
 .st-declined { background: rgba(255, 255, 255, 0.04); color: var(--color-tx4); }
+.mr-ago {
+  color: var(--color-tx4);
+  font-size: 11px;
+}
 </style>
