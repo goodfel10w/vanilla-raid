@@ -3,17 +3,19 @@ import { computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useEntriesStore } from '@/stores/entries'
 import { useRaidsStore } from '@/stores/raids'
+import { useNewsStore } from '@/stores/news'
 import { useDashboardData } from '@/composables/useDashboardData'
 import { ROLES, ROLE_COLORS, ROLE_ICONS } from '@/lib/constants'
 import type { RoleName } from '@/lib/constants'
 import MyRaidsCard from '@/components/dashboard/MyRaidsCard.vue'
 import NotificationsCard from '@/components/dashboard/NotificationsCard.vue'
 import SuggestedRaidsCard from '@/components/dashboard/SuggestedRaidsCard.vue'
-import UpcomingRaidsCard from '@/components/dashboard/UpcomingRaidsCard.vue'
+import LatestNewsCard from '@/components/dashboard/LatestNewsCard.vue'
 
 const authStore = useAuthStore()
 const entriesStore = useEntriesStore()
 const raidsStore = useRaidsStore()
+const newsStore = useNewsStore()
 
 const { myRaidsThisWeek, notifications, suggestedRaids, updateSnapshot } = useDashboardData()
 
@@ -21,6 +23,7 @@ onMounted(async () => {
   const promises: Promise<void>[] = []
   if (!entriesStore.entries.length) promises.push(entriesStore.load())
   if (!raidsStore.raids.length) promises.push(raidsStore.load())
+  if (!newsStore.posts.length) promises.push(newsStore.load())
   await Promise.all(promises)
   if (authStore.isLoggedIn) updateSnapshot()
 })
@@ -48,6 +51,8 @@ function roleColor(role: RoleName): string {
 function roleIcon(role: RoleName): string {
   return ROLE_ICONS[role]
 }
+
+const dashboardPosts = computed(() => newsStore.posts.slice(0, 3))
 </script>
 
 <template>
@@ -64,6 +69,9 @@ function roleIcon(role: RoleName): string {
         DKP
       </router-link>
     </div>
+
+    <!-- Latest News -->
+    <LatestNewsCard :posts="dashboardPosts" />
 
     <!-- Personalized sections for logged-in users -->
     <template v-if="authStore.isLoggedIn">

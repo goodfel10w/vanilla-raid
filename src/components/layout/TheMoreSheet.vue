@@ -7,6 +7,7 @@ const route = useRoute()
 const auth = useAuthStore()
 
 const moreItems = [
+  { label: 'Neuigkeiten', route: '/news', icon: '\uD83D\uDCF0' },
   { label: 'Aufstellung', route: '/roster', icon: '\uD83D\uDC65' },
   { label: 'Heatmap', route: '/heatmap', icon: '\uD83D\uDCC5' },
   { label: 'Auswertung', route: '/analytics', icon: '\uD83D\uDCC8' },

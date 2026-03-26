@@ -24,7 +24,7 @@ function isActive(navRoute: string): boolean {
 }
 
 const moreActive = computed(() =>
-  ['/roster', '/heatmap', '/analytics', '/kara', '/admin']
+  ['/news', '/roster', '/heatmap', '/analytics', '/kara', '/admin']
     .some(r => route.path === r || route.path.startsWith(r + '/'))
 )
 </script>

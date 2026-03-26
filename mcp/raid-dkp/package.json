@@ -1,0 +1,13 @@
+{
+  "name": "raid-dkp-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for officer DKP management after raids",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  }
+}

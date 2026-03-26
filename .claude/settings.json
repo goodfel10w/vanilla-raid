@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "raid-dkp": {
+      "command": "node",
+      "args": ["mcp/raid-dkp/server.mjs"],
+      "env": {
+        "RAID_DKP_API_URL": "https://vanilla-raid.netlify.app",
+        "RAID_DKP_AUTH_TOKEN": ""
+      }
+    }
+  }
+}
