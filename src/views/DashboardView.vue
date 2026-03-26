@@ -5,7 +5,7 @@ import { useEntriesStore } from '@/stores/entries'
 import { useRaidsStore } from '@/stores/raids'
 import { useNewsStore } from '@/stores/news'
 import { useDashboardData } from '@/composables/useDashboardData'
-import { CLS, ROLES, ROLE_COLORS, ROLE_ICONS } from '@/lib/constants'
+import { ROLES, ROLE_COLORS, ROLE_ICONS } from '@/lib/constants'
 import type { RoleName } from '@/lib/constants'
 import MyRaidsCard from '@/components/dashboard/MyRaidsCard.vue'
 import NotificationsCard from '@/components/dashboard/NotificationsCard.vue'
@@ -44,17 +44,6 @@ const roleCounts = computed(() => {
   }))
 })
 
-const classCounts = computed(() => {
-  return CLS.map(c => ({
-    ...c,
-    count: entriesStore.entries.filter(e => e.className === c.name).length,
-  }))
-    .filter(c => c.count > 0)
-    .sort((a, b) => b.count - a.count)
-})
-
-const maxClassCount = computed(() => Math.max(1, ...classCounts.value.map(c => c.count)))
-
 function roleColor(role: RoleName): string {
   return ROLE_COLORS[role]
 }
@@ -91,6 +80,9 @@ const dashboardPosts = computed(() => newsStore.posts.slice(0, 3))
       <SuggestedRaidsCard v-if="suggestedRaids.length" :raids="suggestedRaids" />
     </template>
 
+    <!-- Upcoming Raids - visible to all users -->
+    <UpcomingRaidsCard :raids="raidsStore.upcomingRaids" />
+
     <template v-if="entryCount > 0">
       <!-- Role Distribution -->
       <div class="card dash-card">
@@ -110,23 +102,6 @@ const dashboardPosts = computed(() => newsStore.posts.slice(0, 3))
         </div>
       </div>
 
-      <!-- Class Distribution -->
-      <div class="card dash-card">
-        <div class="card-t">Klassenverteilung</div>
-        <div v-for="cls in classCounts" :key="cls.name" class="bar-row">
-          <span class="bar-lbl" :style="{ color: cls.color }">{{ cls.name }}</span>
-          <div class="bar-track">
-            <div
-              class="bar-fill"
-              :style="{
-                width: (cls.count / maxClassCount) * 100 + '%',
-                background: cls.color + '40',
-              }"
-            ></div>
-            <span class="bar-val" :style="{ color: cls.color }">{{ cls.count }}&times;</span>
-          </div>
-        </div>
-      </div>
     </template>
 
     <div v-else class="empty">
@@ -217,43 +192,6 @@ const dashboardPosts = computed(() => newsStore.posts.slice(0, 3))
   font-size: 10px;
   color: var(--color-tx4);
   margin-top: 3px;
-}
-
-.bar-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.bar-lbl {
-  font-size: 12px;
-  font-weight: 600;
-  min-width: 100px;
-}
-
-.bar-track {
-  flex: 1;
-  height: 20px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 6px;
-  position: relative;
-  overflow: hidden;
-}
-
-.bar-fill {
-  height: 100%;
-  border-radius: 6px;
-  transition: width 0.5s;
-}
-
-.bar-val {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 11px;
-  font-weight: 700;
 }
 
 .empty {

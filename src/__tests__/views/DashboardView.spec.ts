@@ -4,7 +4,8 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import DashboardView from '@/views/DashboardView.vue'
 import { useEntriesStore } from '@/stores/entries'
-import type { Entry } from '@/types'
+import { useRaidsStore } from '@/stores/raids'
+import type { Entry, Raid } from '@/types'
 
 function makeEntry(overrides: Partial<Entry> = {}): Entry {
   return {
@@ -77,23 +78,33 @@ describe('DashboardView', () => {
     expect(roleItems[0].find('.sm').text()).toContain('Tank')
   })
 
-  it('shows class distribution sorted by count', () => {
+  it('shows upcoming raids card', () => {
     const router = createTestRouter()
-    const store = useEntriesStore()
-    store.entries = [
-      makeEntry({ id: '1', className: 'Magier', charName: 'Mage1' }),
-      makeEntry({ id: '2', className: 'Magier', charName: 'Mage2' }),
-      makeEntry({ id: '3', className: 'Krieger', charName: 'War1' }),
+    const raidsStore = useRaidsStore()
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const dateStr = tomorrow.toISOString().slice(0, 10)
+    raidsStore.raids = [
+      {
+        id: 'r1',
+        instance: 'Karazhan',
+        date: dateStr,
+        time: '20:00',
+        maxPlayers: 10,
+        locked: false,
+        notes: '',
+        description: '',
+        signups: [],
+        timestamp: new Date().toISOString(),
+      } as Raid,
     ]
 
     const wrapper = mount(DashboardView, {
       global: { plugins: [router] },
     })
-    const bars = wrapper.findAll('.bar-row')
-    expect(bars.length).toBe(2)
-    // Magier first (2 entries), then Krieger (1 entry)
-    expect(bars[0].find('.bar-lbl').text()).toBe('Magier')
-    expect(bars[1].find('.bar-lbl').text()).toBe('Krieger')
+    expect(wrapper.text()).toContain('Kommende Raids')
+    expect(wrapper.text()).toContain('Karazhan')
+    expect(wrapper.text()).toContain('0/10 angemeldet')
   })
 
   it('shows empty state when no entries', () => {
@@ -102,7 +113,6 @@ describe('DashboardView', () => {
       global: { plugins: [router] },
     })
     expect(wrapper.find('.empty').exists()).toBe(true)
-    expect(wrapper.findAll('.bar-row').length).toBe(0)
   })
 
   it('links navigate to correct routes', () => {
