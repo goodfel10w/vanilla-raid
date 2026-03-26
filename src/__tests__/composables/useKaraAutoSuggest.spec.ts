@@ -67,14 +67,17 @@ describe('useKaraAutoSuggest', () => {
         { entryId: '4', pinned: false },
       ]
       const roles = karaGroupRoles(group, entries)
-      expect(roles.t).toBe(1)
+      // Tank without tankRole assignment doesn't count as mt or ot
+      expect(roles.mt).toBe(0)
+      expect(roles.ot).toBe(0)
       expect(roles.hl).toBe(1)
       expect(roles.dp).toBe(2)
     })
 
     it('returns zeros for empty group', () => {
       const roles = karaGroupRoles([], [])
-      expect(roles.t).toBe(0)
+      expect(roles.mt).toBe(0)
+      expect(roles.ot).toBe(0)
       expect(roles.hl).toBe(0)
       expect(roles.dp).toBe(0)
     })

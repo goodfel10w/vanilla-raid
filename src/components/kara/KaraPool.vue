@@ -8,10 +8,13 @@ const props = defineProps<{
   links: KaraLink[]
   isDragOver: boolean
   noEntries: boolean
+  showAssigned: boolean
+  assignedPlayers?: { entry: Entry; groupIndex: number }[]
 }>()
 
 const emit = defineEmits<{
   link: [entryId: string]
+  toggleShowAssigned: []
   dragstart: [entryId: string, event: DragEvent]
   dragend: []
   dragover: [event: DragEvent]
@@ -29,6 +32,12 @@ function getLinkColor(entryId: string): string | null {
   <div class="kara-pool">
     <div class="kara-pool-title">
       Spieler-Pool <span class="kara-pool-count">{{ pool.length }}</span>
+      <button
+        class="kara-pool-toggle"
+        :class="{ active: showAssigned }"
+        title="Zugewiesene Spieler anzeigen"
+        @click="emit('toggleShowAssigned')"
+      >&#x1F441; Zugewiesene</button>
     </div>
     <div
       class="kara-dropzone pool-zone"
@@ -38,7 +47,7 @@ function getLinkColor(entryId: string): string | null {
       @dragleave="emit('dragleave', $event)"
       @drop="emit('drop', $event)"
     >
-      <div v-if="pool.length === 0" class="kara-empty">
+      <div v-if="pool.length === 0 && (!showAssigned || !assignedPlayers?.length)" class="kara-empty">
         {{ noEntries ? 'Keine Eintraege vorhanden' : 'Alle Spieler sind verteilt' }}
       </div>
       <KaraPlayer
@@ -52,6 +61,20 @@ function getLinkColor(entryId: string): string | null {
         @dragstart="emit('dragstart', $event, $event as unknown as DragEvent)"
         @dragend="emit('dragend')"
       />
+      <!-- Ghosted assigned players -->
+      <template v-if="showAssigned && assignedPlayers?.length">
+        <div class="kara-pool-divider">Zugewiesen</div>
+        <KaraPlayer
+          v-for="ap in assignedPlayers"
+          :key="'ghost-' + ap.entry.id"
+          :entry-id="ap.entry.id"
+          :in-group="false"
+          :pinned="false"
+          :link-color="getLinkColor(ap.entry.id)"
+          :ghosted="true"
+          :ghost-group-index="ap.groupIndex"
+        />
+      </template>
     </div>
   </div>
 </template>
@@ -76,6 +99,38 @@ function getLinkColor(entryId: string): string | null {
   color: var(--color-gold);
   padding: 1px 8px;
   border-radius: 10px;
+}
+
+.kara-pool-toggle {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--color-tx4);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.kara-pool-toggle:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.kara-pool-toggle.active {
+  background: rgba(201, 168, 76, 0.12);
+  border-color: rgba(201, 168, 76, 0.25);
+  color: var(--color-gold);
+}
+
+.kara-pool-divider {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--color-tx4);
+  padding: 6px 0 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  margin-top: 4px;
 }
 
 .kara-dropzone {

@@ -1,13 +1,14 @@
-import { DAYS, SLOTS, HOUR_LABELS } from '@/lib/constants'
+import { DAYS, SLOTS } from '@/lib/constants'
 import { hourQuarters } from '@/lib/utils'
 import type { Entry } from '@/types'
 import type { KaraGroupPlayer, KaraLink } from './useKaraPersistence'
 
+const KARA_MT = 1
+const KARA_OT = 1
 const KARA_TANKS = 2
 const KARA_HEALERS = 2
 const KARA_DPS = 6
 const KARA_SIZE = 10
-const KARA_GROUPS_COUNT = 3
 
 export interface SlotSuggestion {
   day: string
@@ -114,57 +115,84 @@ export function karaSuggestSlots(entries: Entry[], excludePlayerIds?: Set<string
   return suggestions
 }
 
-export function karaAutoPickSlots(entries: Entry[]): string[] | null {
+export function karaAutoPickSlots(entries: Entry[], groupCount: number): string[] | null {
   const allSuggestions = karaSuggestSlots(entries)
   const viable = allSuggestions.filter(s => s.total >= 5 && s.tanks >= 1 && s.healers >= 1)
   const top = viable.slice(0, 25)
+
+  if (groupCount < 1 || top.length < groupCount) return null
+
+  // For small group counts, try all combinations
   let bestCombo: string[] | null = null
   let bestScore = -Infinity
 
-  for (let i = 0; i < top.length; i++) {
-    for (let j = i + 1; j < top.length; j++) {
-      for (let k = j + 1; k < top.length; k++) {
-        const a = top[i], b = top[j], c = top[k]
-        const allIds = new Set<string>()
-        a.playerIds.forEach(id => allIds.add(id))
-        b.playerIds.forEach(id => allIds.add(id))
-        c.playerIds.forEach(id => allIds.add(id))
-        const uniqueCount = allIds.size
-        const capped = Math.min(a.total, 10) + Math.min(b.total, 10) + Math.min(c.total, 10)
-        let roleScore = 0
-        ;[a, b, c].forEach(s => {
-          if (s.tanks >= KARA_TANKS) roleScore += 15
-          if (s.healers >= KARA_HEALERS) roleScore += 15
-          if (s.dps >= KARA_DPS) roleScore += 10
-        })
-        const score = uniqueCount * 5 + capped * 2 + roleScore
-        if (score > bestScore) {
-          bestScore = score
-          bestCombo = [a.key, b.key, c.key]
-        }
+  // Generate combinations of size groupCount from top
+  function combine(start: number, combo: SlotSuggestion[]) {
+    if (combo.length === groupCount) {
+      const allIds = new Set<string>()
+      combo.forEach(s => s.playerIds.forEach(id => allIds.add(id)))
+      const uniqueCount = allIds.size
+      const capped = combo.reduce((s, c) => s + Math.min(c.total, 10), 0)
+      let roleScore = 0
+      combo.forEach(s => {
+        if (s.tanks >= KARA_TANKS) roleScore += 15
+        if (s.healers >= KARA_HEALERS) roleScore += 15
+        if (s.dps >= KARA_DPS) roleScore += 10
+      })
+      const score = uniqueCount * 5 + capped * 2 + roleScore
+      if (score > bestScore) {
+        bestScore = score
+        bestCombo = combo.map(s => s.key)
       }
+      return
+    }
+    for (let i = start; i < top.length; i++) {
+      combo.push(top[i])
+      combine(i + 1, combo)
+      combo.pop()
     }
   }
+
+  combine(0, [])
   return bestCombo
 }
 
 export interface RoleCounts {
-  t: number
+  mt: number
+  ot: number
   hl: number
   dp: number
 }
 
 export function karaGroupRoles(group: KaraGroupPlayer[], entries: Entry[]): RoleCounts {
-  let t = 0, hl = 0, dp = 0
+  let mt = 0, ot = 0, hl = 0, dp = 0
   group.forEach(p => {
     const entry = entries.find(e => e.id === p.entryId)
     if (!entry) return
     const roles = entry.roles || []
-    if (roles.includes('Tank')) t++
+    if (roles.includes('Tank')) {
+      if (p.tankRole === 'MT') mt++
+      else if (p.tankRole === 'OT') ot++
+      else {
+        // Unassigned tank — count toward generic totals but not MT/OT
+        // We'll track them separately for UI display
+      }
+    }
     if (roles.includes('Heiler')) hl++
     if (roles.includes('DPS')) dp++
   })
-  return { t, hl, dp }
+  return { mt, ot, hl, dp }
+}
+
+/** Count total tanks in a group (MT + OT + unassigned tanks) */
+export function karaGroupTankTotal(group: KaraGroupPlayer[], entries: Entry[]): number {
+  let t = 0
+  group.forEach(p => {
+    const entry = entries.find(e => e.id === p.entryId)
+    if (!entry) return
+    if ((entry.roles || []).includes('Tank')) t++
+  })
+  return t
 }
 
 function primaryRole(entry: Entry): string {
@@ -176,12 +204,16 @@ function primaryRole(entry: Entry): string {
 
 function groupScore(group: KaraGroupPlayer[], entries: Entry[]): number {
   const roles = karaGroupRoles(group, entries)
+  const tankTotal = karaGroupTankTotal(group, entries)
   let score = 0
-  score -= Math.max(0, KARA_TANKS - roles.t) * 10
+  score -= Math.max(0, KARA_TANKS - tankTotal) * 10
   score -= Math.max(0, KARA_HEALERS - roles.hl) * 10
   score -= Math.max(0, KARA_DPS - roles.dp) * 8
-  score -= Math.max(0, roles.t - KARA_TANKS) * 3
+  score -= Math.max(0, tankTotal - KARA_TANKS) * 3
   score -= Math.max(0, roles.hl - KARA_HEALERS) * 3
+  // Bonus for MT/OT assignment
+  score -= Math.max(0, KARA_MT - roles.mt) * 5
+  score -= Math.max(0, KARA_OT - roles.ot) * 5
   const classes = new Set<string>()
   group.forEach(p => {
     const entry = entries.find(e => e.id === p.entryId)
@@ -199,18 +231,19 @@ export function karaAutoGenerate(
   filterDay: string,
   filterTime: string,
 ): { groups: KaraGroupPlayer[][]; message: string } {
+  const groupCount = groups.length
   const hasSlots = groupSlots.some(s => s)
 
   // Collect pinned players
   const pinnedIds = new Set<string>()
   groups.forEach(g => g.forEach(p => { if (p.pinned) pinnedIds.add(p.entryId) }))
 
-  // Remove non-pinned entries from groups
+  // Remove non-pinned entries from groups (preserve tankRole for pinned)
   const newGroups: KaraGroupPlayer[][] = groups.map(g => g.filter(p => p.pinned))
 
   // Build per-group available player pools
   const groupPools: Entry[][] = []
-  for (let gi = 0; gi < KARA_GROUPS_COUNT; gi++) {
+  for (let gi = 0; gi < groupCount; gi++) {
     const slot = groupSlots[gi]
     let pool: Entry[]
     if (slot) {
@@ -250,11 +283,12 @@ export function karaAutoGenerate(
   function needsRoleForEntry(entry: Entry): number {
     const role = primaryRole(entry)
     let bestGi = -1, bestNeed = 0
-    for (let gi = 0; gi < KARA_GROUPS_COUNT; gi++) {
+    for (let gi = 0; gi < groupCount; gi++) {
       if (!canPlace(entry.id, gi)) continue
+      const tankTotal = karaGroupTankTotal(newGroups[gi], allEntries)
       const roles = karaGroupRoles(newGroups[gi], allEntries)
       let need = 0
-      if (role === 'Tank') need = Math.max(0, KARA_TANKS - roles.t)
+      if (role === 'Tank') need = Math.max(0, KARA_TANKS - tankTotal)
       if (role === 'Heiler') need = Math.max(0, KARA_HEALERS - roles.hl)
       if (role === 'DPS') need = Math.max(0, KARA_DPS - roles.dp)
       if (need > bestNeed || (need === bestNeed && newGroups[gi].length < (bestGi >= 0 ? newGroups[bestGi].length : 99))) {
@@ -267,7 +301,7 @@ export function karaAutoGenerate(
 
   function smallestEligibleGroup(entryId: string): number {
     let bestGi = -1, bestSize = 99
-    for (let gi = 0; gi < KARA_GROUPS_COUNT; gi++) {
+    for (let gi = 0; gi < groupCount; gi++) {
       if (!canPlace(entryId, gi)) continue
       if (newGroups[gi].length < bestSize) { bestSize = newGroups[gi].length; bestGi = gi }
     }
@@ -282,12 +316,12 @@ export function karaAutoGenerate(
   linkedSets.forEach(ls => {
     if (ls.ids.length === 0) return
     let targetGi = -1
-    for (let gi = 0; gi < KARA_GROUPS_COUNT; gi++) {
+    for (let gi = 0; gi < groupCount; gi++) {
       if (newGroups[gi].some(p => ls.ids.includes(p.entryId))) { targetGi = gi; break }
     }
     if (targetGi < 0) {
       let bestCount = 0
-      for (let gi = 0; gi < KARA_GROUPS_COUNT; gi++) {
+      for (let gi = 0; gi < groupCount; gi++) {
         const eligibleCount = ls.ids.filter(id => !placed.has(id) && new Set(groupPools[gi].map(e => e.id)).has(id)).length
         if (eligibleCount > bestCount && newGroups[gi].length < 10) { bestCount = eligibleCount; targetGi = gi }
       }
@@ -349,9 +383,9 @@ export function karaAutoGenerate(
   // Optimize swaps
   for (let iter = 0; iter < 50; iter++) {
     let improved = false
-    for (let gi = 0; gi < KARA_GROUPS_COUNT; gi++) {
+    for (let gi = 0; gi < groupCount; gi++) {
       const poolIdsI = new Set(groupPools[gi].map(e => e.id))
-      for (let gj = gi + 1; gj < KARA_GROUPS_COUNT; gj++) {
+      for (let gj = gi + 1; gj < groupCount; gj++) {
         const poolIdsJ = new Set(groupPools[gj].map(e => e.id))
         for (let pi = 0; pi < newGroups[gi].length; pi++) {
           if (newGroups[gi][pi].pinned) continue
@@ -396,4 +430,4 @@ export function karaAutoGenerate(
   return { groups: newGroups, message }
 }
 
-export { KARA_TANKS, KARA_HEALERS, KARA_DPS, KARA_SIZE, KARA_GROUPS_COUNT }
+export { KARA_MT, KARA_OT, KARA_TANKS, KARA_HEALERS, KARA_DPS, KARA_SIZE }
