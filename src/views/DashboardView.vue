@@ -22,7 +22,7 @@ const karaSignupsStore = useKaraSignupsStore()
 
 const { myRaidsThisWeek, notifications, suggestedRaids, updateSnapshot } = useDashboardData()
 
-const hasEntry = computed(() => {
+const hasAnyEntry = computed(() => {
   if (!authStore.user) return false
   return entriesStore.entries.some(e => e.userId === authStore.user!.userId)
 })
@@ -89,7 +89,7 @@ const dashboardPosts = computed(() => newsStore.posts.slice(0, 3))
       <NotificationsCard v-if="notifications.length" :notifications="notifications" />
       <MyRaidsCard :raids="myRaidsThisWeek" />
       <SuggestedRaidsCard v-if="suggestedRaids.length" :raids="suggestedRaids" />
-      <KaraSignupCard v-if="hasEntry" />
+      <KaraSignupCard v-if="hasAnyEntry" />
     </template>
 
     <!-- Upcoming Raids - visible to all users -->
