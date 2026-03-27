@@ -1,9 +1,11 @@
 import { ref } from 'vue'
 import type { Entry } from '@/types'
+import { api } from '@/lib/api'
 
 export interface KaraGroupPlayer {
   entryId: string
   pinned: boolean
+  tankRole?: 'MT' | 'OT'
 }
 
 export interface KaraLink {
@@ -17,18 +19,20 @@ export interface KaraState {
   groupSlots: string[]
 }
 
-const KARA_GROUPS_COUNT = 3
+const KARA_DEFAULT_GROUPS = 2
+const KARA_MAX_GROUPS = 5
+const KARA_MIN_GROUPS = 1
 
 /**
- * ID-Week starts Tuesday 03:00, ends Monday 02:59.
- * Returns the Tuesday start date for a given offset from current week.
+ * EU Raid week starts Wednesday 03:00, ends Tuesday 02:59.
+ * Returns the Wednesday start date for a given offset from current week.
  */
 export function getIdWeekStart(offset: number): Date {
   const now = new Date()
   const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 3, 0, 0)
   const dow = d.getDay()
-  const daysSinceTue = (dow + 5) % 7
-  d.setDate(d.getDate() - daysSinceTue)
+  const daysSinceWed = (dow + 4) % 7
+  d.setDate(d.getDate() - daysSinceWed)
   if (now < d) d.setDate(d.getDate() - 7)
   d.setDate(d.getDate() + offset * 7)
   return d
@@ -40,72 +44,185 @@ export function getIdWeekEnd(start: Date): Date {
   return end
 }
 
-function karaWeekKey(offset: number): string {
+function weekKeyDate(offset: number): string {
   const s = getIdWeekStart(offset)
-  return `kara_${s.getFullYear()}_${String(s.getMonth() + 1).padStart(2, '0')}_${String(s.getDate()).padStart(2, '0')}`
+  return `${s.getFullYear()}-${String(s.getMonth() + 1).padStart(2, '0')}-${String(s.getDate()).padStart(2, '0')}`
 }
 
-function emptyState(): KaraState {
+function localStorageKey(offset: number): string {
+  const s = getIdWeekStart(offset)
+  return `kara_eu_${s.getFullYear()}_${String(s.getMonth() + 1).padStart(2, '0')}_${String(s.getDate()).padStart(2, '0')}`
+}
+
+/**
+ * Migrate old localStorage keys (kara_YYYY_MM_DD, Tuesday-based) to new format.
+ * Checks the old Tuesday-start week that overlaps with the current Wednesday-start week.
+ * The old week starting on Tuesday could be either 1 day before or 6 days before Wednesday.
+ */
+function tryMigrateOldKey(offset: number): KaraState | null {
+  const wedStart = getIdWeekStart(offset)
+  // Old system used Tuesday start: the Tuesday just before this Wednesday
+  const tueBefore = new Date(wedStart)
+  tueBefore.setDate(tueBefore.getDate() - 1) // Tuesday = Wednesday - 1
+  const oldKey1 = `kara_${tueBefore.getFullYear()}_${String(tueBefore.getMonth() + 1).padStart(2, '0')}_${String(tueBefore.getDate()).padStart(2, '0')}`
+  // Also check the Tuesday one week earlier (edge case: the old week that started 8 days ago)
+  const tueWeekBefore = new Date(tueBefore)
+  tueWeekBefore.setDate(tueWeekBefore.getDate() - 7)
+  const oldKey2 = `kara_${tueWeekBefore.getFullYear()}_${String(tueWeekBefore.getMonth() + 1).padStart(2, '0')}_${String(tueWeekBefore.getDate()).padStart(2, '0')}`
+
+  for (const oldKey of [oldKey1, oldKey2]) {
+    const raw = localStorage.getItem(oldKey)
+    if (raw) {
+      try {
+        const data = JSON.parse(raw) as KaraState
+        if (data.groups && data.groups.some(g => g.length > 0)) {
+          // Found old data with actual assignments — migrate it
+          localStorage.removeItem(oldKey)
+          return data
+        }
+      } catch { /* ignore */ }
+    }
+  }
+  return null
+}
+
+function emptyState(groupCount = KARA_DEFAULT_GROUPS): KaraState {
   return {
-    groups: [[], [], []],
+    groups: Array.from({ length: groupCount }, () => []),
     links: [],
-    groupSlots: ['', '', ''],
+    groupSlots: Array.from({ length: groupCount }, () => ''),
   }
 }
 
 export function useKaraPersistence() {
   const weekOffset = ref(0)
-  const groups = ref<KaraGroupPlayer[][]>([[], [], []])
+  const groups = ref<KaraGroupPlayer[][]>([[], []])
   const links = ref<KaraLink[]>([])
-  const groupSlots = ref<string[]>(['', '', ''])
+  const groupSlots = ref<string[]>(['', ''])
+  const loading = ref(false)
+  const saving = ref(false)
+  const lastSavedBy = ref('')
+  const lastSavedAt = ref('')
 
-  function save() {
-    const key = karaWeekKey(weekOffset.value)
+  async function save() {
+    const week = weekKeyDate(weekOffset.value)
     const data: KaraState = {
       groups: groups.value,
       links: links.value,
       groupSlots: groupSlots.value,
     }
-    localStorage.setItem(key, JSON.stringify(data))
+    // Always write to localStorage as fallback
+    const lsKey = localStorageKey(weekOffset.value)
+    try { localStorage.setItem(lsKey, JSON.stringify(data)) } catch { /* ignore */ }
+
+    // Try API save
+    saving.value = true
+    try {
+      const res = await api.post<{ ok: boolean; updatedBy?: string; updatedAt?: string }>('/api/kara', { week, ...data })
+      if (res.updatedBy) lastSavedBy.value = res.updatedBy
+      if (res.updatedAt) lastSavedAt.value = res.updatedAt
+    } catch {
+      // API save failed, localStorage fallback is already written
+    } finally {
+      saving.value = false
+    }
   }
 
-  function load(entries: Entry[]) {
-    const key = karaWeekKey(weekOffset.value)
-    const raw = localStorage.getItem(key)
-    if (raw) {
-      try {
-        const data = JSON.parse(raw) as KaraState
-        groups.value = data.groups || [[], [], []]
-        links.value = data.links || []
-        groupSlots.value = data.groupSlots || ['', '', '']
-        while (groups.value.length < KARA_GROUPS_COUNT) groups.value.push([])
-        while (groupSlots.value.length < KARA_GROUPS_COUNT) groupSlots.value.push('')
-      } catch {
-        const s = emptyState()
-        groups.value = s.groups
-        links.value = s.links
-        groupSlots.value = s.groupSlots
+  async function load(entries: Entry[]) {
+    const week = weekKeyDate(weekOffset.value)
+    const lsKey = localStorageKey(weekOffset.value)
+    loading.value = true
+
+    let state: KaraState | null = null
+
+    // Try API first
+    try {
+      const res = await api.get<{
+        groups?: KaraGroupPlayer[][]
+        links?: KaraLink[]
+        groupSlots?: string[]
+        updatedBy?: string
+        updatedAt?: string
+      }>(`/api/kara?week=${week}`)
+      if (res && res.groups && res.groups.length > 0) {
+        state = {
+          groups: res.groups,
+          links: res.links || [],
+          groupSlots: res.groupSlots || [],
+        }
+        if (res.updatedBy) lastSavedBy.value = res.updatedBy
+        if (res.updatedAt) lastSavedAt.value = res.updatedAt
       }
+    } catch {
+      // API unavailable, fall through to localStorage
+    }
+
+    // Fallback to localStorage (new key format)
+    if (!state) {
+      const raw = localStorage.getItem(lsKey)
+      if (raw) {
+        try {
+          state = JSON.parse(raw) as KaraState
+        } catch {
+          state = null
+        }
+      }
+      // If still nothing, try migrating from old Tuesday-based key format
+      if (!state) {
+        state = tryMigrateOldKey(weekOffset.value)
+      }
+      lastSavedBy.value = ''
+      lastSavedAt.value = ''
+    }
+
+    if (state) {
+      groups.value = state.groups || [[], []]
+      links.value = state.links || []
+      groupSlots.value = state.groupSlots || ['', '']
+      // Ensure groups and groupSlots arrays are in sync
+      while (groupSlots.value.length < groups.value.length) groupSlots.value.push('')
+      while (groupSlots.value.length > groups.value.length) groupSlots.value.pop()
     } else {
       const s = emptyState()
       groups.value = s.groups
       links.value = s.links
       groupSlots.value = s.groupSlots
     }
+
     // Prune entries that no longer exist
     const validIds = new Set(entries.map(e => e.id))
     groups.value.forEach((g, gi) => {
       groups.value[gi] = g.filter(p => validIds.has(p.entryId))
     })
     links.value = links.value.filter(lk => lk.ids.every(id => validIds.has(id)))
+
+    loading.value = false
   }
 
-  function reset() {
-    const s = emptyState()
+  async function reset() {
+    const count = groups.value.length
+    const s = emptyState(count)
     groups.value = s.groups
     links.value = s.links
     groupSlots.value = s.groupSlots
-    save()
+    await save()
+  }
+
+  function addGroup() {
+    if (groups.value.length >= KARA_MAX_GROUPS) return false
+    groups.value.push([])
+    groupSlots.value.push('')
+    return true
+  }
+
+  function removeGroup(gi: number) {
+    if (groups.value.length <= KARA_MIN_GROUPS) return false
+    if (gi < 0 || gi >= groups.value.length) return false
+    // Remove players from links that reference removed group's players
+    // (the players go back to pool, links stay)
+    groups.value.splice(gi, 1)
+    groupSlots.value.splice(gi, 1)
+    return true
   }
 
   return {
@@ -113,10 +230,17 @@ export function useKaraPersistence() {
     groups,
     links,
     groupSlots,
+    loading,
+    saving,
+    lastSavedBy,
+    lastSavedAt,
     save,
     load,
     reset,
+    addGroup,
+    removeGroup,
     getIdWeekStart,
     getIdWeekEnd,
+    KARA_MAX_GROUPS,
   }
 }

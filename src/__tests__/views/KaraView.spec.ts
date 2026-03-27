@@ -49,7 +49,7 @@ describe('KaraView', () => {
     const wrapper = mount(KaraView, {
       global: { plugins: [router] },
     })
-    expect(wrapper.text()).toContain('ID-Woche')
+    expect(wrapper.text()).toContain('Raidwoche')
   })
 
   it('shows action buttons', () => {
@@ -86,14 +86,14 @@ describe('KaraView', () => {
     expect(wrapper.text()).toContain('Healer1')
   })
 
-  it('shows 3 Kara groups', () => {
+  it('shows default 2 Kara groups', () => {
     const router = createTestRouter()
     const wrapper = mount(KaraView, {
       global: { plugins: [router] },
     })
     expect(wrapper.text()).toContain('Karazhan 1')
     expect(wrapper.text()).toContain('Karazhan 2')
-    expect(wrapper.text()).toContain('Karazhan 3')
+    expect(wrapper.text()).toContain('Gruppe hinzufuegen')
   })
 
   it('shows summary cards', () => {

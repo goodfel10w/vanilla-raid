@@ -11,12 +11,17 @@ const props = defineProps<{
   inGroup: boolean
   pinned: boolean
   linkColor: string | null
+  tankRole?: 'MT' | 'OT'
+  overlapGroups?: number[]
+  ghosted?: boolean
+  ghostGroupIndex?: number
 }>()
 
 const emit = defineEmits<{
   pin: [entryId: string]
   unassign: [entryId: string]
   link: [entryId: string]
+  setTankRole: [entryId: string, role: 'MT' | 'OT' | undefined]
   dragstart: [entryId: string, event: DragEvent]
   dragend: []
 }>()
@@ -28,34 +33,81 @@ const mainRole = computed<RoleName>(() => {
   const roles = entry.value?.roles || []
   return (roles[0] || 'DPS') as RoleName
 })
+const isTank = computed(() => mainRole.value === 'Tank')
 const roleColor = computed(() => ROLE_COLORS[mainRole.value] || '#888')
 const specText = computed(() => (entry.value?.specs || [])[0] || '')
+
+const tankRoleLabel = computed(() => {
+  if (!isTank.value || !props.inGroup) return null
+  return props.tankRole || null
+})
+
+function cycleTankRole() {
+  if (!isTank.value) return
+  if (!props.tankRole) {
+    emit('setTankRole', props.entryId, 'MT')
+  } else if (props.tankRole === 'MT') {
+    emit('setTankRole', props.entryId, 'OT')
+  } else {
+    emit('setTankRole', props.entryId, undefined)
+  }
+}
 </script>
 
 <template>
   <div
     v-if="entry"
     class="kara-player"
-    :class="{ pinned, linked: !!linkColor }"
+    :class="{ pinned, linked: !!linkColor, ghosted }"
     :style="linkColor ? { borderLeftColor: linkColor } : {}"
-    draggable="true"
+    :draggable="!ghosted"
     :data-entry-id="entryId"
-    @dragstart="emit('dragstart', entryId, $event)"
+    @dragstart="!ghosted && emit('dragstart', entryId, $event)"
     @dragend="emit('dragend')"
   >
     <ClassIcon :class-name="entry.className" size="sm" />
     <span class="kp-name" :style="{ color: cc(entry.className) }">{{ entry.charName }}</span>
     <span v-if="specText" class="kp-spec">{{ specText }}</span>
+
+    <!-- Tank role badge (clickable to cycle MT/OT) -->
+    <button
+      v-if="isTank && inGroup && !ghosted"
+      class="kp-tank-role"
+      :class="{ assigned: !!tankRoleLabel }"
+      :style="{
+        background: tankRoleLabel ? 'var(--role-tank)' + '33' : 'rgba(255,255,255,0.06)',
+        color: tankRoleLabel ? 'var(--role-tank)' : 'var(--color-tx4)',
+      }"
+      :title="tankRoleLabel ? tankRoleLabel + ' (klick zum Aendern)' : 'Tank-Rolle zuweisen (MT/OT)'"
+      @click.stop="cycleTankRole"
+    >{{ tankRoleLabel || '?T' }}</button>
+
     <span
+      v-else
       class="kp-role"
       :style="{ background: roleColor + '22', color: roleColor }"
     >{{ mainRole }}</span>
+
+    <!-- Ghost group badge -->
+    <span
+      v-if="ghosted && ghostGroupIndex !== undefined"
+      class="kp-ghost-badge"
+    >G{{ ghostGroupIndex + 1 }}</span>
+
+    <!-- Overlap badges -->
+    <span
+      v-for="gi in (overlapGroups || [])"
+      :key="gi"
+      class="kp-overlap-badge"
+      :title="'Auch verfuegbar fuer Gruppe ' + (gi + 1)"
+    >G{{ gi + 1 }}</span>
+
     <span
       v-if="linkColor"
       class="kara-link-badge"
       :style="{ background: linkColor + '33', color: linkColor }"
     >L</span>
-    <span class="kp-actions">
+    <span v-if="!ghosted" class="kp-actions">
       <button
         v-if="inGroup"
         class="kp-btn kp-pin"
@@ -104,6 +156,12 @@ const specText = computed(() => (entry.value?.specs || [])[0] || '')
   border-left: 3px solid;
 }
 
+.kara-player.ghosted {
+  opacity: 0.45;
+  cursor: default;
+  border-style: dashed;
+}
+
 .kara-player:global(.dragging) {
   opacity: 0.4;
 }
@@ -125,6 +183,43 @@ const specText = computed(() => (entry.value?.specs || [])[0] || '')
   border-radius: 3px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.kp-tank-role {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.kp-tank-role:hover {
+  border-color: var(--role-tank);
+}
+
+.kp-tank-role.assigned {
+  border-color: transparent;
+}
+
+.kp-ghost-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 700;
+  background: rgba(201, 168, 76, 0.2);
+  color: var(--color-gold);
+}
+
+.kp-overlap-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 700;
+  background: rgba(255, 183, 77, 0.2);
+  color: #ffb74d;
 }
 
 .kara-link-badge {

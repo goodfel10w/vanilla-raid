@@ -10,13 +10,15 @@ import {
   karaAutoPickSlots,
   karaAutoGenerate,
   karaGroupRoles,
+  karaGroupTankTotal,
   karaPlayersForSlotKey,
   parseSlotKey,
+  KARA_MT,
+  KARA_OT,
   KARA_TANKS,
   KARA_HEALERS,
   KARA_DPS,
   KARA_SIZE,
-  KARA_GROUPS_COUNT,
 } from '@/composables/useKaraAutoSuggest'
 import { DAYS, HOUR_LABELS, SLOTS } from '@/lib/constants'
 import { formatDate, cc, h, hourQuarters } from '@/lib/utils'
@@ -35,10 +37,12 @@ const filterDay = ref('')
 const filterTime = ref('')
 const linkPending = ref<string | null>(null)
 const showResetModal = ref(false)
+const showAssigned = ref(false)
+const removeGroupTarget = ref(-1)
 
 // Load state on mount and when entries or week change
-function reloadState() {
-  persistence.load(entriesStore.entries)
+async function reloadState() {
+  await persistence.load(entriesStore.entries)
 }
 reloadState()
 
@@ -54,6 +58,8 @@ const weekEndStr = computed(() => formatDateLocal(weekEnd.value))
 function formatDateLocal(d: Date): string {
   return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + d.getFullYear()
 }
+
+const groupCount = computed(() => persistence.groups.value.length)
 
 const assignedIds = computed(() => {
   const s = new Set<string>()
@@ -89,6 +95,40 @@ const slotsSetCount = computed(() =>
 
 const hasAnySlot = computed(() => persistence.groupSlots.value.some(s => s))
 
+// Overlap map: for each assigned player, which OTHER groups' slots they're also available for
+const overlapMap = computed(() => {
+  const map = new Map<string, number[]>()
+  if (!hasAnySlot.value) return map
+  persistence.groups.value.forEach((group, gi) => {
+    group.forEach(p => {
+      const otherGroups: number[] = []
+      persistence.groupSlots.value.forEach((slot, ogi) => {
+        if (ogi === gi || !slot) return
+        const available = karaPlayersForSlotKey(entriesStore.entries, slot)
+        if (available.some(e => e.id === p.entryId)) {
+          otherGroups.push(ogi)
+        }
+      })
+      if (otherGroups.length > 0) {
+        map.set(p.entryId, otherGroups)
+      }
+    })
+  })
+  return map
+})
+
+// Assigned players for pool ghost display
+const assignedPlayers = computed(() => {
+  const result: { entry: any; groupIndex: number }[] = []
+  persistence.groups.value.forEach((group, gi) => {
+    group.forEach(p => {
+      const entry = entriesStore.entries.find(e => e.id === p.entryId)
+      if (entry) result.push({ entry, groupIndex: gi })
+    })
+  })
+  return result
+})
+
 // Suggestions
 const suggestions = computed(() => {
   if (!suggestMode.value) return []
@@ -120,28 +160,28 @@ function toggleSuggest() {
   suggestMode.value = !suggestMode.value
 }
 
-function autoPickSlots() {
-  const result = karaAutoPickSlots(entriesStore.entries)
+async function autoPickSlots() {
+  const result = karaAutoPickSlots(entriesStore.entries, groupCount.value)
   if (result) {
     persistence.groupSlots.value = result
-    persistence.save()
+    await persistence.save()
     toast('Optimale Zeiten automatisch gewaehlt')
   } else {
-    toast('Nicht genug Spieler fuer 3 Gruppen')
+    toast('Nicht genug Spieler fuer ' + groupCount.value + ' Gruppen')
   }
 }
 
-function assignSlot(gi: number, key: string) {
+async function assignSlot(gi: number, key: string) {
   persistence.groupSlots.value[gi] = key
-  persistence.save()
+  await persistence.save()
 }
 
-function removeSlot(gi: number) {
+async function removeSlot(gi: number) {
   persistence.groupSlots.value[gi] = ''
-  persistence.save()
+  await persistence.save()
 }
 
-function autoGenerate() {
+async function autoGenerate() {
   const result = karaAutoGenerate(
     entriesStore.entries,
     persistence.groups.value.map(g => [...g]),
@@ -151,7 +191,7 @@ function autoGenerate() {
     filterTime.value,
   )
   persistence.groups.value = result.groups
-  persistence.save()
+  await persistence.save()
   toast(result.message)
 }
 
@@ -159,8 +199,8 @@ function confirmReset() {
   showResetModal.value = true
 }
 
-function doReset() {
-  persistence.reset()
+async function doReset() {
+  await persistence.reset()
   showResetModal.value = false
   toast('Gruppen zurueckgesetzt')
 }
@@ -169,9 +209,44 @@ function toggleExport() {
   showExport.value = !showExport.value
 }
 
+// Group management
+async function handleAddGroup() {
+  if (persistence.addGroup()) {
+    await persistence.save()
+    toast('Gruppe hinzugefuegt')
+  } else {
+    toast('Maximal ' + persistence.KARA_MAX_GROUPS + ' Gruppen')
+  }
+}
+
+function confirmRemoveGroup(gi: number) {
+  removeGroupTarget.value = gi
+}
+
+async function doRemoveGroup() {
+  const gi = removeGroupTarget.value
+  removeGroupTarget.value = -1
+  if (persistence.removeGroup(gi)) {
+    await persistence.save()
+    toast('Gruppe entfernt')
+  }
+}
+
+// Tank role management
+async function handleSetTankRole(entryId: string, role: 'MT' | 'OT' | undefined) {
+  for (const group of persistence.groups.value) {
+    const player = group.find(p => p.entryId === entryId)
+    if (player) {
+      player.tankRole = role
+      break
+    }
+  }
+  await persistence.save()
+}
+
 // Drag & Drop handlers
-function onSaved() {
-  persistence.save()
+async function onSaved() {
+  await persistence.save()
 }
 
 function handleDragStart(entryId: string, event: DragEvent) {
@@ -210,7 +285,7 @@ function nextLinkColor(): string {
   return LINK_COLORS.find(c => !used.has(c)) || LINK_COLORS[persistence.links.value.length % LINK_COLORS.length]
 }
 
-function handleLink(entryId: string) {
+async function handleLink(entryId: string) {
   const existingLink = persistence.links.value.find(l => l.ids.includes(entryId))
 
   if (existingLink) {
@@ -230,7 +305,7 @@ function handleLink(entryId: string) {
         if (!existingLink.ids.includes(linkPending.value!)) existingLink.ids.push(linkPending.value!)
       }
       linkPending.value = null
-      persistence.save()
+      await persistence.save()
       toast('Verknuepft')
       return
     }
@@ -240,7 +315,7 @@ function handleLink(entryId: string) {
       persistence.links.value = persistence.links.value.filter(l => l !== existingLink)
     }
     linkPending.value = null
-    persistence.save()
+    await persistence.save()
     toast('Verknuepfung geloest')
     return
   }
@@ -264,30 +339,33 @@ function handleLink(entryId: string) {
     persistence.links.value.push({ ids: [linkPending.value, entryId], color: nextLinkColor() })
   }
   linkPending.value = null
-  persistence.save()
+  await persistence.save()
   toast('Spieler verknuepft')
 }
 
 // Export
 const exportText = computed(() => {
-  let text = `**Karazhan Gruppen \u2014 ID-Woche ${weekStartStr.value} \u2013 ${weekEndStr.value}**\n\n`
-  for (let gi = 0; gi < KARA_GROUPS_COUNT; gi++) {
+  let text = `**Karazhan Gruppen \u2014 Raidwoche ${weekStartStr.value} \u2013 ${weekEndStr.value}**\n\n`
+  for (let gi = 0; gi < groupCount.value; gi++) {
     const group = persistence.groups.value[gi] || []
     const roles = karaGroupRoles(group, entriesStore.entries)
+    const tankTotal = karaGroupTankTotal(group, entriesStore.entries)
     const slot = persistence.groupSlots.value[gi]
     const parsedSlot = parseSlotKey(slot)
     text += `__Karazhan ${gi + 1}__`
     if (parsedSlot) text += ` \u2014 ${parsedSlot.day} ${parsedSlot.windowLabel}`
-    text += ` (${roles.t}T/${roles.hl}H/${roles.dp}D)\n`
+    text += ` (${roles.mt}MT/${roles.ot}OT/${roles.hl}H/${roles.dp}D)\n`
     if (group.length === 0) {
       text += `  (leer)\n`
     } else {
       group.forEach(p => {
         const entry = entriesStore.entries.find(e => e.id === p.entryId)
         if (!entry) return
-        const role = (entry.roles || [])[0] || 'DPS'
+        const mainRole = (entry.roles || [])[0] || 'DPS'
         const spec = (entry.specs || [])[0] || ''
-        text += `  ${entry.charName} \u2014 ${entry.className}${spec ? ' (' + spec + ')' : ''} [${role}]${p.pinned ? ' \uD83D\uDCCC' : ''}\n`
+        let roleLabel: string = mainRole
+        if (mainRole === 'Tank' && p.tankRole) roleLabel = p.tankRole
+        text += `  ${entry.charName} \u2014 ${entry.className}${spec ? ' (' + spec + ')' : ''} [${roleLabel}]${p.pinned ? ' \uD83D\uDCCC' : ''}\n`
       })
     }
     text += `\n`
@@ -325,8 +403,11 @@ function onFilterTimeChange(event: Event) {
       <div class="kara-week-nav">
         <button @click="prevWeek">&#x25C0;</button>
         <div class="kara-week-label">
-          ID-Woche
+          Raidwoche (Mi&ndash;Di)
           <small>{{ weekStartStr }} &ndash; {{ weekEndStr }}</small>
+          <small v-if="persistence.lastSavedBy.value" class="kara-saved-by">
+            Zuletzt: {{ persistence.lastSavedBy.value }}
+          </small>
         </div>
         <button @click="nextWeek">&#x25B6;</button>
       </div>
@@ -355,31 +436,34 @@ function onFilterTimeChange(event: Event) {
       </div>
     </div>
 
+    <!-- Loading indicator -->
+    <div v-if="persistence.loading.value" class="kara-loading">Lade Gruppenaufstellung...</div>
+
     <!-- Time slot suggestion picker -->
     <div v-if="suggestMode" class="kara-suggest-section">
       <div class="card">
         <div class="kara-suggest-title">
           <span>Raidzeit-Vorschlaege (3h-Fenster)</span>
-          <button class="kara-btn" title="Beste 3 Zeitfenster automatisch waehlen" @click="autoPickSlots">
-            &#x2728; Beste 3 automatisch
+          <button class="kara-btn" title="Beste Zeitfenster automatisch waehlen" @click="autoPickSlots">
+            &#x2728; Beste {{ groupCount }} automatisch
           </button>
         </div>
 
         <div v-if="hasAnySlot" class="kara-slot-summary">
           <span
-            v-for="gi in KARA_GROUPS_COUNT"
+            v-for="(_, gi) in persistence.groupSlots.value"
             :key="gi"
             class="kara-group-slot-label"
-            :style="{ opacity: persistence.groupSlots.value[gi - 1] ? 1 : 0.4 }"
+            :style="{ opacity: persistence.groupSlots.value[gi] ? 1 : 0.4 }"
           >
-            <template v-if="persistence.groupSlots.value[gi - 1]">
-              <strong>Gruppe {{ gi }}:</strong>
-              {{ parseSlotKey(persistence.groupSlots.value[gi - 1])?.day }}
-              {{ parseSlotKey(persistence.groupSlots.value[gi - 1])?.windowLabel }}
-              <button class="kgs-remove" @click="removeSlot(gi - 1)">&#x2716;</button>
+            <template v-if="persistence.groupSlots.value[gi]">
+              <strong>Gruppe {{ gi + 1 }}:</strong>
+              {{ parseSlotKey(persistence.groupSlots.value[gi])?.day }}
+              {{ parseSlotKey(persistence.groupSlots.value[gi])?.windowLabel }}
+              <button class="kgs-remove" @click="removeSlot(gi)">&#x2716;</button>
             </template>
             <template v-else>
-              Gruppe {{ gi }}: nicht zugewiesen
+              Gruppe {{ gi + 1 }}: nicht zugewiesen
             </template>
           </span>
         </div>
@@ -409,12 +493,12 @@ function onFilterTimeChange(event: Event) {
             </div>
             <div class="kara-suggest-assign">
               <button
-                v-for="gi in KARA_GROUPS_COUNT"
+                v-for="(_, gi) in persistence.groupSlots.value"
                 :key="gi"
-                :class="{ active: persistence.groupSlots.value.indexOf(s.key) === gi - 1 }"
-                :disabled="!!persistence.groupSlots.value[gi - 1] && persistence.groupSlots.value[gi - 1] !== s.key"
-                @click="assignSlot(gi - 1, s.key)"
-              >G{{ gi }}</button>
+                :class="{ active: persistence.groupSlots.value.indexOf(s.key) === gi }"
+                :disabled="!!persistence.groupSlots.value[gi] && persistence.groupSlots.value[gi] !== s.key"
+                @click="assignSlot(gi, s.key)"
+              >G{{ gi + 1 }}</button>
             </div>
           </div>
         </div>
@@ -436,14 +520,17 @@ function onFilterTimeChange(event: Event) {
       </div>
     </div>
 
-    <!-- Layout: pool + 3 groups -->
+    <!-- Layout: pool + N groups -->
     <div class="kara-layout">
       <KaraPool
         :pool="pool"
         :links="persistence.links.value"
         :is-drag-over="dragDrop.dragOverTarget.value === 'pool'"
         :no-entries="entriesStore.entries.length === 0"
+        :show-assigned="showAssigned"
+        :assigned-players="assignedPlayers"
         @link="handleLink"
+        @toggle-show-assigned="showAssigned = !showAssigned"
         @dragstart="handleDragStart"
         @dragend="handleDragEnd"
         @dragover="handleDragOver('pool', $event)"
@@ -452,23 +539,38 @@ function onFilterTimeChange(event: Event) {
       />
 
       <KaraGroup
-        v-for="gi in KARA_GROUPS_COUNT"
+        v-for="(_, gi) in persistence.groups.value"
         :key="gi"
-        :group-index="gi - 1"
-        :group="persistence.groups.value[gi - 1] || []"
+        :group-index="gi"
+        :group="persistence.groups.value[gi] || []"
         :links="persistence.links.value"
-        :group-slot="persistence.groupSlots.value[gi - 1] || ''"
-        :is-drag-over="dragDrop.dragOverTarget.value === 'group-' + (gi - 1)"
+        :group-slot="persistence.groupSlots.value[gi] || ''"
+        :is-drag-over="dragDrop.dragOverTarget.value === 'group-' + gi"
+        :removable="groupCount > 1"
+        :overlap-map="overlapMap"
         @pin="handlePin"
         @unassign="handleUnassign"
         @link="handleLink"
+        @set-tank-role="handleSetTankRole"
         @remove-slot="removeSlot"
+        @remove-group="confirmRemoveGroup"
         @dragstart="handleDragStart"
         @dragend="handleDragEnd"
-        @dragover="handleDragOver('group-' + (gi - 1), $event)"
-        @dragleave="handleDragLeave('group-' + (gi - 1), $event)"
-        @drop="handleDrop('group-' + (gi - 1), $event)"
+        @dragover="handleDragOver('group-' + gi, $event)"
+        @dragleave="handleDragLeave('group-' + gi, $event)"
+        @drop="handleDrop('group-' + gi, $event)"
       />
+
+      <!-- Add group button -->
+      <button
+        v-if="groupCount < persistence.KARA_MAX_GROUPS"
+        class="kara-add-group"
+        title="Gruppe hinzufuegen"
+        @click="handleAddGroup"
+      >
+        <span class="kara-add-icon">+</span>
+        <span>Gruppe hinzufuegen</span>
+      </button>
     </div>
 
     <!-- Summary -->
@@ -476,7 +578,8 @@ function onFilterTimeChange(event: Event) {
       <div class="kara-comp-card"><div class="num">{{ totalAssigned }}</div><div class="lbl">Verteilt</div></div>
       <div class="kara-comp-card"><div class="num">{{ unassignedCount }}</div><div class="lbl">Offen</div></div>
       <div class="kara-comp-card"><div class="num">{{ linkCount }}</div><div class="lbl">Links</div></div>
-      <div class="kara-comp-card"><div class="num">{{ slotsSetCount }}/3</div><div class="lbl">Zeiten</div></div>
+      <div class="kara-comp-card"><div class="num">{{ slotsSetCount }}/{{ groupCount }}</div><div class="lbl">Zeiten</div></div>
+      <div class="kara-comp-card"><div class="num">{{ groupCount }}</div><div class="lbl">Gruppen</div></div>
     </div>
 
     <!-- Export -->
@@ -492,9 +595,18 @@ function onFilterTimeChange(event: Event) {
     <ConfirmModal
       :open="showResetModal"
       title="Gruppen zuruecksetzen"
-      message="Alle Zuweisungen, Verknuepfungen und Zeitfenster fuer diese ID-Woche werden geloescht."
+      message="Alle Zuweisungen, Verknuepfungen und Zeitfenster fuer diese Raidwoche werden geloescht."
       @confirm="doReset"
       @cancel="showResetModal = false"
+    />
+
+    <!-- Remove group modal -->
+    <ConfirmModal
+      :open="removeGroupTarget >= 0"
+      title="Gruppe entfernen"
+      :message="'Karazhan ' + (removeGroupTarget + 1) + ' wird entfernt. Spieler gehen zurueck in den Pool.'"
+      @confirm="doRemoveGroup"
+      @cancel="removeGroupTarget = -1"
     />
   </div>
 </template>
@@ -543,6 +655,11 @@ function onFilterTimeChange(event: Event) {
   color: var(--color-tx3);
 }
 
+.kara-saved-by {
+  color: var(--color-tx4) !important;
+  font-size: 11px !important;
+}
+
 .kara-actions {
   display: flex;
   gap: 8px;
@@ -581,6 +698,14 @@ function onFilterTimeChange(event: Event) {
 
 .kara-btn.danger:hover {
   background: rgba(229, 115, 115, 0.08);
+}
+
+/* Loading */
+.kara-loading {
+  text-align: center;
+  color: var(--color-tx4);
+  font-size: 13px;
+  padding: 20px;
 }
 
 /* Suggest section */
@@ -754,6 +879,35 @@ function onFilterTimeChange(event: Event) {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
   margin-bottom: 16px;
+}
+
+/* Add group button */
+.kara-add-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 120px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 2px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--color-tx4);
+  font-size: 12px;
+  transition: all 0.15s;
+}
+
+.kara-add-group:hover {
+  border-color: rgba(201, 168, 76, 0.25);
+  background: rgba(201, 168, 76, 0.04);
+  color: var(--color-gold);
+}
+
+.kara-add-icon {
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
 }
 
 /* Summary */
