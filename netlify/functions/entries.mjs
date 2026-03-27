@@ -77,6 +77,21 @@ export default async (req, context) => {
         return new Response(JSON.stringify({ error: "Nicht angemeldet" }), { status: 401, headers });
       }
       const body = await req.json();
+
+      // Admin action: unlink userId from an entry
+      if (body.action === "unlink-user" && body.id) {
+        if (!user.isAdmin) {
+          return new Response(JSON.stringify({ error: "Nur Admins erlaubt" }), { status: 403, headers });
+        }
+        const existing = await store.get(body.id, { type: "json" });
+        if (!existing) {
+          return new Response(JSON.stringify({ error: "Eintrag nicht gefunden" }), { status: 404, headers });
+        }
+        delete existing.userId;
+        await store.setJSON(body.id, existing);
+        return new Response(JSON.stringify({ ok: true, entry: existing }), { status: 200, headers });
+      }
+
       const { charName, className, specs, roles, availability, notes } = body;
 
       if (!charName || !className) {
