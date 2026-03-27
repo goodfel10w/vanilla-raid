@@ -54,6 +54,38 @@ function localStorageKey(offset: number): string {
   return `kara_eu_${s.getFullYear()}_${String(s.getMonth() + 1).padStart(2, '0')}_${String(s.getDate()).padStart(2, '0')}`
 }
 
+/**
+ * Migrate old localStorage keys (kara_YYYY_MM_DD, Tuesday-based) to new format.
+ * Checks the old Tuesday-start week that overlaps with the current Wednesday-start week.
+ * The old week starting on Tuesday could be either 1 day before or 6 days before Wednesday.
+ */
+function tryMigrateOldKey(offset: number): KaraState | null {
+  const wedStart = getIdWeekStart(offset)
+  // Old system used Tuesday start: the Tuesday just before this Wednesday
+  const tueBefore = new Date(wedStart)
+  tueBefore.setDate(tueBefore.getDate() - 1) // Tuesday = Wednesday - 1
+  const oldKey1 = `kara_${tueBefore.getFullYear()}_${String(tueBefore.getMonth() + 1).padStart(2, '0')}_${String(tueBefore.getDate()).padStart(2, '0')}`
+  // Also check the Tuesday one week earlier (edge case: the old week that started 8 days ago)
+  const tueWeekBefore = new Date(tueBefore)
+  tueWeekBefore.setDate(tueWeekBefore.getDate() - 7)
+  const oldKey2 = `kara_${tueWeekBefore.getFullYear()}_${String(tueWeekBefore.getMonth() + 1).padStart(2, '0')}_${String(tueWeekBefore.getDate()).padStart(2, '0')}`
+
+  for (const oldKey of [oldKey1, oldKey2]) {
+    const raw = localStorage.getItem(oldKey)
+    if (raw) {
+      try {
+        const data = JSON.parse(raw) as KaraState
+        if (data.groups && data.groups.some(g => g.length > 0)) {
+          // Found old data with actual assignments — migrate it
+          localStorage.removeItem(oldKey)
+          return data
+        }
+      } catch { /* ignore */ }
+    }
+  }
+  return null
+}
+
 function emptyState(groupCount = KARA_DEFAULT_GROUPS): KaraState {
   return {
     groups: Array.from({ length: groupCount }, () => []),
@@ -125,7 +157,7 @@ export function useKaraPersistence() {
       // API unavailable, fall through to localStorage
     }
 
-    // Fallback to localStorage
+    // Fallback to localStorage (new key format)
     if (!state) {
       const raw = localStorage.getItem(lsKey)
       if (raw) {
@@ -134,6 +166,10 @@ export function useKaraPersistence() {
         } catch {
           state = null
         }
+      }
+      // If still nothing, try migrating from old Tuesday-based key format
+      if (!state) {
+        state = tryMigrateOldKey(weekOffset.value)
       }
       lastSavedBy.value = ''
       lastSavedAt.value = ''
