@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useEntriesStore } from '@/stores/entries'
+import { useKaraSignupsStore } from '@/stores/karaSignups'
 import { useToast } from '@/composables/useToast'
 import { useKaraPersistence, getIdWeekStart, getIdWeekEnd } from '@/composables/useKaraPersistence'
 import type { KaraLink } from '@/composables/useKaraPersistence'
@@ -27,6 +28,7 @@ import KaraPool from '@/components/kara/KaraPool.vue'
 import KaraGroup from '@/components/kara/KaraGroup.vue'
 
 const entriesStore = useEntriesStore()
+const karaSignupsStore = useKaraSignupsStore()
 const { toast } = useToast()
 const persistence = useKaraPersistence()
 const dragDrop = useKaraDragDrop()
@@ -35,6 +37,7 @@ const suggestMode = ref(false)
 const showExport = ref(false)
 const filterDay = ref('')
 const filterTime = ref('')
+const filterSignedUp = ref(false)
 const linkPending = ref<string | null>(null)
 const showResetModal = ref(false)
 const showAssigned = ref(false)
@@ -43,11 +46,21 @@ const removeGroupTarget = ref(-1)
 // Load state on mount and when entries or week change
 async function reloadState() {
   await persistence.load(entriesStore.entries)
+  karaSignupsStore.load(persistence.weekOffset.value)
 }
 reloadState()
 
 watch(() => entriesStore.entries, reloadState)
 watch(() => persistence.weekOffset.value, reloadState)
+
+// Signup map: entryId → KaraSignup for quick lookup
+const signupMap = computed(() => {
+  const map = new Map<string, typeof karaSignupsStore.signups[number]>()
+  for (const s of karaSignupsStore.signups) {
+    map.set(s.entryId, s)
+  }
+  return map
+})
 
 // Computed
 const weekStart = computed(() => getIdWeekStart(persistence.weekOffset.value))
@@ -69,6 +82,9 @@ const assignedIds = computed(() => {
 
 const pool = computed(() => {
   let poolEntries = entriesStore.entries.filter(e => !assignedIds.value.has(e.id))
+  if (filterSignedUp.value) {
+    poolEntries = poolEntries.filter(e => signupMap.value.has(e.id))
+  }
   if (filterDay.value) {
     poolEntries = poolEntries.filter(e => {
       if (!e.availability) return false
@@ -517,6 +533,10 @@ function onFilterTimeChange(event: Event) {
           <option value="">Jede Uhrzeit</option>
           <option v-for="hl in HOUR_LABELS" :key="hl" :value="hl" :selected="filterTime === hl">{{ hl }}:00</option>
         </select>
+        <label class="kara-filter-check">
+          <input v-model="filterSignedUp" type="checkbox" />
+          Nur Angemeldete ({{ karaSignupsStore.signups.length }})
+        </label>
       </div>
     </div>
 
@@ -529,6 +549,7 @@ function onFilterTimeChange(event: Event) {
         :no-entries="entriesStore.entries.length === 0"
         :show-assigned="showAssigned"
         :assigned-players="assignedPlayers"
+        :signup-map="signupMap"
         @link="handleLink"
         @toggle-show-assigned="showAssigned = !showAssigned"
         @dragstart="handleDragStart"
@@ -872,6 +893,17 @@ function onFilterTimeChange(event: Event) {
   color: var(--color-tx1);
   font-size: 12px;
 }
+
+.kara-filter-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+  margin-left: auto;
+}
+.kara-filter-check input { accent-color: var(--color-gold); }
 
 /* Layout */
 .kara-layout {

@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useEntriesStore } from '@/stores/entries'
 import { useRaidsStore } from '@/stores/raids'
 import { useNewsStore } from '@/stores/news'
+import { useKaraSignupsStore } from '@/stores/karaSignups'
 import { useDashboardData } from '@/composables/useDashboardData'
 import { ROLES, ROLE_COLORS, ROLE_ICONS } from '@/lib/constants'
 import type { RoleName } from '@/lib/constants'
@@ -11,13 +12,20 @@ import MyRaidsCard from '@/components/dashboard/MyRaidsCard.vue'
 import NotificationsCard from '@/components/dashboard/NotificationsCard.vue'
 import SuggestedRaidsCard from '@/components/dashboard/SuggestedRaidsCard.vue'
 import LatestNewsCard from '@/components/dashboard/LatestNewsCard.vue'
+import KaraSignupCard from '@/components/dashboard/KaraSignupCard.vue'
 
 const authStore = useAuthStore()
 const entriesStore = useEntriesStore()
 const raidsStore = useRaidsStore()
 const newsStore = useNewsStore()
+const karaSignupsStore = useKaraSignupsStore()
 
 const { myRaidsThisWeek, notifications, suggestedRaids, updateSnapshot } = useDashboardData()
+
+const hasEntry = computed(() => {
+  if (!authStore.user) return false
+  return entriesStore.entries.some(e => e.userId === authStore.user!.userId)
+})
 
 onMounted(async () => {
   const promises: Promise<void>[] = []
@@ -25,7 +33,10 @@ onMounted(async () => {
   if (!raidsStore.raids.length) promises.push(raidsStore.load())
   if (!newsStore.posts.length) promises.push(newsStore.load())
   await Promise.all(promises)
-  if (authStore.isLoggedIn) updateSnapshot()
+  if (authStore.isLoggedIn) {
+    updateSnapshot()
+    karaSignupsStore.load(0)
+  }
 })
 
 const entryCount = computed(() => entriesStore.entries.length)
@@ -78,6 +89,7 @@ const dashboardPosts = computed(() => newsStore.posts.slice(0, 3))
       <NotificationsCard v-if="notifications.length" :notifications="notifications" />
       <MyRaidsCard :raids="myRaidsThisWeek" />
       <SuggestedRaidsCard v-if="suggestedRaids.length" :raids="suggestedRaids" />
+      <KaraSignupCard v-if="hasEntry" />
     </template>
 
     <!-- Upcoming Raids - visible to all users -->

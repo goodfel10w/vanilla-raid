@@ -15,6 +15,8 @@ const props = defineProps<{
   overlapGroups?: number[]
   ghosted?: boolean
   ghostGroupIndex?: number
+  signupSpec?: string
+  signupRole?: string
 }>()
 
 const emit = defineEmits<{
@@ -107,6 +109,11 @@ function cycleTankRole() {
       class="kara-link-badge"
       :style="{ background: linkColor + '33', color: linkColor }"
     >L</span>
+    <span
+      v-if="signupSpec"
+      class="kp-signup-badge"
+      :title="'Angemeldet als ' + signupSpec"
+    >{{ signupSpec }}</span>
     <span v-if="!ghosted" class="kp-actions">
       <button
         v-if="inGroup"
@@ -227,6 +234,16 @@ function cycleTankRole() {
   padding: 1px 5px;
   border-radius: 3px;
   font-weight: 700;
+}
+
+.kp-signup-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  background: rgba(102, 187, 106, 0.18);
+  color: var(--color-heal);
+  white-space: nowrap;
 }
 
 .kp-actions {

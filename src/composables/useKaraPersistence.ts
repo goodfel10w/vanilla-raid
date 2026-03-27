@@ -44,7 +44,7 @@ export function getIdWeekEnd(start: Date): Date {
   return end
 }
 
-function weekKeyDate(offset: number): string {
+export function weekKeyDate(offset: number): string {
   const s = getIdWeekStart(offset)
   return `${s.getFullYear()}-${String(s.getMonth() + 1).padStart(2, '0')}-${String(s.getDate()).padStart(2, '0')}`
 }
