@@ -133,13 +133,7 @@ function roleColor(role: RoleName): string {
   return ROLE_COLORS[role]
 }
 
-// Auto-select entry if only one, auto-select spec if only one
-watch(myEntries, (entries) => {
-  if (entries.length === 1 && !selectedEntryId.value) {
-    selectedEntryId.value = entries[0].id
-  }
-}, { immediate: true })
-
+// Auto-select spec if only one for the chosen class
 watch(availableSpecs, (specs) => {
   if (specs.length === 1 && !selectedSpec.value) {
     selectedSpec.value = specs[0].name
@@ -193,8 +187,8 @@ watch(availableSpecs, (specs) => {
     <!-- Signup form -->
     <template v-else-if="editing">
       <div class="signup-form">
-        <!-- Character selection (only if multiple entries) -->
-        <div v-if="myEntries.length > 1" class="sf-section">
+        <!-- Character selection -->
+        <div class="sf-section">
           <div class="sf-label">Charakter</div>
           <div class="sf-chars">
             <div
