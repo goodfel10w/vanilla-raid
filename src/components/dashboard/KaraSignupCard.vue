@@ -219,7 +219,7 @@ watch(availableSpecs, (specs) => {
       <div v-if="!hasAvailability && !karaStore.mySignup.useCustomTimes" class="kara-warn">
         Dein Charakter hat keine Verfügbarkeitszeiten eingetragen.
         Ohne Zeiten wirst du bei der Gruppenplanung nicht berücksichtigt.
-        <router-link to="/form" class="kara-warn-link">Zeiten eintragen</router-link>
+        <router-link to="/form#availability" class="kara-warn-link">Zeiten eintragen</router-link>
         oder aktiviere "Eigene Zeiten angeben" bei der Anmeldung.
       </div>
     </template>
@@ -294,7 +294,7 @@ watch(availableSpecs, (specs) => {
             <span>Eigene Zeiten angeben</span>
           </label>
           <div v-if="!useCustomTimes" class="sf-hint">
-            Deine Zeiten aus dem <router-link to="/form">Profil</router-link> werden verwendet.
+            Deine Zeiten aus dem <router-link to="/form#availability">Profil</router-link> werden verwendet.
           </div>
         </div>
 
@@ -309,7 +309,7 @@ watch(availableSpecs, (specs) => {
         <!-- No availability warning -->
         <div v-if="myEntry && !hasAvailability && !useCustomTimes" class="kara-warn">
           Dein Charakter hat keine Zeiten im Profil.
-          <router-link to="/form" class="kara-warn-link">Jetzt eintragen</router-link>
+          <router-link to="/form#availability" class="kara-warn-link">Jetzt eintragen</router-link>
           oder aktiviere oben "Eigene Zeiten angeben".
         </div>
 
