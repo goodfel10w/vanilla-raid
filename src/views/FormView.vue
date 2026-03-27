@@ -43,7 +43,7 @@ const isEditing = computed(() => !!editId.value)
 
 const submitLabel = computed(() => {
   if (submitting.value) return 'Speichern...'
-  return editId.value ? 'Aktualisieren' : 'Eintragen'
+  return editId.value ? 'Aktualisieren' : 'Speichern'
 })
 
 const showCharPicker = computed(() => {
@@ -130,6 +130,13 @@ onMounted(() => {
   if (editParam) {
     loadEditEntry(editParam)
   }
+  // Scroll to hash anchor (e.g. #availability)
+  if (route.hash) {
+    setTimeout(() => {
+      const el = document.querySelector(route.hash)
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 200)
+  }
 })
 
 // Watch for route query changes (e.g. navigating to ?edit=id)
@@ -144,7 +151,7 @@ watch(() => route.query.edit, (newEditId) => {
   <div id="v-form">
     <!-- Auth gate -->
     <div v-if="!auth.isLoggedIn" class="auth-hint">
-      Bitte melde dich an, um einen Eintrag zu erstellen.<br />
+      Bitte melde dich an, um dein Profil zu erstellen.<br />
       <button class="btn-bnet" @click="auth.bnetLogin()">
         Mit Battle.net anmelden
       </button>
@@ -200,9 +207,10 @@ watch(() => route.query.edit, (newEditId) => {
       </div>
 
       <!-- Availability -->
-      <div class="fld">
-        <span class="lbl">Verf&uuml;gbarkeit</span>
-        <span class="lbl-s">Klick: Ja &#10003; &rarr; Vielleicht ? &rarr; Aus &middot; Ziehen f&uuml;r Bereiche</span>
+      <div id="availability" class="fld">
+        <span class="lbl">Verfügbarkeit &mdash; Wann kannst du raiden?</span>
+        <span class="lbl-s">Markiere deine verfügbaren Zeiten. Diese werden für die Kara-Gruppenplanung verwendet.
+          Klick: Ja &#10003; &rarr; Vielleicht ? &rarr; Aus &middot; Ziehen für Bereiche</span>
         <AvailabilityGrid v-model="avail" />
       </div>
 

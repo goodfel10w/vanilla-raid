@@ -71,7 +71,7 @@ const dashboardPosts = computed(() => newsStore.posts.slice(0, 3))
     <!-- Quick Actions -->
     <div class="quick-actions">
       <router-link to="/form" class="qa-link">
-        Eintragen
+        Mein Profil
       </router-link>
       <router-link to="/raids" class="qa-link">
         Raids
