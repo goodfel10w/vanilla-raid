@@ -43,8 +43,8 @@ const availableSpecs = computed(() => {
   return CLASS_SPECS[myEntry.value.className] || []
 })
 
-// Week dates
-const weekStart = computed(() => getIdWeekStart(0))
+// Week navigation (0 = current, 1 = next)
+const weekStart = computed(() => getIdWeekStart(karaStore.weekOffset))
 const weekEnd = computed(() => getIdWeekEnd(weekStart.value))
 
 function fmtShort(d: Date): string {
@@ -52,6 +52,13 @@ function fmtShort(d: Date): string {
 }
 
 const weekLabel = computed(() => `${fmtShort(weekStart.value)} – ${fmtShort(weekEnd.value)}`)
+const isCurrentWeek = computed(() => karaStore.weekOffset === 0)
+const isNextWeek = computed(() => karaStore.weekOffset === 1)
+
+function showWeek(offset: number) {
+  editing.value = false
+  karaStore.load(offset)
+}
 
 // Prefill form from existing signup
 function startEdit() {
@@ -150,8 +157,20 @@ watch(availableSpecs, (specs) => {
   <div v-if="myEntries.length > 0" class="card dash-card kara-signup-card">
     <div class="card-t">
       <span class="kara-icon">⚔</span>
-      Karazhan diese Woche
+      Karazhan
       <span class="week-label">{{ weekLabel }}</span>
+    </div>
+    <div class="week-tabs">
+      <button
+        class="week-tab"
+        :class="{ active: isCurrentWeek }"
+        @click="showWeek(0)"
+      >Diese Woche</button>
+      <button
+        class="week-tab"
+        :class="{ active: isNextWeek }"
+        @click="showWeek(1)"
+      >Nächste Woche</button>
     </div>
 
     <!-- Summary bar: how many signed up -->
@@ -312,6 +331,30 @@ watch(availableSpecs, (specs) => {
   font: 400 12px var(--font-body);
   color: var(--color-tx3);
   margin-left: auto;
+}
+
+/* Week tabs */
+.week-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.week-tab {
+  flex: 1;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font: 600 12px var(--font-body);
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--color-tx3);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.week-tab:hover { background: rgba(255, 255, 255, 0.05); }
+.week-tab.active {
+  background: rgba(201, 168, 76, 0.12);
+  border-color: rgba(201, 168, 76, 0.3);
+  color: var(--color-gold);
 }
 
 /* Summary */

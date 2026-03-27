@@ -35,5 +35,10 @@ export const useEntriesStore = defineStore('entries', () => {
     await load()
   }
 
-  return { entries, loading, load, save, remove }
+  async function unlinkUser(id: string) {
+    await api.post('/api/entries', { action: 'unlink-user', id })
+    await load()
+  }
+
+  return { entries, loading, load, save, remove, unlinkUser }
 })
