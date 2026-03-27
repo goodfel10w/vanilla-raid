@@ -121,7 +121,7 @@ function getOverlapGroups(entryId: string): number[] {
         @unassign="emit('unassign', $event)"
         @link="emit('link', $event)"
         @set-tank-role="(id, role) => emit('setTankRole', id, role)"
-        @dragstart="emit('dragstart', $event, $event as unknown as DragEvent)"
+        @dragstart="(id: string, ev: DragEvent) => emit('dragstart', id, ev)"
         @dragend="emit('dragend')"
       />
     </div>

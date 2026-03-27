@@ -58,7 +58,7 @@ function getLinkColor(entryId: string): string | null {
         :pinned="false"
         :link-color="getLinkColor(e.id)"
         @link="emit('link', $event)"
-        @dragstart="emit('dragstart', $event, $event as unknown as DragEvent)"
+        @dragstart="(id: string, ev: DragEvent) => emit('dragstart', id, ev)"
         @dragend="emit('dragend')"
       />
       <!-- Ghosted assigned players -->
