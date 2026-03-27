@@ -16,7 +16,7 @@ const karaStore = useKaraSignupsStore()
 
 const editing = ref(false)
 const selectedEntryId = ref('')
-const selectedSpec = ref('')
+const selectedSpecs = ref<string[]>([])
 const selectedDays = ref<string[]>([])
 const useCustomTimes = ref(false)
 const customSlots = ref<AvailabilityMap>({})
@@ -58,13 +58,13 @@ function startEdit() {
   const existing = karaStore.mySignup
   if (existing) {
     selectedEntryId.value = existing.entryId
-    selectedSpec.value = existing.spec
+    selectedSpecs.value = [...(existing.specs ?? (existing.spec ? [existing.spec] : []))]
     selectedDays.value = [...existing.days]
     useCustomTimes.value = existing.useCustomTimes
     customSlots.value = existing.customSlots ? { ...existing.customSlots } : {}
   } else {
     selectedEntryId.value = myEntries.value.length === 1 ? myEntries.value[0].id : ''
-    selectedSpec.value = ''
+    selectedSpecs.value = []
     selectedDays.value = []
     useCustomTimes.value = false
     customSlots.value = {}
@@ -74,14 +74,14 @@ function startEdit() {
 
 function selectEntry(id: string) {
   selectedEntryId.value = id
-  selectedSpec.value = ''
+  selectedSpecs.value = []
 }
 
 function cancelEdit() {
   editing.value = false
 }
 
-const canSubmit = computed(() => myEntry.value && selectedSpec.value && selectedDays.value.length > 0)
+const canSubmit = computed(() => myEntry.value && selectedSpecs.value.length > 0 && selectedDays.value.length > 0)
 
 function toggleDay(day: string) {
   const idx = selectedDays.value.indexOf(day)
@@ -92,8 +92,13 @@ function toggleDay(day: string) {
   }
 }
 
-function selectSpec(name: string) {
-  selectedSpec.value = name
+function toggleSpec(name: string) {
+  const idx = selectedSpecs.value.indexOf(name)
+  if (idx >= 0) {
+    selectedSpecs.value.splice(idx, 1)
+  } else {
+    selectedSpecs.value.push(name)
+  }
 }
 
 async function submit() {
@@ -102,7 +107,7 @@ async function submit() {
   try {
     await karaStore.signup({
       entryId: myEntry.value.id,
-      spec: selectedSpec.value,
+      specs: selectedSpecs.value,
       days: selectedDays.value,
       customSlots: useCustomTimes.value ? customSlots.value : undefined,
       useCustomTimes: useCustomTimes.value,
@@ -133,10 +138,10 @@ function roleColor(role: RoleName): string {
   return ROLE_COLORS[role]
 }
 
-// Auto-select spec if only one for the chosen class
+// Auto-select all specs if only one for the chosen class
 watch(availableSpecs, (specs) => {
-  if (specs.length === 1 && !selectedSpec.value) {
-    selectedSpec.value = specs[0].name
+  if (specs.length === 1 && selectedSpecs.value.length === 0) {
+    selectedSpecs.value = [specs[0].name]
   }
 }, { immediate: true })
 </script>
@@ -168,9 +173,12 @@ watch(availableSpecs, (specs) => {
             <span class="ms-name" :style="{ color: cc(karaStore.mySignup.className) }">
               {{ karaStore.mySignup.charName }}
             </span>
-            <span class="ms-spec" :style="{ color: roleColor(karaStore.mySignup.role) }">
-              {{ karaStore.mySignup.spec }}
-            </span>
+            <span
+              v-for="s in (karaStore.mySignup.specs ?? [karaStore.mySignup.spec]).filter(Boolean)"
+              :key="s"
+              class="ms-spec"
+              :style="{ color: roleColor(specRole(s)) }"
+            >{{ s }}</span>
           </div>
         </div>
         <div class="ms-days">
@@ -211,19 +219,19 @@ watch(availableSpecs, (specs) => {
 
         <!-- Spec selection -->
         <div class="sf-section">
-          <div class="sf-label">Spec</div>
+          <div class="sf-label">Specs (mehrere möglich)</div>
           <div class="sf-specs">
             <div
               v-for="spec in availableSpecs"
               :key="spec.name"
               class="sf-spec"
-              :class="{ active: selectedSpec === spec.name }"
-              :style="selectedSpec === spec.name ? {
+              :class="{ active: selectedSpecs.includes(spec.name) }"
+              :style="selectedSpecs.includes(spec.name) ? {
                 borderColor: roleColor(spec.role),
                 color: roleColor(spec.role),
                 background: roleColor(spec.role) + '18'
               } : {}"
-              @click="selectSpec(spec.name)"
+              @click="toggleSpec(spec.name)"
             >
               <img class="wow-ico" :src="`${WOW_ICONS}/spec/${spec.icon}.png`" :alt="spec.name" loading="lazy" />
               {{ spec.name }}

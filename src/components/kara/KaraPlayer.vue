@@ -16,7 +16,6 @@ const props = defineProps<{
   ghosted?: boolean
   ghostGroupIndex?: number
   signupSpec?: string
-  signupRole?: string
 }>()
 
 const emit = defineEmits<{

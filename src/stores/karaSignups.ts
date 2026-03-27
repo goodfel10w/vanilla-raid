@@ -39,14 +39,17 @@ export const useKaraSignupsStore = defineStore('karaSignups', () => {
   const roleCounts = computed(() => {
     const counts = { Tank: 0, Heiler: 0, DPS: 0 }
     for (const s of signups.value) {
-      if (s.role in counts) counts[s.role as keyof typeof counts]++
+      const roles = s.roles ?? (s.role ? [s.role] : [])
+      for (const r of roles) {
+        if (r in counts) counts[r as keyof typeof counts]++
+      }
     }
     return counts
   })
 
   async function signup(data: {
     entryId: string
-    spec: string
+    specs: string[]
     days: string[]
     customSlots?: Record<string, 'yes' | 'tentative'>
     useCustomTimes: boolean

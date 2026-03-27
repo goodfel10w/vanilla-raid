@@ -63,7 +63,7 @@ export default async (req) => {
       }
 
       const body = await req.json();
-      const { week, entryId, spec, days, customSlots, useCustomTimes } = body;
+      const { week, entryId, specs, days, customSlots, useCustomTimes } = body;
 
       if (!isValidWeekKey(week)) {
         return new Response(JSON.stringify({ error: "Ungueltige Woche" }), { status: 400, headers });
@@ -89,14 +89,23 @@ export default async (req) => {
         return new Response(JSON.stringify({ error: "Keine Berechtigung fuer diesen Entry" }), { status: 403, headers });
       }
 
-      // Validate class and spec
+      // Validate class and specs
       if (!VALID_CLASSES.includes(entry.className)) {
         return new Response(JSON.stringify({ error: "Ungueltige Klasse" }), { status: 400, headers });
       }
+      if (!Array.isArray(specs) || specs.length === 0) {
+        return new Response(JSON.stringify({ error: "Mindestens ein Spec erforderlich" }), { status: 400, headers });
+      }
       const validSpecs = CLASS_SPECS[entry.className] || [];
-      const specDef = validSpecs.find(s => s.n === spec);
-      if (!specDef) {
-        return new Response(JSON.stringify({ error: "Ungueltiger Spec fuer diese Klasse" }), { status: 400, headers });
+      const resolvedSpecs = [];
+      const resolvedRoles = [];
+      for (const spec of specs) {
+        const specDef = validSpecs.find(s => s.n === spec);
+        if (!specDef) {
+          return new Response(JSON.stringify({ error: `Ungueltiger Spec: ${spec}` }), { status: 400, headers });
+        }
+        resolvedSpecs.push(spec);
+        if (!resolvedRoles.includes(specDef.r)) resolvedRoles.push(specDef.r);
       }
 
       // Validate days
@@ -125,8 +134,8 @@ export default async (req) => {
         userId: user.userId,
         charName: entry.charName,
         className: entry.className,
-        spec,
-        role: specDef.r,
+        specs: resolvedSpecs,
+        roles: resolvedRoles,
         days,
         customSlots: validatedSlots,
         useCustomTimes: !!useCustomTimes,
