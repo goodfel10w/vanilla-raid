@@ -87,6 +87,8 @@ const pool = computed(() => {
   }
   if (filterDay.value) {
     poolEntries = poolEntries.filter(e => {
+      // Signed-up players always pass through day/time filters
+      if (signupMap.value.has(e.id)) return true
       if (!e.availability) return false
       if (filterTime.value) {
         const qs = hourQuarters(filterTime.value).map(q => filterDay.value + '_' + q)
@@ -521,6 +523,26 @@ function onFilterTimeChange(event: Event) {
       </div>
     </div>
 
+    <!-- Signup info banner -->
+    <div v-if="karaSignupsStore.signups.length > 0" class="kara-signup-info">
+      <strong>{{ karaSignupsStore.signups.length }} Kara-Anmeldungen:</strong>
+      <span style="color: var(--role-tank)">{{ karaSignupsStore.roleCounts.Tank }} Tank</span>
+      <span style="color: var(--role-heal)">{{ karaSignupsStore.roleCounts.Heiler }} Heiler</span>
+      <span style="color: var(--role-dps)">{{ karaSignupsStore.roleCounts.DPS }} DPS</span>
+      <span
+        v-if="karaSignupsStore.signups.filter(s => {
+          const e = entriesStore.entries.find(x => x.id === s.entryId)
+          return e && Object.keys(e.availability || {}).length === 0 && !s.useCustomTimes
+        }).length > 0"
+        class="kara-signup-warn-count"
+      >
+        ({{ karaSignupsStore.signups.filter(s => {
+          const e = entriesStore.entries.find(x => x.id === s.entryId)
+          return e && Object.keys(e.availability || {}).length === 0 && !s.useCustomTimes
+        }).length }} ohne Zeiten)
+      </span>
+    </div>
+
     <!-- Pool filter -->
     <div class="kara-filter">
       <div class="kara-filter-row">
@@ -870,6 +892,25 @@ function onFilterTimeChange(event: Event) {
 
 .kara-suggest-assign button:not(:disabled):hover {
   background: rgba(255, 255, 255, 0.08);
+}
+
+/* Signup info banner */
+.kara-signup-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(102, 187, 106, 0.06);
+  border: 1px solid rgba(102, 187, 106, 0.15);
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--color-tx2);
+}
+.kara-signup-warn-count {
+  color: #ffb74d;
+  font-weight: 600;
 }
 
 /* Filter */

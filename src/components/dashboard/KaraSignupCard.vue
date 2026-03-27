@@ -145,6 +145,12 @@ function roleColor(role: RoleName): string {
   return ROLE_COLORS[role]
 }
 
+// Check if selected entry has availability data
+const hasAvailability = computed(() => {
+  if (!myEntry.value) return false
+  return Object.keys(myEntry.value.availability || {}).length > 0
+})
+
 // Auto-select all specs if only one for the chosen class
 watch(availableSpecs, (specs) => {
   if (specs.length === 1 && selectedSpecs.value.length === 0) {
@@ -208,6 +214,13 @@ watch(availableSpecs, (specs) => {
       <div class="ms-actions">
         <button class="btn-edit" @click="startEdit">Bearbeiten</button>
         <button class="btn-withdraw" :disabled="submitting" @click="handleWithdraw">Abmelden</button>
+      </div>
+      <!-- Warning if no availability on the signed-up entry -->
+      <div v-if="!hasAvailability && !karaStore.mySignup.useCustomTimes" class="kara-warn">
+        Dein Charakter hat keine Verfügbarkeitszeiten eingetragen.
+        Ohne Zeiten wirst du bei der Gruppenplanung nicht berücksichtigt.
+        <router-link to="/form" class="kara-warn-link">Zeiten eintragen</router-link>
+        oder aktiviere "Eigene Zeiten angeben" bei der Anmeldung.
       </div>
     </template>
 
@@ -280,6 +293,9 @@ watch(availableSpecs, (specs) => {
             <input v-model="useCustomTimes" type="checkbox" />
             <span>Eigene Zeiten angeben</span>
           </label>
+          <div v-if="!useCustomTimes" class="sf-hint">
+            Deine Zeiten aus dem <router-link to="/form">Profil</router-link> werden verwendet.
+          </div>
         </div>
 
         <!-- Custom time grid -->
@@ -289,6 +305,13 @@ watch(availableSpecs, (specs) => {
           :days="selectedDays"
           :entry-availability="myEntry?.availability || {}"
         />
+
+        <!-- No availability warning -->
+        <div v-if="myEntry && !hasAvailability && !useCustomTimes" class="kara-warn">
+          Dein Charakter hat keine Zeiten im Profil.
+          <router-link to="/form" class="kara-warn-link">Jetzt eintragen</router-link>
+          oder aktiviere oben "Eigene Zeiten angeben".
+        </div>
 
         <!-- Actions -->
         <div class="sf-actions">
@@ -304,6 +327,10 @@ watch(availableSpecs, (specs) => {
     <template v-else>
       <div class="cta-area">
         <button class="btn-signup" @click="startEdit">Für Kara anmelden</button>
+        <div class="cta-info">
+          Melde dich an, damit die Raidleitung Kara-Gruppen planen kann.
+          Wähle deinen Spec, bevorzugte Tage und optional eigene Zeiten.
+        </div>
       </div>
     </template>
   </div>
@@ -586,4 +613,36 @@ watch(availableSpecs, (specs) => {
   border-color: rgba(201, 168, 76, 0.5);
 }
 .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Info & warnings */
+.kara-warn {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(255, 183, 77, 0.08);
+  border: 1px solid rgba(255, 183, 77, 0.2);
+  font-size: 12px;
+  color: #ffb74d;
+  line-height: 1.5;
+}
+.kara-warn-link {
+  color: var(--color-gold);
+  font-weight: 600;
+  text-decoration: underline;
+}
+.sf-hint {
+  font-size: 11px;
+  color: var(--color-tx4);
+  margin-top: 4px;
+}
+.sf-hint a {
+  color: var(--color-gold);
+  text-decoration: underline;
+}
+.cta-info {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--color-tx4);
+  line-height: 1.5;
+}
 </style>
