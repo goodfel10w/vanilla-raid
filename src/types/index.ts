@@ -111,6 +111,19 @@ export interface BnetCharacter {
   level: number
 }
 
+export interface KaraSignup {
+  entryId: string
+  userId: string
+  charName: string
+  className: WowClassName
+  spec: string
+  role: RoleName
+  days: DayName[]
+  customSlots?: AvailabilityMap
+  useCustomTimes: boolean
+  timestamp: string
+}
+
 export interface NewsPost {
   id: string
   title: string

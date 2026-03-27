@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Entry } from '@/types'
+import type { Entry, KaraSignup } from '@/types'
 import type { KaraLink } from '@/composables/useKaraPersistence'
 import KaraPlayer from './KaraPlayer.vue'
 
@@ -10,6 +10,7 @@ const props = defineProps<{
   noEntries: boolean
   showAssigned: boolean
   assignedPlayers?: { entry: Entry; groupIndex: number }[]
+  signupMap?: Map<string, KaraSignup>
 }>()
 
 const emit = defineEmits<{
@@ -25,6 +26,10 @@ const emit = defineEmits<{
 function getLinkColor(entryId: string): string | null {
   const lk = props.links.find(l => l.ids.includes(entryId))
   return lk ? lk.color : null
+}
+
+function getSignup(entryId: string) {
+  return props.signupMap?.get(entryId) ?? null
 }
 </script>
 
@@ -57,6 +62,8 @@ function getLinkColor(entryId: string): string | null {
         :in-group="false"
         :pinned="false"
         :link-color="getLinkColor(e.id)"
+        :signup-spec="getSignup(e.id)?.spec"
+        :signup-role="getSignup(e.id)?.role"
         @link="emit('link', $event)"
         @dragstart="(id: string, ev: DragEvent) => emit('dragstart', id, ev)"
         @dragend="emit('dragend')"
