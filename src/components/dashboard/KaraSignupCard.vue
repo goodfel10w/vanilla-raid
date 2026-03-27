@@ -27,12 +27,10 @@ const myEntry = computed(() => {
   return entriesStore.entries.find(e => e.userId === authStore.user!.userId) ?? null
 })
 
-// Available specs from entry
+// All specs for the player's class (not just the ones in their entry)
 const availableSpecs = computed(() => {
   if (!myEntry.value) return []
-  return (CLASS_SPECS[myEntry.value.className] || []).filter(s =>
-    myEntry.value!.specs.includes(s.name)
-  )
+  return CLASS_SPECS[myEntry.value.className] || []
 })
 
 // Week dates
