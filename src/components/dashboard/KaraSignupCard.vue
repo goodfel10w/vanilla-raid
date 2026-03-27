@@ -15,16 +15,26 @@ const entriesStore = useEntriesStore()
 const karaStore = useKaraSignupsStore()
 
 const editing = ref(false)
+const selectedEntryId = ref('')
 const selectedSpec = ref('')
 const selectedDays = ref<string[]>([])
 const useCustomTimes = ref(false)
 const customSlots = ref<AvailabilityMap>({})
 const submitting = ref(false)
 
-// Find user's entry
+// All entries belonging to the user
+const myEntries = computed(() => {
+  if (!authStore.user) return []
+  return entriesStore.entries.filter(e => e.userId === authStore.user!.userId)
+})
+
+// Currently selected entry (or the only one)
 const myEntry = computed(() => {
-  if (!authStore.user) return null
-  return entriesStore.entries.find(e => e.userId === authStore.user!.userId) ?? null
+  if (myEntries.value.length === 0) return null
+  if (selectedEntryId.value) {
+    return myEntries.value.find(e => e.id === selectedEntryId.value) ?? myEntries.value[0]
+  }
+  return myEntries.value[0]
 })
 
 // All specs for the player's class (not just the ones in their entry)
@@ -47,12 +57,14 @@ const weekLabel = computed(() => `${fmtShort(weekStart.value)} – ${fmtShort(we
 function startEdit() {
   const existing = karaStore.mySignup
   if (existing) {
+    selectedEntryId.value = existing.entryId
     selectedSpec.value = existing.spec
     selectedDays.value = [...existing.days]
     useCustomTimes.value = existing.useCustomTimes
     customSlots.value = existing.customSlots ? { ...existing.customSlots } : {}
   } else {
-    selectedSpec.value = availableSpecs.value.length === 1 ? availableSpecs.value[0].name : ''
+    selectedEntryId.value = myEntries.value.length === 1 ? myEntries.value[0].id : ''
+    selectedSpec.value = ''
     selectedDays.value = []
     useCustomTimes.value = false
     customSlots.value = {}
@@ -60,11 +72,16 @@ function startEdit() {
   editing.value = true
 }
 
+function selectEntry(id: string) {
+  selectedEntryId.value = id
+  selectedSpec.value = ''
+}
+
 function cancelEdit() {
   editing.value = false
 }
 
-const canSubmit = computed(() => selectedSpec.value && selectedDays.value.length > 0)
+const canSubmit = computed(() => myEntry.value && selectedSpec.value && selectedDays.value.length > 0)
 
 function toggleDay(day: string) {
   const idx = selectedDays.value.indexOf(day)
@@ -116,7 +133,13 @@ function roleColor(role: RoleName): string {
   return ROLE_COLORS[role]
 }
 
-// Auto-select spec if only one available
+// Auto-select entry if only one, auto-select spec if only one
+watch(myEntries, (entries) => {
+  if (entries.length === 1 && !selectedEntryId.value) {
+    selectedEntryId.value = entries[0].id
+  }
+}, { immediate: true })
+
 watch(availableSpecs, (specs) => {
   if (specs.length === 1 && !selectedSpec.value) {
     selectedSpec.value = specs[0].name
@@ -125,7 +148,7 @@ watch(availableSpecs, (specs) => {
 </script>
 
 <template>
-  <div v-if="myEntry" class="card dash-card kara-signup-card">
+  <div v-if="myEntries.length > 0" class="card dash-card kara-signup-card">
     <div class="card-t">
       <span class="kara-icon">⚔</span>
       Karazhan diese Woche
@@ -170,6 +193,28 @@ watch(availableSpecs, (specs) => {
     <!-- Signup form -->
     <template v-else-if="editing">
       <div class="signup-form">
+        <!-- Character selection (only if multiple entries) -->
+        <div v-if="myEntries.length > 1" class="sf-section">
+          <div class="sf-label">Charakter</div>
+          <div class="sf-chars">
+            <div
+              v-for="entry in myEntries"
+              :key="entry.id"
+              class="sf-char"
+              :class="{ active: selectedEntryId === entry.id }"
+              :style="selectedEntryId === entry.id ? {
+                borderColor: cc(entry.className),
+                color: cc(entry.className),
+                background: cc(entry.className) + '18'
+              } : {}"
+              @click="selectEntry(entry.id)"
+            >
+              <ClassIcon :class-name="entry.className" size="sm" />
+              {{ entry.charName }}
+            </div>
+          </div>
+        </div>
+
         <!-- Spec selection -->
         <div class="sf-section">
           <div class="sf-label">Spec</div>
@@ -221,7 +266,7 @@ watch(availableSpecs, (specs) => {
           v-if="useCustomTimes && selectedDays.length > 0"
           v-model="customSlots"
           :days="selectedDays"
-          :entry-availability="myEntry.availability || {}"
+          :entry-availability="myEntry?.availability || {}"
         />
 
         <!-- Actions -->
@@ -371,6 +416,28 @@ watch(availableSpecs, (specs) => {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
+/* Char chips */
+.sf-chars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sf-char {
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font: 600 12px var(--font-body);
+  border: 2px solid var(--color-border);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--color-tx3);
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  user-select: none;
+}
+.sf-char:hover { border-color: rgba(255, 255, 255, 0.12); }
 
 /* Spec chips */
 .sf-specs {
