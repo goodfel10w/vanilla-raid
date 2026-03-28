@@ -167,6 +167,29 @@ Battle.net OAuth 2.0 SSO. Reading is public; mutations require login.
 - **Toast:** `#toast`, `#toast.show`
 - **Auth:** `#auth-bar`, `.btn-bnet`, `.btn-logout`, `.auth-user`, `.auth-hint`
 
+## What's New / Feature Intro Cards
+
+Dismissible "Was gibt's Neues?" cards on the dashboard that introduce new features to users who haven't seen them yet. Shown once per feature per user, tracked via `localStorage["whats-new-seen"]`.
+
+**Files:**
+- `src/lib/whatsNewFeatures.ts` — Feature registry (add new features here)
+- `src/composables/useWhatsNew.ts` — Seen/unseen state composable
+- `src/components/dashboard/WhatsNewCard.vue` — Dashboard card component
+
+**Adding a new feature announcement:**
+Append an object to the `WHATS_NEW_FEATURES` array in `src/lib/whatsNewFeatures.ts`:
+```ts
+{
+  id: 'my-feature-v1',       // stable unique ID (never change after shipping)
+  title: 'Feature-Titel',    // German
+  description: 'Beschreibung…',
+  icon: '⚔️',
+  route: '/route',            // optional: links to the feature page
+  routeLabel: 'Zum Feature',  // optional: CTA button text
+  addedAt: '2026-03-28',      // ISO date, newest shown first
+}
+```
+
 ## Key Conventions
 
 - All UI text in German
