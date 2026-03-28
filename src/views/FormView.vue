@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useEntriesStore } from '@/stores/entries'
 import { useFormSubmit } from '@/composables/useFormSubmit'
 import { useBnetCharPicker } from '@/composables/useBnetCharPicker'
-import { specsToRoles, migrateLegacyAvail } from '@/lib/utils'
+import { specsToRoles, migrateLegacyAvail, cc } from '@/lib/utils'
 import { CLASS_SPECS } from '@/lib/constants'
 import ClassChipSelector from '@/components/shared/ClassChipSelector.vue'
 import SpecChipSelector from '@/components/shared/SpecChipSelector.vue'
@@ -124,11 +124,34 @@ function cancelEdit() {
   notes.value = ''
 }
 
+// User's existing entries
+const myEntries = computed(() => {
+  if (!auth.user) return []
+  return entriesStore.entries.filter(e => e.userId === auth.user!.userId)
+})
+
+const showMyEntries = computed(() => {
+  return auth.isLoggedIn && myEntries.value.length > 0 && !isEditing.value
+})
+
+function editMyEntry(id: string) {
+  loadEditEntry(id)
+}
+
 // Check for edit mode from query param
-onMounted(() => {
+onMounted(async () => {
+  // Ensure entries are loaded
+  if (!entriesStore.entries.length) await entriesStore.load()
+
   const editParam = route.query.edit as string | undefined
   if (editParam) {
     loadEditEntry(editParam)
+  } else if (auth.isLoggedIn) {
+    // Auto-load first entry if user has exactly one
+    const mine = entriesStore.entries.filter(e => e.userId === auth.user?.userId)
+    if (mine.length === 1) {
+      loadEditEntry(mine[0].id)
+    }
   }
   // Scroll to hash anchor (e.g. #availability)
   if (route.hash) {
@@ -155,6 +178,35 @@ watch(() => route.query.edit, (newEditId) => {
       <button class="btn-bnet" @click="auth.bnetLogin()">
         Mit Battle.net anmelden
       </button>
+    </div>
+
+    <!-- My existing entries -->
+    <div v-else-if="showMyEntries" class="card form-card">
+      <div class="my-entries-section">
+        <div class="me-title">Meine Charaktere</div>
+        <div class="me-list">
+          <div
+            v-for="entry in myEntries"
+            :key="entry.id"
+            class="me-entry"
+          >
+            <div class="me-left">
+              <img
+                class="me-icon"
+                :src="`https://cdn.jsdelivr.net/gh/orourkek/Wow-Icons@master/images/class/64/${(entry.className === 'Druide' ? 'druid' : entry.className === 'Hexenmeister' ? 'warlock' : entry.className === 'Jäger' ? 'hunter' : entry.className === 'Krieger' ? 'warrior' : entry.className === 'Magier' ? 'mage' : entry.className === 'Paladin' ? 'paladin' : entry.className === 'Priester' ? 'priest' : entry.className === 'Schamane' ? 'shaman' : 'rogue')}.png`"
+                :alt="entry.className"
+              />
+              <div>
+                <div class="me-name" :style="{ color: cc(entry.className) }">{{ entry.charName }}</div>
+                <div class="me-meta">{{ entry.className }} &middot; {{ (entry.specs || entry.roles || []).join(', ') }}</div>
+                <div v-if="Object.keys(entry.availability || {}).length === 0" class="me-warn">Keine Zeiten eingetragen</div>
+              </div>
+            </div>
+            <button class="me-edit-btn" @click="editMyEntry(entry.id)">Bearbeiten</button>
+          </div>
+        </div>
+        <button class="me-new-btn" @click="cancelEdit">Neuen Charakter anlegen</button>
+      </div>
     </div>
 
     <!-- Form -->
@@ -384,6 +436,86 @@ input[type="text"]:focus {
 .btn-s:hover {
   background: rgba(255, 255, 255, 0.08);
   color: var(--color-tx);
+}
+
+/* My entries */
+.my-entries-section {
+  text-align: left;
+}
+.me-title {
+  font: 600 16px var(--font-heading);
+  color: var(--color-gold);
+  margin-bottom: 16px;
+}
+.me-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.me-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  flex-wrap: wrap;
+}
+.me-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.me-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.me-name {
+  font: 600 14px var(--font-heading);
+}
+.me-meta {
+  font-size: 12px;
+  color: var(--color-tx3);
+}
+.me-warn {
+  font-size: 11px;
+  color: #ffb74d;
+  font-weight: 600;
+  margin-top: 2px;
+}
+.me-edit-btn {
+  padding: 8px 18px;
+  border-radius: 6px;
+  font: 600 12px var(--font-body);
+  cursor: pointer;
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  background: rgba(201, 168, 76, 0.12);
+  color: var(--color-gold);
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.me-edit-btn:hover {
+  background: rgba(201, 168, 76, 0.2);
+  border-color: rgba(201, 168, 76, 0.5);
+}
+.me-new-btn {
+  padding: 8px 18px;
+  border-radius: 6px;
+  font: 600 12px var(--font-body);
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--color-tx3);
+  transition: all 0.15s;
+}
+.me-new-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 @media (max-width: 767px) {
