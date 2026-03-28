@@ -13,6 +13,8 @@ import NotificationsCard from '@/components/dashboard/NotificationsCard.vue'
 import SuggestedRaidsCard from '@/components/dashboard/SuggestedRaidsCard.vue'
 import LatestNewsCard from '@/components/dashboard/LatestNewsCard.vue'
 import KaraSignupCard from '@/components/dashboard/KaraSignupCard.vue'
+import WhatsNewCard from '@/components/dashboard/WhatsNewCard.vue'
+import { useWhatsNew } from '@/composables/useWhatsNew'
 
 const authStore = useAuthStore()
 const entriesStore = useEntriesStore()
@@ -21,6 +23,7 @@ const newsStore = useNewsStore()
 const karaSignupsStore = useKaraSignupsStore()
 
 const { myRaidsThisWeek, notifications, suggestedRaids, updateSnapshot } = useDashboardData()
+const { unseenFeatures, dismiss, dismissAll } = useWhatsNew()
 
 const hasAnyEntry = computed(() => {
   if (!authStore.user) return false
@@ -80,6 +83,14 @@ const dashboardPosts = computed(() => newsStore.posts.slice(0, 3))
         DKP
       </router-link>
     </div>
+
+    <!-- What's New -->
+    <WhatsNewCard
+      v-if="unseenFeatures.length"
+      :features="unseenFeatures"
+      @dismiss="dismiss"
+      @dismiss-all="dismissAll"
+    />
 
     <!-- Latest News -->
     <LatestNewsCard :posts="dashboardPosts" />
