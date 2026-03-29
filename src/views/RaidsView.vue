@@ -1,17 +1,33 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRaidsStore } from '@/stores/raids'
 import { useAuthStore } from '@/stores/auth'
+import { useEntriesStore } from '@/stores/entries'
+import { useKaraSignupsStore } from '@/stores/karaSignups'
 import RaidCard from '@/components/raids/RaidCard.vue'
 import RaidForm from '@/components/raids/RaidForm.vue'
 import RaidCalendarWeek from '@/components/raids/RaidCalendarWeek.vue'
 import RaidCalendarMonth from '@/components/raids/RaidCalendarMonth.vue'
+import KaraSignupCard from '@/components/dashboard/KaraSignupCard.vue'
 import type { Raid } from '@/types'
 
 const router = useRouter()
 const raidsStore = useRaidsStore()
 const authStore = useAuthStore()
+const entriesStore = useEntriesStore()
+const karaSignupsStore = useKaraSignupsStore()
+
+const hasAnyEntry = computed(() => {
+  if (!authStore.user) return false
+  return entriesStore.entries.some(e => e.userId === authStore.user!.userId)
+})
+
+onMounted(() => {
+  if (authStore.isLoggedIn) {
+    karaSignupsStore.load(0)
+  }
+})
 
 type ViewMode = 'list' | 'create' | 'edit'
 type CalMode = 'list' | 'week' | 'month'
@@ -134,6 +150,23 @@ function onCalSelectRaid(id: string) {
       <!-- Auth hint -->
       <div v-if="!authStore.isLoggedIn" class="auth-hint">
         Melde dich an, um Raids zu erstellen oder dich anzumelden.
+      </div>
+
+      <!-- Kara signup section -->
+      <div class="kara-section">
+        <div class="kara-info-banner">
+          <span class="kara-info-icon">⚔</span>
+          <div>
+            <strong>Karazhan Interesse?</strong>
+            Melde dich hier fuer Karazhan an, damit die Raidleitung Gruppen planen kann.
+            Waehle deinen Spec und bevorzugte Tage — die Gruppen werden auf der
+            <router-link to="/kara" class="kara-link">Kara-Seite</router-link> zusammengestellt.
+          </div>
+        </div>
+        <KaraSignupCard v-if="authStore.isLoggedIn && hasAnyEntry" />
+        <div v-else-if="authStore.isLoggedIn && !hasAnyEntry" class="kara-no-entry">
+          <router-link to="/form">Trage zuerst einen Charakter ein</router-link>, um dich fuer Karazhan anzumelden.
+        </div>
       </div>
 
       <!-- Calendar views -->
@@ -264,6 +297,49 @@ function onCalSelectRaid(id: string) {
   padding: 40px 20px;
   color: var(--color-tx3);
   font-size: 14px;
+}
+
+/* Kara section */
+.kara-section {
+  margin-bottom: 18px;
+}
+.kara-info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: rgba(201, 168, 76, 0.06);
+  border: 1px solid rgba(201, 168, 76, 0.18);
+  font-size: 13px;
+  color: var(--color-tx2);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+.kara-info-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.kara-info-banner strong {
+  color: var(--color-gold);
+}
+.kara-link {
+  color: var(--color-gold);
+  font-weight: 600;
+  text-decoration: underline;
+}
+.kara-no-entry {
+  font-size: 13px;
+  color: var(--color-tx3);
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+}
+.kara-no-entry a {
+  color: var(--color-gold);
+  font-weight: 600;
+  text-decoration: underline;
 }
 
 @media (max-width: 767px) {
