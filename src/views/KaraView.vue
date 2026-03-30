@@ -404,13 +404,8 @@ function copyExport() {
     .catch(() => toast('Kopieren fehlgeschlagen'))
 }
 
-function onFilterDayChange(event: Event) {
-  filterDay.value = (event.target as HTMLSelectElement).value
+function onFilterDayChange() {
   filterTime.value = ''
-}
-
-function onFilterTimeChange(event: Event) {
-  filterTime.value = (event.target as HTMLSelectElement).value
 }
 </script>
 
@@ -547,13 +542,13 @@ function onFilterTimeChange(event: Event) {
     <div class="kara-filter">
       <div class="kara-filter-row">
         <span>Pool-Filter:</span>
-        <select @change="onFilterDayChange">
+        <select v-model="filterDay" @change="onFilterDayChange">
           <option value="">Alle Spieler</option>
-          <option v-for="d in DAYS" :key="d" :value="d" :selected="filterDay === d">{{ d }}</option>
+          <option v-for="d in DAYS" :key="d" :value="d">{{ d }}</option>
         </select>
-        <select v-if="filterDay" @change="onFilterTimeChange">
+        <select v-if="filterDay" v-model="filterTime">
           <option value="">Jede Uhrzeit</option>
-          <option v-for="hl in HOUR_LABELS" :key="hl" :value="hl" :selected="filterTime === hl">{{ hl }}:00</option>
+          <option v-for="hl in HOUR_LABELS" :key="hl" :value="hl">{{ hl }}:00</option>
         </select>
         <label class="kara-filter-check">
           <input v-model="filterSignedUp" type="checkbox" />
