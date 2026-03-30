@@ -63,7 +63,7 @@ function getSignup(entryId: string) {
         :in-group="false"
         :pinned="false"
         :link-color="getLinkColor(e.id)"
-        :signup-spec="(getSignup(e.id)?.specs ?? (getSignup(e.id)?.spec ? [getSignup(e.id)!.spec!] : [])).join(', ')"
+        :signup-spec="(getSignup(e.id)?.specs ?? []).join(', ')"
         :availability-status="props.availabilityMap?.get(e.id) ?? null"
         @link="emit('link', $event)"
         @dragstart="(id: string, ev: DragEvent) => emit('dragstart', id, ev)"

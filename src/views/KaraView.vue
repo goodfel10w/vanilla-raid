@@ -131,6 +131,13 @@ const slotsSetCount = computed(() =>
 
 const hasAnySlot = computed(() => persistence.groupSlots.value.some(s => s))
 
+const signupsWithoutTimes = computed(() =>
+  karaSignupsStore.signups.filter(s => {
+    const e = entriesStore.entries.find(x => x.id === s.entryId)
+    return e && Object.keys(e.availability || {}).length === 0 && !s.useCustomTimes
+  })
+)
+
 // Overlap map: for each assigned player, which OTHER groups' slots they're also available for
 const overlapMap = computed(() => {
   const map = new Map<string, number[]>()
@@ -669,16 +676,10 @@ function onFilterDayChange() {
       <span style="color: var(--role-heal)">{{ karaSignupsStore.roleCounts.Heiler }} Heiler</span>
       <span style="color: var(--role-dps)">{{ karaSignupsStore.roleCounts.DPS }} DPS</span>
       <span
-        v-if="karaSignupsStore.signups.filter(s => {
-          const e = entriesStore.entries.find(x => x.id === s.entryId)
-          return e && Object.keys(e.availability || {}).length === 0 && !s.useCustomTimes
-        }).length > 0"
+        v-if="signupsWithoutTimes.length > 0"
         class="kara-signup-warn-count"
       >
-        ({{ karaSignupsStore.signups.filter(s => {
-          const e = entriesStore.entries.find(x => x.id === s.entryId)
-          return e && Object.keys(e.availability || {}).length === 0 && !s.useCustomTimes
-        }).length }} ohne Zeiten)
+        ({{ signupsWithoutTimes.length }} ohne Zeiten)
       </span>
     </div>
 

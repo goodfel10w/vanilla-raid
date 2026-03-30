@@ -118,10 +118,6 @@ export interface KaraSignup {
   className: WowClassName
   specs: string[]
   roles: RoleName[]
-  /** @deprecated use specs[] — kept for backwards compat with old signups */
-  spec?: string
-  /** @deprecated use roles[] — kept for backwards compat with old signups */
-  role?: RoleName
   days: DayName[]
   customSlots?: AvailabilityMap
   useCustomTimes: boolean
