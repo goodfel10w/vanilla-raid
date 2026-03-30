@@ -759,6 +759,7 @@ function onFilterDayChange() {
           @unassign="handleUnassign"
           @link="handleLink"
           @set-tank-role="handleSetTankRole"
+          @assign-slot="assignSlot"
           @remove-slot="removeSlot"
           @remove-group="confirmRemoveGroup"
           @dragstart="handleDragStart"
