@@ -11,6 +11,7 @@ const props = defineProps<{
   showAssigned: boolean
   assignedPlayers?: { entry: Entry; groupIndex: number }[]
   signupMap?: Map<string, KaraSignup>
+  availabilityMap?: Map<string, 'yes' | 'tentative' | 'unavailable'>
 }>()
 
 const emit = defineEmits<{
@@ -63,6 +64,7 @@ function getSignup(entryId: string) {
         :pinned="false"
         :link-color="getLinkColor(e.id)"
         :signup-spec="(getSignup(e.id)?.specs ?? (getSignup(e.id)?.spec ? [getSignup(e.id)!.spec!] : [])).join(', ')"
+        :availability-status="props.availabilityMap?.get(e.id) ?? null"
         @link="emit('link', $event)"
         @dragstart="(id: string, ev: DragEvent) => emit('dragstart', id, ev)"
         @dragend="emit('dragend')"
@@ -146,7 +148,7 @@ function getSignup(entryId: string) {
   border-radius: 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   transition: all 0.15s;
 }
 

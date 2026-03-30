@@ -4,6 +4,7 @@ import { useEntriesStore } from '@/stores/entries'
 import type { KaraLink } from '@/composables/useKaraPersistence'
 import type { KaraGroupPlayer } from '@/composables/useKaraPersistence'
 import { karaGroupRoles, karaGroupTankTotal, parseSlotKey, KARA_MT, KARA_OT, KARA_HEALERS, KARA_DPS } from '@/composables/useKaraAutoSuggest'
+import { SLOTS } from '@/lib/constants'
 import KaraPlayer from './KaraPlayer.vue'
 
 const props = defineProps<{
@@ -49,6 +50,47 @@ function getPlayerTankRole(entryId: string): 'MT' | 'OT' | undefined {
 function getOverlapGroups(entryId: string): number[] {
   return props.overlapMap?.get(entryId) || []
 }
+
+// Per-player availability for the group's assigned time slot
+const playerAvailability = computed(() => {
+  const map = new Map<string, 'yes' | 'tentative' | 'unavailable'>()
+  const parsed = parsedSlot.value
+  if (!parsed) return map
+
+  const startH = parseInt(parsed.windowLabel)
+  if (isNaN(startH)) return map
+
+  const qs: string[] = []
+  for (let wh = startH; wh < startH + 3; wh++) {
+    for (const m of [0, 15, 30, 45]) {
+      qs.push(parsed.day + '_' + String(wh).padStart(2, '0') + ':' + String(m).padStart(2, '0'))
+    }
+  }
+
+  props.group.forEach(p => {
+    const entry = entriesStore.entries.find(e => e.id === p.entryId)
+    if (!entry || !entry.availability) {
+      map.set(p.entryId, 'unavailable')
+      return
+    }
+    const allYes = qs.every(q => entry.availability[q] === 'yes')
+    const allAvail = qs.every(q => entry.availability[q] === 'yes' || entry.availability[q] === 'tentative')
+    if (allYes) map.set(p.entryId, 'yes')
+    else if (allAvail) map.set(p.entryId, 'tentative')
+    else map.set(p.entryId, 'unavailable')
+  })
+  return map
+})
+
+const availSummary = computed(() => {
+  let yes = 0, tentative = 0, unavailable = 0
+  for (const status of playerAvailability.value.values()) {
+    if (status === 'yes') yes++
+    else if (status === 'tentative') tentative++
+    else unavailable++
+  }
+  return { yes, tentative, unavailable }
+})
 </script>
 
 <template>
@@ -97,6 +139,11 @@ function getOverlapGroups(entryId: string): number[] {
         title="Tanks ohne MT/OT Zuweisung"
       >{{ tankTotal - roles.mt - roles.ot }}?T</span>
     </div>
+    <div v-if="parsedSlot && group.length > 0" class="kara-avail-summary">
+      <span class="kara-avail-tag yes">{{ availSummary.yes }} sicher</span>
+      <span v-if="availSummary.tentative > 0" class="kara-avail-tag tentative">{{ availSummary.tentative }} vielleicht</span>
+      <span v-if="availSummary.unavailable > 0" class="kara-avail-tag unavailable">{{ availSummary.unavailable }} unsicher</span>
+    </div>
     <div
       class="kara-dropzone"
       :class="{ 'drag-over': isDragOver }"
@@ -117,6 +164,7 @@ function getOverlapGroups(entryId: string): number[] {
         :link-color="getLinkColor(p.entryId)"
         :tank-role="getPlayerTankRole(p.entryId)"
         :overlap-groups="getOverlapGroups(p.entryId)"
+        :availability-status="playerAvailability.get(p.entryId) ?? null"
         @pin="emit('pin', $event)"
         @unassign="emit('unassign', $event)"
         @link="emit('link', $event)"
@@ -223,6 +271,35 @@ function getOverlapGroups(entryId: string): number[] {
   opacity: 1;
 }
 
+.kara-avail-summary {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.kara-avail-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.kara-avail-tag.yes {
+  background: rgba(102, 187, 106, 0.15);
+  color: #66bb6a;
+}
+
+.kara-avail-tag.tentative {
+  background: rgba(255, 183, 77, 0.15);
+  color: #ffb74d;
+}
+
+.kara-avail-tag.unavailable {
+  background: rgba(229, 115, 115, 0.15);
+  color: #e57373;
+}
+
 .kara-dropzone {
   min-height: 80px;
   padding: 6px;
@@ -230,7 +307,7 @@ function getOverlapGroups(entryId: string): number[] {
   border-radius: 6px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   transition: all 0.15s;
 }
 

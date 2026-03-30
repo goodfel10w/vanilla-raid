@@ -112,6 +112,6 @@ describe('KaraView', () => {
     const wrapper = mount(KaraView, {
       global: { plugins: [router] },
     })
-    expect(wrapper.text()).toContain('Pool-Filter')
+    expect(wrapper.text()).toContain('Filter:')
   })
 })

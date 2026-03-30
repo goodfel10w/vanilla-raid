@@ -24,7 +24,7 @@ import {
   KARA_DPS,
   KARA_SIZE,
 } from '@/composables/useKaraAutoSuggest'
-import { DAYS, HOUR_LABELS, SLOTS } from '@/lib/constants'
+import { DAYS, HOUR_LABELS, SLOTS, CLS, ROLES, ROLE_COLORS } from '@/lib/constants'
 import type { RoleName } from '@/lib/constants'
 import { formatDate, cc, h, hourQuarters, specsToRoles } from '@/lib/utils'
 import ConfirmModal from '@/components/shared/ConfirmModal.vue'
@@ -45,6 +45,9 @@ const showExport = ref(false)
 const filterDay = ref('')
 const filterTime = ref('')
 const filterSignedUp = ref(false)
+const filterRole = ref('')
+const filterClass = ref('')
+const filterName = ref('')
 const linkPending = ref<string | null>(null)
 const showResetModal = ref(false)
 const showAssigned = ref(false)
@@ -92,10 +95,18 @@ const pool = computed(() => {
   if (filterSignedUp.value) {
     poolEntries = poolEntries.filter(e => signupMap.value.has(e.id))
   }
+  if (filterRole.value) {
+    poolEntries = poolEntries.filter(e => (e.roles || []).includes(filterRole.value as RoleName))
+  }
+  if (filterClass.value) {
+    poolEntries = poolEntries.filter(e => e.className === filterClass.value)
+  }
+  if (filterName.value) {
+    const q = filterName.value.toLowerCase()
+    poolEntries = poolEntries.filter(e => e.charName.toLowerCase().includes(q))
+  }
   if (filterDay.value) {
     poolEntries = poolEntries.filter(e => {
-      // Signed-up players always pass through day/time filters
-      if (signupMap.value.has(e.id)) return true
       if (!e.availability) return false
       if (filterTime.value) {
         const qs = hourQuarters(filterTime.value).map(q => filterDay.value + '_' + q)
@@ -509,6 +520,34 @@ async function createRaidFromGroup(gi: number) {
   }
 }
 
+function getAvailabilityForFilter(entry: typeof entriesStore.entries[number]): 'yes' | 'tentative' | 'unavailable' | null {
+  if (!filterDay.value) return null
+  if (!entry.availability) return 'unavailable'
+  if (filterTime.value) {
+    const qs = hourQuarters(filterTime.value).map(q => filterDay.value + '_' + q)
+    const allYes = qs.every(q => entry.availability[q] === 'yes')
+    const allAvail = qs.every(q => entry.availability[q] === 'yes' || entry.availability[q] === 'tentative')
+    if (allYes) return 'yes'
+    if (allAvail) return 'tentative'
+    return 'unavailable'
+  }
+  const hasYes = SLOTS.some(s => entry.availability[filterDay.value + '_' + s] === 'yes')
+  const hasTentative = SLOTS.some(s => entry.availability[filterDay.value + '_' + s] === 'tentative')
+  if (hasYes) return 'yes'
+  if (hasTentative) return 'tentative'
+  return 'unavailable'
+}
+
+const poolAvailabilityMap = computed(() => {
+  const map = new Map<string, 'yes' | 'tentative' | 'unavailable'>()
+  if (!filterDay.value) return map
+  for (const e of entriesStore.entries) {
+    const status = getAvailabilityForFilter(e)
+    if (status && status !== null) map.set(e.id, status)
+  }
+  return map
+})
+
 function onFilterDayChange() {
   filterTime.value = ''
 }
@@ -646,18 +685,32 @@ function onFilterDayChange() {
     <!-- Pool filter -->
     <div class="kara-filter">
       <div class="kara-filter-row">
-        <span>Pool-Filter:</span>
+        <span>Filter:</span>
         <select v-model="filterDay" @change="onFilterDayChange">
-          <option value="">Alle Spieler</option>
+          <option value="">Alle Tage</option>
           <option v-for="d in DAYS" :key="d" :value="d">{{ d }}</option>
         </select>
         <select v-if="filterDay" v-model="filterTime">
           <option value="">Jede Uhrzeit</option>
           <option v-for="hl in HOUR_LABELS" :key="hl" :value="hl">{{ hl }}:00</option>
         </select>
+        <select v-model="filterRole">
+          <option value="">Alle Rollen</option>
+          <option v-for="r in ROLES" :key="r" :value="r">{{ r }}</option>
+        </select>
+        <select v-model="filterClass">
+          <option value="">Alle Klassen</option>
+          <option v-for="c in CLS" :key="c.name" :value="c.name" :style="{ color: c.color }">{{ c.name }}</option>
+        </select>
+        <input
+          v-model="filterName"
+          type="text"
+          class="kara-filter-name"
+          placeholder="Name suchen..."
+        />
         <label class="kara-filter-check">
           <input v-model="filterSignedUp" type="checkbox" />
-          Nur Angemeldete ({{ karaSignupsStore.signups.length }})
+          Angemeldete ({{ karaSignupsStore.signups.length }})
         </label>
       </div>
     </div>
@@ -672,6 +725,7 @@ function onFilterDayChange() {
         :show-assigned="showAssigned"
         :assigned-players="assignedPlayers"
         :signup-map="signupMap"
+        :availability-map="poolAvailabilityMap"
         @link="handleLink"
         @toggle-show-assigned="showAssigned = !showAssigned"
         @dragstart="handleDragStart"
@@ -1055,10 +1109,23 @@ function onFilterDayChange() {
 }
 .kara-filter-check input { accent-color: var(--color-gold); }
 
+.kara-filter-name {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-card);
+  color: var(--color-tx1);
+  font-size: 12px;
+  width: 120px;
+}
+.kara-filter-name::placeholder {
+  color: var(--color-tx4);
+}
+
 /* Layout */
 .kara-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
