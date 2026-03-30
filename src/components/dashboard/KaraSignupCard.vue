@@ -65,7 +65,7 @@ function startEdit() {
   const existing = karaStore.mySignup
   if (existing) {
     selectedEntryId.value = existing.entryId
-    selectedSpecs.value = [...(existing.specs ?? (existing.spec ? [existing.spec] : []))]
+    selectedSpecs.value = [...(existing.specs ?? [])]
     selectedDays.value = [...existing.days]
     useCustomTimes.value = existing.useCustomTimes
     customSlots.value = existing.customSlots ? { ...existing.customSlots } : {}
@@ -199,7 +199,7 @@ watch(availableSpecs, (specs) => {
               {{ karaStore.mySignup.charName }}
             </span>
             <span
-              v-for="s in (karaStore.mySignup.specs ?? [karaStore.mySignup.spec]).filter(Boolean)"
+              v-for="s in (karaStore.mySignup.specs ?? [])"
               :key="s"
               class="ms-spec"
               :style="{ color: roleColor(specRole(s)) }"

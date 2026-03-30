@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useEntriesStore } from '@/stores/entries'
-import { cc } from '@/lib/utils'
-import { ROLE_COLORS } from '@/lib/constants'
+import { cc, collapseRanges } from '@/lib/utils'
+import { ROLE_COLORS, DAYS, DAY_SHORT } from '@/lib/constants'
 import type { RoleName } from '@/lib/constants'
 import ClassIcon from '@/components/shared/ClassIcon.vue'
 
@@ -38,6 +38,22 @@ const allRoles = computed<RoleName[]>(() => {
 const isTank = computed(() => allRoles.value.includes('Tank'))
 const allSpecs = computed(() => entry.value?.specs || [])
 const playerNotes = computed(() => entry.value?.notes || '')
+
+const availTooltip = computed(() => {
+  const e = entry.value
+  if (!e || !e.availability || Object.keys(e.availability).length === 0) return ''
+  const lines: string[] = [e.charName + ' — Verfuegbarkeit:']
+  for (const day of DAYS) {
+    const ranges = collapseRanges(e.availability, day)
+    if (ranges.length === 0) continue
+    const parts = ranges.map(r => {
+      const label = r.start + '–' + r.end
+      return r.type === 'tentative' ? label + ' (?)' : label
+    })
+    lines.push(DAY_SHORT[day] + ': ' + parts.join(', '))
+  }
+  return lines.length > 1 ? lines.join('\n') : ''
+})
 
 const availDotColor = computed(() => {
   if (!props.availabilityStatus) return null
@@ -76,6 +92,7 @@ function cycleTankRole() {
     class="kara-player"
     :class="{ pinned, linked: !!linkColor, ghosted }"
     :style="linkColor ? { borderLeftColor: linkColor } : {}"
+    :title="availTooltip"
     :draggable="!ghosted"
     :data-entry-id="entryId"
     @dragstart="!ghosted && emit('dragstart', entryId, $event)"

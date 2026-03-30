@@ -39,7 +39,7 @@ export const useKaraSignupsStore = defineStore('karaSignups', () => {
   const roleCounts = computed(() => {
     const counts = { Tank: 0, Heiler: 0, DPS: 0 }
     for (const s of signups.value) {
-      const roles = s.roles ?? (s.role ? [s.role] : [])
+      const roles = s.roles ?? []
       for (const r of roles) {
         if (r in counts) counts[r as keyof typeof counts]++
       }
