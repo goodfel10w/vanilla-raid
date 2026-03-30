@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useEntriesStore } from '@/stores/entries'
 import type { KaraLink } from '@/composables/useKaraPersistence'
 import type { KaraGroupPlayer } from '@/composables/useKaraPersistence'
+import type { AvailabilityMap } from '@/types'
 import { karaGroupRoles, karaGroupTankTotal, parseSlotKey, KARA_MT, KARA_OT, KARA_HEALERS, KARA_DPS } from '@/composables/useKaraAutoSuggest'
 import { SLOTS } from '@/lib/constants'
 import KaraPlayer from './KaraPlayer.vue'
@@ -15,6 +16,7 @@ const props = defineProps<{
   isDragOver: boolean
   removable: boolean
   overlapMap?: Map<string, number[]>
+  availMap?: Map<string, AvailabilityMap>
 }>()
 
 const emit = defineEmits<{
@@ -69,12 +71,17 @@ const playerAvailability = computed(() => {
 
   props.group.forEach(p => {
     const entry = entriesStore.entries.find(e => e.id === p.entryId)
-    if (!entry || !entry.availability) {
+    if (!entry) {
       map.set(p.entryId, 'unavailable')
       return
     }
-    const allYes = qs.every(q => entry.availability[q] === 'yes')
-    const allAvail = qs.every(q => entry.availability[q] === 'yes' || entry.availability[q] === 'tentative')
+    const avail = props.availMap?.get(p.entryId) ?? entry.availability
+    if (!avail) {
+      map.set(p.entryId, 'unavailable')
+      return
+    }
+    const allYes = qs.every(q => avail[q] === 'yes')
+    const allAvail = qs.every(q => avail[q] === 'yes' || avail[q] === 'tentative')
     if (allYes) map.set(p.entryId, 'yes')
     else if (allAvail) map.set(p.entryId, 'tentative')
     else map.set(p.entryId, 'unavailable')

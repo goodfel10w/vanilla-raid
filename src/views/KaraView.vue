@@ -27,6 +27,7 @@ import {
 import { DAYS, HOUR_LABELS, SLOTS, CLS, ROLES, ROLE_COLORS } from '@/lib/constants'
 import type { RoleName } from '@/lib/constants'
 import { formatDate, cc, h, hourQuarters, specsToRoles } from '@/lib/utils'
+import { buildKaraAvailabilityMap } from '@/lib/karaAvailability'
 import ConfirmModal from '@/components/shared/ConfirmModal.vue'
 import KaraPool from '@/components/kara/KaraPool.vue'
 import KaraGroup from '@/components/kara/KaraGroup.vue'
@@ -72,6 +73,11 @@ const signupMap = computed(() => {
   return map
 })
 
+// Effective kara availability (respects signup days + custom times)
+const karaAvailMap = computed(() =>
+  buildKaraAvailabilityMap(entriesStore.entries, signupMap.value)
+)
+
 // Computed
 const weekStart = computed(() => getIdWeekStart(persistence.weekOffset.value))
 const weekEnd = computed(() => getIdWeekEnd(weekStart.value))
@@ -107,12 +113,13 @@ const pool = computed(() => {
   }
   if (filterDay.value) {
     poolEntries = poolEntries.filter(e => {
-      if (!e.availability) return false
+      const avail = karaAvailMap.value.get(e.id) ?? e.availability
+      if (!avail) return false
       if (filterTime.value) {
         const qs = hourQuarters(filterTime.value).map(q => filterDay.value + '_' + q)
-        return qs.every(q => e.availability[q] === 'yes' || e.availability[q] === 'tentative')
+        return qs.every(q => avail[q] === 'yes' || avail[q] === 'tentative')
       }
-      return SLOTS.some(s => e.availability[filterDay.value + '_' + s])
+      return SLOTS.some(s => avail[filterDay.value + '_' + s])
     })
   }
   return poolEntries
@@ -133,8 +140,8 @@ const hasAnySlot = computed(() => persistence.groupSlots.value.some(s => s))
 
 const signupsWithoutTimes = computed(() =>
   karaSignupsStore.signups.filter(s => {
-    const e = entriesStore.entries.find(x => x.id === s.entryId)
-    return e && Object.keys(e.availability || {}).length === 0 && !s.useCustomTimes
+    const avail = karaAvailMap.value.get(s.entryId)
+    return avail !== undefined && Object.keys(avail).length === 0
   })
 )
 
@@ -147,7 +154,7 @@ const overlapMap = computed(() => {
       const otherGroups: number[] = []
       persistence.groupSlots.value.forEach((slot, ogi) => {
         if (ogi === gi || !slot) return
-        const available = karaPlayersForSlotKey(entriesStore.entries, slot)
+        const available = karaPlayersForSlotKey(entriesStore.entries, slot, karaAvailMap.value)
         if (available.some(e => e.id === p.entryId)) {
           otherGroups.push(ogi)
         }
@@ -178,10 +185,10 @@ const suggestions = computed(() => {
   const claimedIds = new Set<string>()
   persistence.groupSlots.value.forEach((slot) => {
     if (!slot) return
-    const slotPlayers = karaPlayersForSlotKey(entriesStore.entries, slot)
+    const slotPlayers = karaPlayersForSlotKey(entriesStore.entries, slot, karaAvailMap.value)
     slotPlayers.slice(0, KARA_SIZE).forEach(p => claimedIds.add(p.id))
   })
-  return karaSuggestSlots(entriesStore.entries, claimedIds).filter(s => s.total >= 3)
+  return karaSuggestSlots(entriesStore.entries, claimedIds, karaAvailMap.value).filter(s => s.total >= 3)
 })
 
 const maxSuggestTotal = computed(() =>
@@ -204,7 +211,7 @@ function toggleSuggest() {
 }
 
 async function autoPickSlots() {
-  const result = karaAutoPickSlots(entriesStore.entries, groupCount.value)
+  const result = karaAutoPickSlots(entriesStore.entries, groupCount.value, karaAvailMap.value)
   if (result) {
     persistence.groupSlots.value = result
     await persistence.save()
@@ -232,6 +239,7 @@ async function autoGenerate() {
     persistence.groupSlots.value,
     filterDay.value,
     filterTime.value,
+    karaAvailMap.value,
   )
   persistence.groups.value = result.groups
   await persistence.save()
@@ -529,17 +537,18 @@ async function createRaidFromGroup(gi: number) {
 
 function getAvailabilityForFilter(entry: typeof entriesStore.entries[number]): 'yes' | 'tentative' | 'unavailable' | null {
   if (!filterDay.value) return null
-  if (!entry.availability) return 'unavailable'
+  const avail = karaAvailMap.value.get(entry.id) ?? entry.availability
+  if (!avail) return 'unavailable'
   if (filterTime.value) {
     const qs = hourQuarters(filterTime.value).map(q => filterDay.value + '_' + q)
-    const allYes = qs.every(q => entry.availability[q] === 'yes')
-    const allAvail = qs.every(q => entry.availability[q] === 'yes' || entry.availability[q] === 'tentative')
+    const allYes = qs.every(q => avail[q] === 'yes')
+    const allAvail = qs.every(q => avail[q] === 'yes' || avail[q] === 'tentative')
     if (allYes) return 'yes'
     if (allAvail) return 'tentative'
     return 'unavailable'
   }
-  const hasYes = SLOTS.some(s => entry.availability[filterDay.value + '_' + s] === 'yes')
-  const hasTentative = SLOTS.some(s => entry.availability[filterDay.value + '_' + s] === 'tentative')
+  const hasYes = SLOTS.some(s => avail[filterDay.value + '_' + s] === 'yes')
+  const hasTentative = SLOTS.some(s => avail[filterDay.value + '_' + s] === 'tentative')
   if (hasYes) return 'yes'
   if (hasTentative) return 'tentative'
   return 'unavailable'
@@ -745,6 +754,7 @@ function onFilterDayChange() {
           :is-drag-over="dragDrop.dragOverTarget.value === 'group-' + gi"
           :removable="groupCount > 1"
           :overlap-map="overlapMap"
+          :avail-map="karaAvailMap"
           @pin="handlePin"
           @unassign="handleUnassign"
           @link="handleLink"

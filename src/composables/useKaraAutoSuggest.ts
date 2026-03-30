@@ -1,6 +1,6 @@
 import { DAYS, SLOTS } from '@/lib/constants'
 import { hourQuarters } from '@/lib/utils'
-import type { Entry } from '@/types'
+import type { Entry, AvailabilityMap } from '@/types'
 import type { KaraGroupPlayer, KaraLink } from './useKaraPersistence'
 
 const KARA_MT = 1
@@ -25,7 +25,7 @@ export interface SlotSuggestion {
   score: number
 }
 
-function karaPlayersForWindow(entries: Entry[], day: string, startH: number): Entry[] {
+function karaPlayersForWindow(entries: Entry[], day: string, startH: number, availMap?: Map<string, AvailabilityMap>): Entry[] {
   const qs: string[] = []
   for (let wh = startH; wh < startH + 3; wh++) {
     for (const m of [0, 15, 30, 45]) {
@@ -33,8 +33,9 @@ function karaPlayersForWindow(entries: Entry[], day: string, startH: number): En
     }
   }
   return entries.filter(e => {
-    if (!e.availability) return false
-    return qs.every(q => e.availability[q] === 'yes' || e.availability[q] === 'tentative')
+    const avail = availMap?.get(e.id) ?? e.availability
+    if (!avail) return false
+    return qs.every(q => avail[q] === 'yes' || avail[q] === 'tentative')
   })
 }
 
@@ -45,14 +46,14 @@ export function parseSlotKey(key: string): { day: string; windowLabel: string } 
   return { day: key.substring(0, idx), windowLabel: key.substring(idx + 1) }
 }
 
-export function karaPlayersForSlotKey(entries: Entry[], key: string): Entry[] {
+export function karaPlayersForSlotKey(entries: Entry[], key: string, availMap?: Map<string, AvailabilityMap>): Entry[] {
   const parsed = parseSlotKey(key)
   if (!parsed) return []
   const startH = parseInt(parsed.windowLabel)
-  return karaPlayersForWindow(entries, parsed.day, startH)
+  return karaPlayersForWindow(entries, parsed.day, startH, availMap)
 }
 
-export function karaSuggestSlots(entries: Entry[], excludePlayerIds?: Set<string>): SlotSuggestion[] {
+export function karaSuggestSlots(entries: Entry[], excludePlayerIds?: Set<string>, availMap?: Map<string, AvailabilityMap>): SlotSuggestion[] {
   const exclude = excludePlayerIds || new Set<string>()
   const suggestions: SlotSuggestion[] = []
 
@@ -61,7 +62,7 @@ export function karaSuggestSlots(entries: Entry[], excludePlayerIds?: Set<string
       const endH = h + 3
       const windowLabel = String(h).padStart(2, '0') + ':00\u2013' + String(endH === 24 ? 0 : endH).padStart(2, '0') + ':00'
       const key = d + '_' + windowLabel
-      const allPlayers = karaPlayersForWindow(entries, d, h)
+      const allPlayers = karaPlayersForWindow(entries, d, h, availMap)
       const players = allPlayers.filter(e => !exclude.has(e.id))
       let t = 0, hl = 0, dp = 0
       players.forEach(p => {
@@ -87,8 +88,9 @@ export function karaSuggestSlots(entries: Entry[], excludePlayerIds?: Set<string
       }
       let yesCount = 0
       players.forEach(p => {
+        const avail = availMap?.get(p.id) ?? p.availability
         if (qs.every(q => {
-          const v = p.availability[q]
+          const v = avail[q]
           return v === 'yes'
         })) yesCount++
       })
@@ -115,8 +117,8 @@ export function karaSuggestSlots(entries: Entry[], excludePlayerIds?: Set<string
   return suggestions
 }
 
-export function karaAutoPickSlots(entries: Entry[], groupCount: number): string[] | null {
-  const allSuggestions = karaSuggestSlots(entries)
+export function karaAutoPickSlots(entries: Entry[], groupCount: number, availMap?: Map<string, AvailabilityMap>): string[] | null {
+  const allSuggestions = karaSuggestSlots(entries, undefined, availMap)
   const viable = allSuggestions.filter(s => s.total >= 5 && s.tanks >= 1 && s.healers >= 1)
   const top = viable.slice(0, 25)
 
@@ -230,6 +232,7 @@ export function karaAutoGenerate(
   groupSlots: string[],
   filterDay: string,
   filterTime: string,
+  availMap?: Map<string, AvailabilityMap>,
 ): { groups: KaraGroupPlayer[][]; message: string } {
   const groupCount = groups.length
   const hasSlots = groupSlots.some(s => s)
@@ -247,16 +250,17 @@ export function karaAutoGenerate(
     const slot = groupSlots[gi]
     let pool: Entry[]
     if (slot) {
-      pool = karaPlayersForSlotKey(allEntries, slot).filter(e => !pinnedIds.has(e.id))
+      pool = karaPlayersForSlotKey(allEntries, slot, availMap).filter(e => !pinnedIds.has(e.id))
     } else if (filterDay) {
       pool = allEntries.filter(e => {
         if (pinnedIds.has(e.id)) return false
-        if (!e.availability) return false
+        const avail = availMap?.get(e.id) ?? e.availability
+        if (!avail) return false
         if (filterTime) {
           const qs = hourQuarters(filterTime).map(q => filterDay + '_' + q)
-          return qs.every(q => e.availability[q] === 'yes' || e.availability[q] === 'tentative')
+          return qs.every(q => avail[q] === 'yes' || avail[q] === 'tentative')
         }
-        return SLOTS.some(s => e.availability[filterDay + '_' + s])
+        return SLOTS.some(s => avail[filterDay + '_' + s])
       })
     } else {
       pool = allEntries.filter(e => !pinnedIds.has(e.id))
