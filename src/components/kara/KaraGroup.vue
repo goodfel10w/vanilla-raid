@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useEntriesStore } from '@/stores/entries'
 import type { KaraLink } from '@/composables/useKaraPersistence'
 import type { KaraGroupPlayer } from '@/composables/useKaraPersistence'
 import type { AvailabilityMap } from '@/types'
 import { karaGroupRoles, karaGroupTankTotal, parseSlotKey, KARA_MT, KARA_OT, KARA_HEALERS, KARA_DPS } from '@/composables/useKaraAutoSuggest'
-import { SLOTS } from '@/lib/constants'
+import { DAYS, SLOTS } from '@/lib/constants'
 import KaraPlayer from './KaraPlayer.vue'
 
 const props = defineProps<{
@@ -24,6 +24,7 @@ const emit = defineEmits<{
   unassign: [entryId: string]
   link: [entryId: string]
   setTankRole: [entryId: string, role: 'MT' | 'OT' | undefined]
+  assignSlot: [gi: number, key: string]
   removeSlot: [gi: number]
   removeGroup: [gi: number]
   dragstart: [entryId: string, event: DragEvent]
@@ -38,6 +39,25 @@ const entriesStore = useEntriesStore()
 const roles = computed(() => karaGroupRoles(props.group, entriesStore.entries))
 const tankTotal = computed(() => karaGroupTankTotal(props.group, entriesStore.entries))
 const parsedSlot = computed(() => parseSlotKey(props.groupSlot))
+
+// Inline time picker state
+const pickerDay = ref('')
+const pickerHour = ref('')
+const startHours = Array.from({ length: 10 }, (_, i) => i + 12) // 12–21
+
+function buildSlotKey(day: string, h: number): string {
+  const endH = h + 3
+  return day + '_' + String(h).padStart(2, '0') + ':00\u2013' + String(endH === 24 ? 0 : endH).padStart(2, '0') + ':00'
+}
+
+function onPickerChange() {
+  if (pickerDay.value && pickerHour.value) {
+    const key = buildSlotKey(pickerDay.value, parseInt(pickerHour.value))
+    emit('assignSlot', props.groupIndex, key)
+    pickerDay.value = ''
+    pickerHour.value = ''
+  }
+}
 
 function getLinkColor(entryId: string): string | null {
   const lk = props.links.find(l => l.ids.includes(entryId))
@@ -117,6 +137,16 @@ const availSummary = computed(() => {
     <div v-if="parsedSlot" class="kara-group-slot">
       <strong>{{ parsedSlot.day }} {{ parsedSlot.windowLabel }}</strong>
       <button class="kgs-remove" title="Zeit entfernen" @click="emit('removeSlot', groupIndex)">&#x2716;</button>
+    </div>
+    <div v-else class="kara-slot-picker">
+      <select v-model="pickerDay" @change="onPickerChange">
+        <option value="">Tag</option>
+        <option v-for="d in DAYS" :key="d" :value="d">{{ d }}</option>
+      </select>
+      <select v-model="pickerHour" :disabled="!pickerDay" @change="onPickerChange">
+        <option value="">Uhrzeit</option>
+        <option v-for="h in startHours" :key="h" :value="String(h)">{{ String(h).padStart(2, '0') }}:00</option>
+      </select>
     </div>
     <div class="kara-role-bar">
       <span
@@ -254,6 +284,30 @@ const availSummary = computed(() => {
 
 .kgs-remove:hover {
   color: var(--color-danger, #e57373);
+}
+
+.kara-slot-picker {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.kara-slot-picker select {
+  flex: 1;
+  padding: 4px 6px;
+  font-size: 11px;
+  font-family: var(--font-body);
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--color-tx2);
+  cursor: pointer;
+  min-width: 0;
+}
+
+.kara-slot-picker select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .kara-role-bar {
