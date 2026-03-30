@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useEntriesStore } from '@/stores/entries'
 import { useKaraSignupsStore } from '@/stores/karaSignups'
+import { useRaidsStore } from '@/stores/raids'
+import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import { useKaraPersistence, getIdWeekStart, getIdWeekEnd } from '@/composables/useKaraPersistence'
 import type { KaraLink } from '@/composables/useKaraPersistence'
@@ -22,13 +25,17 @@ import {
   KARA_SIZE,
 } from '@/composables/useKaraAutoSuggest'
 import { DAYS, HOUR_LABELS, SLOTS } from '@/lib/constants'
-import { formatDate, cc, h, hourQuarters } from '@/lib/utils'
+import type { RoleName } from '@/lib/constants'
+import { formatDate, cc, h, hourQuarters, specsToRoles } from '@/lib/utils'
 import ConfirmModal from '@/components/shared/ConfirmModal.vue'
 import KaraPool from '@/components/kara/KaraPool.vue'
 import KaraGroup from '@/components/kara/KaraGroup.vue'
 
+const router = useRouter()
 const entriesStore = useEntriesStore()
 const karaSignupsStore = useKaraSignupsStore()
+const raidsStore = useRaidsStore()
+const authStore = useAuthStore()
 const { toast } = useToast()
 const persistence = useKaraPersistence()
 const dragDrop = useKaraDragDrop()
@@ -404,13 +411,106 @@ function copyExport() {
     .catch(() => toast('Kopieren fehlgeschlagen'))
 }
 
-function onFilterDayChange(event: Event) {
-  filterDay.value = (event.target as HTMLSelectElement).value
-  filterTime.value = ''
+// Day name → weekday index (Mon=1 … Sun=7, matching JS getDay offset)
+const DAY_OFFSETS: Record<string, number> = {
+  Montag: 0, Dienstag: 1, Mittwoch: 2, Donnerstag: 3,
+  Freitag: 4, Samstag: 5, Sonntag: 6,
 }
 
-function onFilterTimeChange(event: Event) {
-  filterTime.value = (event.target as HTMLSelectElement).value
+function slotToDate(gi: number): string | null {
+  const slot = persistence.groupSlots.value[gi]
+  const parsed = parseSlotKey(slot)
+  if (!parsed) return null
+  const ws = getIdWeekStart(persistence.weekOffset.value)
+  // weekStart is Wednesday; compute offset: Mi=0, Do=1, Fr=2, Sa=3, So=4, Mo=5, Di=6
+  const wedOffset = ((DAY_OFFSETS[parsed.day] ?? 0) - 2 + 7) % 7
+  const d = new Date(ws)
+  d.setDate(d.getDate() + wedOffset)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function slotToTime(gi: number): string | null {
+  const slot = persistence.groupSlots.value[gi]
+  const parsed = parseSlotKey(slot)
+  if (!parsed) return null
+  const h = parseInt(parsed.windowLabel)
+  return isNaN(h) ? null : `${String(h).padStart(2, '0')}:00`
+}
+
+const creatingRaid = ref<number | null>(null)
+
+async function createRaidFromGroup(gi: number) {
+  const group = persistence.groups.value[gi]
+  if (!group || group.length === 0) {
+    toast('Gruppe ist leer')
+    return
+  }
+
+  const date = slotToDate(gi)
+  const time = slotToTime(gi)
+  if (!date || !time) {
+    toast('Bitte erst einen Zeitslot fuer die Gruppe waehlen')
+    return
+  }
+
+  creatingRaid.value = gi
+  try {
+    const raid = await raidsStore.save({
+      instance: 'Karazhan',
+      date,
+      time,
+      maxPlayers: 10,
+      notes: '',
+      description: `Karazhan Gruppe ${gi + 1} — automatisch erstellt aus Kara-Planung`,
+    })
+
+    if (!raid?.id) {
+      toast('Raid konnte nicht erstellt werden')
+      return
+    }
+
+    // Add all players as signups
+    for (const p of group) {
+      const entry = entriesStore.entries.find(e => e.id === p.entryId)
+      if (!entry) continue
+
+      // Determine role from tankRole assignment or entry specs
+      let role: RoleName = 'DPS'
+      if (p.tankRole === 'MT' || p.tankRole === 'OT') {
+        role = 'Tank'
+      } else {
+        const roles = specsToRoles(entry.className, entry.specs)
+        if (roles.length === 1) {
+          role = roles[0]
+        } else if (roles.includes('Heiler') && !roles.includes('DPS')) {
+          role = 'Heiler'
+        } else if (roles.includes('Tank')) {
+          role = 'Tank'
+        }
+      }
+
+      await raidsStore.signupOther(raid.id, {
+        charName: entry.charName,
+        className: entry.className,
+        role,
+        status: 'accepted',
+        targetUserId: entry.userId,
+        note: '',
+      })
+    }
+
+    toast(`Raid erstellt mit ${group.length} Spielern`)
+    router.push(`/raids/${raid.id}`)
+  } catch (err) {
+    console.error('Failed to create raid from group:', err)
+    toast('Fehler beim Erstellen des Raids')
+  } finally {
+    creatingRaid.value = null
+  }
+}
+
+function onFilterDayChange() {
+  filterTime.value = ''
 }
 </script>
 
@@ -547,13 +647,13 @@ function onFilterTimeChange(event: Event) {
     <div class="kara-filter">
       <div class="kara-filter-row">
         <span>Pool-Filter:</span>
-        <select @change="onFilterDayChange">
+        <select v-model="filterDay" @change="onFilterDayChange">
           <option value="">Alle Spieler</option>
-          <option v-for="d in DAYS" :key="d" :value="d" :selected="filterDay === d">{{ d }}</option>
+          <option v-for="d in DAYS" :key="d" :value="d">{{ d }}</option>
         </select>
-        <select v-if="filterDay" @change="onFilterTimeChange">
+        <select v-if="filterDay" v-model="filterTime">
           <option value="">Jede Uhrzeit</option>
-          <option v-for="hl in HOUR_LABELS" :key="hl" :value="hl" :selected="filterTime === hl">{{ hl }}:00</option>
+          <option v-for="hl in HOUR_LABELS" :key="hl" :value="hl">{{ hl }}:00</option>
         </select>
         <label class="kara-filter-check">
           <input v-model="filterSignedUp" type="checkbox" />
@@ -581,28 +681,37 @@ function onFilterTimeChange(event: Event) {
         @drop="handleDrop('pool', $event)"
       />
 
-      <KaraGroup
-        v-for="(_, gi) in persistence.groups.value"
-        :key="gi"
-        :group-index="gi"
-        :group="persistence.groups.value[gi] || []"
-        :links="persistence.links.value"
-        :group-slot="persistence.groupSlots.value[gi] || ''"
-        :is-drag-over="dragDrop.dragOverTarget.value === 'group-' + gi"
-        :removable="groupCount > 1"
-        :overlap-map="overlapMap"
-        @pin="handlePin"
-        @unassign="handleUnassign"
-        @link="handleLink"
-        @set-tank-role="handleSetTankRole"
-        @remove-slot="removeSlot"
-        @remove-group="confirmRemoveGroup"
-        @dragstart="handleDragStart"
-        @dragend="handleDragEnd"
-        @dragover="handleDragOver('group-' + gi, $event)"
-        @dragleave="handleDragLeave('group-' + gi, $event)"
-        @drop="handleDrop('group-' + gi, $event)"
-      />
+      <div v-for="(_, gi) in persistence.groups.value" :key="gi" class="kara-group-wrapper">
+        <KaraGroup
+          :group-index="gi"
+          :group="persistence.groups.value[gi] || []"
+          :links="persistence.links.value"
+          :group-slot="persistence.groupSlots.value[gi] || ''"
+          :is-drag-over="dragDrop.dragOverTarget.value === 'group-' + gi"
+          :removable="groupCount > 1"
+          :overlap-map="overlapMap"
+          @pin="handlePin"
+          @unassign="handleUnassign"
+          @link="handleLink"
+          @set-tank-role="handleSetTankRole"
+          @remove-slot="removeSlot"
+          @remove-group="confirmRemoveGroup"
+          @dragstart="handleDragStart"
+          @dragend="handleDragEnd"
+          @dragover="handleDragOver('group-' + gi, $event)"
+          @dragleave="handleDragLeave('group-' + gi, $event)"
+          @drop="handleDrop('group-' + gi, $event)"
+        />
+        <button
+          v-if="authStore.isLoggedIn && (persistence.groups.value[gi] || []).length > 0"
+          class="kara-create-raid-btn"
+          :disabled="creatingRaid !== null"
+          @click="createRaidFromGroup(gi)"
+        >
+          <template v-if="creatingRaid === gi">Erstelle Raid...</template>
+          <template v-else>Raid erstellen aus Gruppe {{ gi + 1 }}</template>
+        </button>
+      </div>
 
       <!-- Add group button -->
       <button
@@ -981,6 +1090,34 @@ function onFilterTimeChange(event: Event) {
   font-size: 28px;
   font-weight: 300;
   line-height: 1;
+}
+
+/* Group wrapper & create raid button */
+.kara-group-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kara-create-raid-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  font: 600 12px var(--font-body);
+  cursor: pointer;
+  border: 1px solid rgba(102, 187, 106, 0.25);
+  background: rgba(102, 187, 106, 0.08);
+  color: var(--color-heal);
+  transition: all 0.15s;
+  width: 100%;
+  text-align: center;
+  margin-top: -4px;
+}
+.kara-create-raid-btn:hover {
+  background: rgba(102, 187, 106, 0.15);
+  border-color: rgba(102, 187, 106, 0.4);
+}
+.kara-create-raid-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Summary */
