@@ -5,11 +5,15 @@ import { useRaidsStore } from '@/stores/raids'
 import { useAuthStore } from '@/stores/auth'
 import { useEntriesStore } from '@/stores/entries'
 import { useKaraSignupsStore } from '@/stores/karaSignups'
+import { DAY_SHORT, ROLE_COLORS } from '@/lib/constants'
+import type { RoleName } from '@/lib/constants'
+import { cc, specsToRoles } from '@/lib/utils'
 import RaidCard from '@/components/raids/RaidCard.vue'
 import RaidForm from '@/components/raids/RaidForm.vue'
 import RaidCalendarWeek from '@/components/raids/RaidCalendarWeek.vue'
 import RaidCalendarMonth from '@/components/raids/RaidCalendarMonth.vue'
 import KaraSignupCard from '@/components/dashboard/KaraSignupCard.vue'
+import ClassIcon from '@/components/shared/ClassIcon.vue'
 import type { Raid } from '@/types'
 
 const router = useRouter()
@@ -23,11 +27,22 @@ const hasAnyEntry = computed(() => {
   return entriesStore.entries.some(e => e.userId === authStore.user!.userId)
 })
 
+const showSignupList = ref(false)
+
 onMounted(() => {
   if (authStore.isLoggedIn) {
     karaSignupsStore.load(0)
   }
 })
+
+function signupRoles(signup: { className: string; specs: string[]; roles?: RoleName[] }): RoleName[] {
+  if (signup.roles?.length) return signup.roles
+  return specsToRoles(signup.className, signup.specs)
+}
+
+function roleColor(role: RoleName): string {
+  return ROLE_COLORS[role]
+}
 
 type ViewMode = 'list' | 'create' | 'edit'
 type CalMode = 'list' | 'week' | 'month'
@@ -166,6 +181,43 @@ function onCalSelectRaid(id: string) {
         <KaraSignupCard v-if="authStore.isLoggedIn && hasAnyEntry" />
         <div v-else-if="authStore.isLoggedIn && !hasAnyEntry" class="kara-no-entry">
           <router-link to="/form">Trage zuerst einen Charakter ein</router-link>, um dich fuer Karazhan anzumelden.
+        </div>
+
+        <!-- Signup overview list -->
+        <div v-if="karaSignupsStore.signups.length > 0" class="kara-signups-overview">
+          <button class="kara-signups-toggle" @click="showSignupList = !showSignupList">
+            <span class="kso-summary">
+              <strong>{{ karaSignupsStore.signups.length }} Angemeldet</strong>
+              <span class="kso-roles">
+                <span :style="{ color: ROLE_COLORS.Tank }">{{ karaSignupsStore.roleCounts.Tank }} Tank</span>
+                <span :style="{ color: ROLE_COLORS.Heiler }">{{ karaSignupsStore.roleCounts.Heiler }} Heiler</span>
+                <span :style="{ color: ROLE_COLORS.DPS }">{{ karaSignupsStore.roleCounts.DPS }} DPS</span>
+              </span>
+            </span>
+            <span class="kso-chevron" :class="{ open: showSignupList }">&#9662;</span>
+          </button>
+
+          <div v-if="showSignupList" class="kara-signups-list">
+            <div
+              v-for="s in karaSignupsStore.signups"
+              :key="s.entryId"
+              class="kso-player"
+            >
+              <ClassIcon :class-name="s.className" size="sm" />
+              <span class="kso-name" :style="{ color: cc(s.className) }">{{ s.charName }}</span>
+              <span class="kso-specs">
+                <span
+                  v-for="role in signupRoles(s)"
+                  :key="role"
+                  class="kso-role"
+                  :style="{ color: roleColor(role) }"
+                >{{ role }}</span>
+              </span>
+              <span class="kso-days">
+                <span v-for="d in s.days" :key="d" class="kso-day">{{ DAY_SHORT[d] }}</span>
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -340,6 +392,92 @@ function onCalSelectRaid(id: string) {
   color: var(--color-gold);
   font-weight: 600;
   text-decoration: underline;
+}
+
+/* Signup overview */
+.kara-signups-overview {
+  margin-top: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.kara-signups-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.15);
+  border: none;
+  cursor: pointer;
+  font: 13px var(--font-body);
+  color: var(--color-tx2);
+  transition: background 0.15s;
+}
+.kara-signups-toggle:hover {
+  background: rgba(0, 0, 0, 0.22);
+}
+.kso-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.kso-summary strong {
+  color: var(--color-gold);
+}
+.kso-roles {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+}
+.kso-chevron {
+  font-size: 12px;
+  color: var(--color-tx3);
+  transition: transform 0.2s;
+}
+.kso-chevron.open {
+  transform: rotate(180deg);
+}
+
+.kara-signups-list {
+  padding: 6px 0;
+}
+.kso-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+  transition: background 0.1s;
+}
+.kso-player:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.kso-name {
+  font-weight: 600;
+  min-width: 80px;
+}
+.kso-specs {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+}
+.kso-role {
+  font-weight: 600;
+}
+.kso-days {
+  display: flex;
+  gap: 3px;
+  margin-left: auto;
+}
+.kso-day {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(201, 168, 76, 0.1);
+  color: var(--color-gold);
 }
 
 @media (max-width: 767px) {
