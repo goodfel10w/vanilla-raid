@@ -16,6 +16,7 @@ const props = defineProps<{
   ghosted?: boolean
   ghostGroupIndex?: number
   signupSpec?: string
+  availabilityStatus?: 'yes' | 'tentative' | 'unavailable' | null
 }>()
 
 const emit = defineEmits<{
@@ -30,13 +31,27 @@ const emit = defineEmits<{
 const entriesStore = useEntriesStore()
 
 const entry = computed(() => entriesStore.entries.find(e => e.id === props.entryId))
-const mainRole = computed<RoleName>(() => {
+const allRoles = computed<RoleName[]>(() => {
   const roles = entry.value?.roles || []
-  return (roles[0] || 'DPS') as RoleName
+  return roles.length ? roles as RoleName[] : ['DPS']
 })
-const isTank = computed(() => mainRole.value === 'Tank')
-const roleColor = computed(() => ROLE_COLORS[mainRole.value] || '#888')
-const specText = computed(() => (entry.value?.specs || [])[0] || '')
+const isTank = computed(() => allRoles.value.includes('Tank'))
+const allSpecs = computed(() => entry.value?.specs || [])
+const playerNotes = computed(() => entry.value?.notes || '')
+
+const availDotColor = computed(() => {
+  if (!props.availabilityStatus) return null
+  if (props.availabilityStatus === 'yes') return '#66bb6a'
+  if (props.availabilityStatus === 'tentative') return '#ffb74d'
+  return '#e57373'
+})
+
+const availDotTitle = computed(() => {
+  if (!props.availabilityStatus) return ''
+  if (props.availabilityStatus === 'yes') return 'Verfuegbar (sicher)'
+  if (props.availabilityStatus === 'tentative') return 'Verfuegbar (vielleicht)'
+  return 'Nicht verfuegbar'
+})
 
 const tankRoleLabel = computed(() => {
   if (!isTank.value || !props.inGroup) return null
@@ -66,81 +81,98 @@ function cycleTankRole() {
     @dragstart="!ghosted && emit('dragstart', entryId, $event)"
     @dragend="emit('dragend')"
   >
-    <ClassIcon :class-name="entry.className" size="sm" />
-    <span class="kp-name" :style="{ color: cc(entry.className) }">{{ entry.charName }}</span>
-    <span v-if="specText" class="kp-spec">{{ specText }}</span>
+    <!-- Row 1: identity + roles + actions -->
+    <div class="kp-row1">
+      <span
+        v-if="availDotColor"
+        class="kp-avail-dot"
+        :style="{ background: availDotColor }"
+        :title="availDotTitle"
+      ></span>
+      <ClassIcon :class-name="entry.className" size="sm" />
+      <span class="kp-name" :style="{ color: cc(entry.className) }">{{ entry.charName }}</span>
 
-    <!-- Tank role badge (clickable to cycle MT/OT) -->
-    <button
-      v-if="isTank && inGroup && !ghosted"
-      class="kp-tank-role"
-      :class="{ assigned: !!tankRoleLabel }"
-      :style="{
-        background: tankRoleLabel ? 'var(--role-tank)' + '33' : 'rgba(255,255,255,0.06)',
-        color: tankRoleLabel ? 'var(--role-tank)' : 'var(--color-tx4)',
-      }"
-      :title="tankRoleLabel ? tankRoleLabel + ' (klick zum Aendern)' : 'Tank-Rolle zuweisen (MT/OT)'"
-      @click.stop="cycleTankRole"
-    >{{ tankRoleLabel || '?T' }}</button>
-
-    <span
-      v-else
-      class="kp-role"
-      :style="{ background: roleColor + '22', color: roleColor }"
-    >{{ mainRole }}</span>
-
-    <!-- Ghost group badge -->
-    <span
-      v-if="ghosted && ghostGroupIndex !== undefined"
-      class="kp-ghost-badge"
-    >G{{ ghostGroupIndex + 1 }}</span>
-
-    <!-- Overlap badges -->
-    <span
-      v-for="gi in (overlapGroups || [])"
-      :key="gi"
-      class="kp-overlap-badge"
-      :title="'Auch verfuegbar fuer Gruppe ' + (gi + 1)"
-    >G{{ gi + 1 }}</span>
-
-    <span
-      v-if="linkColor"
-      class="kara-link-badge"
-      :style="{ background: linkColor + '33', color: linkColor }"
-    >L</span>
-    <span
-      v-if="signupSpec"
-      class="kp-signup-badge"
-      :title="'Angemeldet als ' + signupSpec"
-    >{{ signupSpec }}</span>
-    <span v-if="!ghosted" class="kp-actions">
+      <!-- Tank role badge (clickable to cycle MT/OT) -->
       <button
-        v-if="inGroup"
-        class="kp-btn kp-pin"
-        :title="pinned ? 'Loesen' : 'Fixieren'"
-        @click.stop="emit('pin', entryId)"
-      >{{ pinned ? '\uD83D\uDCCC' : '\uD83D\uDCCD' }}</button>
-      <button
-        v-if="inGroup"
-        class="kp-btn"
-        title="Zurueck zum Pool"
-        @click.stop="emit('unassign', entryId)"
-      >&#x2716;</button>
-      <button
-        class="kp-btn"
-        title="Verknuepfen"
-        @click.stop="emit('link', entryId)"
-      >&#x1F517;</button>
-    </span>
+        v-if="isTank && inGroup && !ghosted"
+        class="kp-tank-role"
+        :class="{ assigned: !!tankRoleLabel }"
+        :style="{
+          background: tankRoleLabel ? 'var(--role-tank)' + '33' : 'rgba(255,255,255,0.06)',
+          color: tankRoleLabel ? 'var(--role-tank)' : 'var(--color-tx4)',
+        }"
+        :title="tankRoleLabel ? tankRoleLabel + ' (klick zum Aendern)' : 'Tank-Rolle zuweisen (MT/OT)'"
+        @click.stop="cycleTankRole"
+      >{{ tankRoleLabel || '?T' }}</button>
+
+      <!-- All role badges -->
+      <span
+        v-for="r in allRoles"
+        :key="r"
+        class="kp-role"
+        :style="{ background: (ROLE_COLORS[r] || '#888') + '22', color: ROLE_COLORS[r] || '#888' }"
+      >{{ r }}</span>
+
+      <!-- Ghost group badge -->
+      <span
+        v-if="ghosted && ghostGroupIndex !== undefined"
+        class="kp-ghost-badge"
+      >G{{ ghostGroupIndex + 1 }}</span>
+
+      <!-- Overlap badges -->
+      <span
+        v-for="gi in (overlapGroups || [])"
+        :key="gi"
+        class="kp-overlap-badge"
+        :title="'Auch verfuegbar fuer Gruppe ' + (gi + 1)"
+      >G{{ gi + 1 }}</span>
+
+      <span
+        v-if="linkColor"
+        class="kara-link-badge"
+        :style="{ background: linkColor + '33', color: linkColor }"
+      >L</span>
+      <span
+        v-if="signupSpec"
+        class="kp-signup-badge"
+        :title="'Angemeldet als ' + signupSpec"
+      >{{ signupSpec }}</span>
+
+      <span v-if="!ghosted" class="kp-actions">
+        <button
+          v-if="inGroup"
+          class="kp-btn kp-pin"
+          :title="pinned ? 'Loesen' : 'Fixieren'"
+          @click.stop="emit('pin', entryId)"
+        >{{ pinned ? '\uD83D\uDCCC' : '\uD83D\uDCCD' }}</button>
+        <button
+          v-if="inGroup"
+          class="kp-btn"
+          title="Zurueck zum Pool"
+          @click.stop="emit('unassign', entryId)"
+        >&#x2716;</button>
+        <button
+          class="kp-btn"
+          title="Verknuepfen"
+          @click.stop="emit('link', entryId)"
+        >&#x1F517;</button>
+      </span>
+    </div>
+
+    <!-- Row 2: specs + notes -->
+    <div class="kp-row2">
+      <span v-if="allSpecs.length" class="kp-specs">{{ allSpecs.join(', ') }}</span>
+      <span v-if="playerNotes" class="kp-notes" :title="playerNotes">{{ playerNotes }}</span>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .kara-player {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 6px;
@@ -172,14 +204,22 @@ function cycleTankRole() {
   opacity: 0.4;
 }
 
-.kp-name {
-  font-weight: 600;
-  white-space: nowrap;
+/* Row 1 */
+.kp-row1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.kp-spec {
-  font-size: 11px;
-  color: var(--color-tx3);
+.kp-avail-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.kp-name {
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -267,5 +307,35 @@ function cycleTankRole() {
 .kp-btn:hover {
   opacity: 1;
   background: rgba(255, 255, 255, 0.08);
+}
+
+/* Row 2 */
+.kp-row2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 2px;
+  min-height: 0;
+}
+
+.kp-specs {
+  font-size: 11px;
+  color: var(--color-tx3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kp-notes {
+  font-size: 10px;
+  color: var(--color-tx4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  font-style: italic;
+}
+.kp-notes::before {
+  content: '| ';
 }
 </style>
