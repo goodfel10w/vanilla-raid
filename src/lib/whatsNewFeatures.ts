@@ -15,7 +15,7 @@ export const WHATS_NEW_FEATURES: WhatsNewFeature[] = [
     description:
       'Melde dich jede Woche für Karazhan an — wähle deinen Spec, bevorzugte Tage und Zeiten, damit die Raidleitung optimale Gruppen zusammenstellen kann.',
     icon: '⚔️',
-    route: '/dashboard',
+    route: '/raids',
     routeLabel: 'Zur Kara-Anmeldung',
     addedAt: '2026-03-01',
   },
