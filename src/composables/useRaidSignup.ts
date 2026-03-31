@@ -15,6 +15,7 @@ export function useRaidSignup(raidId: () => string) {
   const { toast } = useToast()
 
   const showForm = ref(false)
+  const showDeclinePrompt = ref(false)
   const submitting = ref(false)
   const selectedChar = ref('')
   const selectedClass = ref('')
@@ -126,7 +127,7 @@ export function useRaidSignup(raidId: () => string) {
   async function doSignup() {
     const charName = selectedChar.value.trim()
     if (!charName) { toast('Bitte Charakter angeben'); return }
-    if (!selectedSpecs.value.length) { toast('Bitte mindestens einen Spec waehlen'); return }
+    if (selectedStatus.value !== 'declined' && !selectedSpecs.value.length) { toast('Bitte mindestens einen Spec waehlen'); return }
 
     const role = specRole(selectedClass.value, selectedSpecs.value[0])
     submitting.value = true
@@ -150,6 +151,34 @@ export function useRaidSignup(raidId: () => string) {
     }
   }
 
+  async function doDecline(declineNote?: string) {
+    // Determine character info from existing signup or first registered character
+    const signup = mySignup.value
+    const char = myChars.value[0]
+    const charName = signup?.charName || char?.charName || authStore.user?.username || ''
+    const className = signup?.className || char?.className || ''
+
+    if (!charName) { toast('Kein Charakter gefunden'); return }
+
+    submitting.value = true
+    try {
+      await raidsStore.signup(raidId(), {
+        charName,
+        className,
+        offeredSpecs: [],
+        role: 'DPS',
+        status: 'declined',
+        note: declineNote?.trim() || undefined,
+      })
+      toast('Abgesagt')
+      showDeclinePrompt.value = false
+    } catch (e: unknown) {
+      toast('Fehler: ' + (e instanceof Error ? e.message : 'Unbekannter Fehler'))
+    } finally {
+      submitting.value = false
+    }
+  }
+
   async function doUnsignup() {
     submitting.value = true
     try {
@@ -164,6 +193,7 @@ export function useRaidSignup(raidId: () => string) {
 
   return {
     showForm,
+    showDeclinePrompt,
     submitting,
     selectedChar,
     selectedClass,
@@ -185,6 +215,7 @@ export function useRaidSignup(raidId: () => string) {
     onClassChange,
     toggleSpec,
     doSignup,
+    doDecline,
     doUnsignup,
   }
 }

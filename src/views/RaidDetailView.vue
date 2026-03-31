@@ -30,6 +30,7 @@ const raidId = computed(() => route.params.id as string)
 
 const {
   showForm: showSignup,
+  showDeclinePrompt,
   submitting,
   selectedChar,
   selectedClass,
@@ -50,8 +51,20 @@ const {
   onClassChange,
   toggleSpec,
   doSignup,
+  doDecline,
   doUnsignup,
 } = useRaidSignup(() => raidId.value)
+
+const declineNote = ref('')
+
+function openDeclinePrompt() {
+  declineNote.value = ''
+  showDeclinePrompt.value = true
+}
+
+function confirmDecline() {
+  doDecline(declineNote.value)
+}
 
 const raid = computed(() => raidsStore.getRaid(raidId.value))
 const editing = ref(false)
@@ -401,9 +414,10 @@ function getMyStatusColor(): string {
         <!-- Actions -->
         <div v-if="authStore.isLoggedIn && !isRaidPast" class="raid-actions">
           <button v-if="!mySignup && canSignup" class="btn-signup" @click="openSignupForm">Anmelden</button>
+          <button v-if="!mySignup && canSignup" class="btn-decline" @click="openDeclinePrompt">Absagen</button>
           <template v-if="mySignup">
-            <button v-if="mySignup.status !== 'declined' && canSignup" class="btn-unsignup" @click="doUnsignup">Abmelden</button>
-            <button v-if="canSignup" class="btn-raid-edit" @click="openSignupForm">Aendern</button>
+            <button v-if="mySignup.status !== 'declined' && canSignup" class="btn-decline" @click="openDeclinePrompt">Absagen</button>
+            <button v-if="canSignup" class="btn-raid-edit" @click="openSignupForm">{{ mySignup.status === 'declined' ? 'Doch dabei?' : 'Aendern' }}</button>
           </template>
           <template v-if="canManageRaid">
             <button class="btn-orga-signup" @click="showOrgaSignup = true">Spieler anmelden</button>
@@ -419,6 +433,24 @@ function getMyStatusColor(): string {
           <button v-if="isDkpOfficer && activeSignups.length" class="btn-complete" @click="showCompletion = !showCompletion">
             {{ showCompletion ? 'Abbrechen' : 'Raid abschliessen' }}
           </button>
+        </div>
+
+        <!-- Inline decline prompt -->
+        <div v-if="showDeclinePrompt" class="decline-prompt">
+          <div class="decline-prompt-title">Raid absagen</div>
+          <input
+            v-model="declineNote"
+            type="text"
+            placeholder="Grund (optional)"
+            class="decline-note"
+            @keyup.enter="confirmDecline"
+          />
+          <div class="decline-prompt-actions">
+            <button class="btn-decline-confirm" :disabled="submitting" @click="confirmDecline">
+              {{ submitting ? '...' : 'Absagen' }}
+            </button>
+            <button class="btn-s decline-cancel" @click="showDeclinePrompt = false">Abbrechen</button>
+          </div>
         </div>
 
         <!-- Also show completion button for past raids -->
@@ -719,10 +751,65 @@ function getMyStatusColor(): string {
   color: var(--color-heal);
   font-weight: 600;
 }
+.btn-decline {
+  border: 1px solid rgba(229, 115, 115, 0.3);
+  background: none;
+  color: var(--color-dps);
+  font-weight: 600;
+}
 .btn-raid-del {
   border: 1px solid rgba(229, 115, 115, 0.3);
   background: none;
   color: var(--color-dps);
+}
+
+/* Decline prompt */
+.decline-prompt {
+  background: var(--color-card);
+  border: 1px solid rgba(229, 115, 115, 0.2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.decline-prompt-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-dps);
+}
+.decline-note {
+  padding: 7px 10px;
+  font-size: 12px;
+  font-family: var(--font-body);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-tx);
+}
+.decline-prompt-actions {
+  display: flex;
+  gap: 8px;
+}
+.btn-decline-confirm {
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--color-dps);
+  background: rgba(229, 115, 115, 0.1);
+  color: var(--color-dps);
+  font: 600 13px var(--font-body);
+  cursor: pointer;
+}
+.btn-decline-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+.decline-cancel {
+  padding: 6px 14px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-tx2);
+  cursor: pointer;
 }
 
 .empty {

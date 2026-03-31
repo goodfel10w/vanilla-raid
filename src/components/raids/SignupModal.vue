@@ -88,8 +88,8 @@ function specRole(specName: string): string {
             </select>
           </div>
 
-          <!-- Spec selection -->
-          <div v-if="availableSpecs.length" class="su-specs">
+          <!-- Spec selection (hidden when declining) -->
+          <div v-if="availableSpecs.length && selectedStatus !== 'declined'" class="su-specs">
             <span class="su-specs-label">Angebotene Specs (Mehrfachauswahl):</span>
             <div class="rchips">
               <div
@@ -113,7 +113,7 @@ function specRole(specName: string): string {
               </div>
             </div>
           </div>
-          <div v-else class="su-specs">
+          <div v-else-if="selectedStatus !== 'declined'" class="su-specs">
             <span class="su-specs-label">Klasse waehlen</span>
           </div>
 
