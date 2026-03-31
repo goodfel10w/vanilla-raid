@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useEntriesStore } from '@/stores/entries'
 import { useAuthStore } from '@/stores/auth'
@@ -7,6 +7,7 @@ import { CLS, ROLES, CLASS_SPECS, ROLE_COLORS, ROLE_ICONS, DAYS, DAY_SHORT } fro
 import type { RoleName } from '@/lib/constants'
 import { cc, collapseRanges, csvVal } from '@/lib/utils'
 import { useToast } from '@/composables/useToast'
+import { useArmory } from '@/composables/useArmory'
 import RoleSummaryCards from '@/components/roster/RoleSummaryCards.vue'
 import EntryCard from '@/components/roster/EntryCard.vue'
 import EmptyState from '@/components/shared/EmptyState.vue'
@@ -17,6 +18,15 @@ const entriesStore = useEntriesStore()
 const auth = useAuthStore()
 const router = useRouter()
 const { toast } = useToast()
+const armory = useArmory()
+
+// Fetch armory profiles when entries change
+watch(() => entriesStore.entries, (entries) => {
+  if (entries.length) {
+    const names = entries.map(e => e.charName)
+    armory.fetchProfiles(names)
+  }
+}, { immediate: true })
 
 const rosterSort = ref<'name' | 'class' | 'role'>('name')
 const deleteId = ref<string | null>(null)
@@ -314,6 +324,9 @@ const deleteEntry = computed(() => {
         :key="e.id"
         :entry="e"
         :can-edit="canEdit(e)"
+        :armory="armory.getProfile(e.charName)"
+        :armory-loading="armory.isLoading(e.charName)"
+        :armory-url="armory.armoryUrl(e.charName)"
         @edit="handleEdit"
         @delete="handleDeleteRequest"
       />

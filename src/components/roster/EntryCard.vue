@@ -2,13 +2,16 @@
 import { computed } from 'vue'
 import { DAYS, DAY_SHORT, ROLES, ROLE_COLORS, ROLE_ICONS, CLASS_SPECS, WOW_ICONS } from '@/lib/constants'
 import type { RoleName } from '@/lib/constants'
-import type { Entry } from '@/types'
+import type { Entry, ArmoryProfile } from '@/types'
 import { cc, h, collapseRanges } from '@/lib/utils'
 import ClassIcon from '@/components/shared/ClassIcon.vue'
 
 const props = defineProps<{
   entry: Entry
   canEdit: boolean
+  armory?: ArmoryProfile | null
+  armoryLoading?: boolean
+  armoryUrl?: string
 }>()
 
 const emit = defineEmits<{
@@ -100,6 +103,25 @@ const slotTags = computed<SlotTag[]>(() => {
         </span>
       </div>
     </div>
+    <div v-if="armory || armoryLoading" class="e-armory">
+      <template v-if="armoryLoading">
+        <span class="armory-loading">Lade Armory…</span>
+      </template>
+      <template v-else-if="armory">
+        <span class="armory-tag">Lv {{ armory.level }}</span>
+        <span v-if="armory.averageItemLevel" class="armory-tag armory-ilvl">iLvl {{ armory.averageItemLevel }}</span>
+        <span v-if="armory.guild" class="armory-tag armory-guild">&lt;{{ armory.guild }}&gt;</span>
+        <span v-if="armory.race" class="armory-tag armory-race">{{ armory.race }}</span>
+        <a
+          v-if="armoryUrl"
+          :href="armoryUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="armory-link"
+          title="Auf Classic WoW Armory ansehen"
+        >Armory &#x2197;</a>
+      </template>
+    </div>
     <div class="e-slots">
       <template v-if="slotTags.length">
         <span
@@ -181,6 +203,59 @@ const slotTags = computed<SlotTag[]>(() => {
   height: 16px;
   border-radius: 3px;
   vertical-align: middle;
+}
+
+.e-armory {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.armory-tag {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-tx3);
+  white-space: nowrap;
+}
+
+.armory-ilvl {
+  background: rgba(163, 53, 238, 0.12);
+  color: #a335ee;
+}
+
+.armory-guild {
+  color: var(--color-tx4);
+  font-style: italic;
+}
+
+.armory-race {
+  color: var(--color-tx4);
+}
+
+.armory-link {
+  font-size: 11px;
+  color: var(--color-gold);
+  text-decoration: none;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(201, 168, 76, 0.2);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.armory-link:hover {
+  background: rgba(201, 168, 76, 0.1);
+  border-color: rgba(201, 168, 76, 0.4);
+}
+
+.armory-loading {
+  font-size: 11px;
+  color: var(--color-tx5);
+  font-style: italic;
 }
 
 .e-slots {

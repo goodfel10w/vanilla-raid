@@ -124,6 +124,32 @@ export interface KaraSignup {
   timestamp: string
 }
 
+export interface ArmoryEquipmentItem {
+  slot: string
+  slotName: string
+  name: string
+  quality: string
+  qualityName: string
+  itemLevel: number
+  itemId: number
+}
+
+export interface ArmoryProfile {
+  name: string
+  level: number
+  className: string
+  classId: number
+  race: string
+  gender: string
+  guild: string | null
+  realm: string
+  realmSlug: string
+  faction: string
+  averageItemLevel: number
+  equipment: ArmoryEquipmentItem[]
+  lastUpdated: string
+}
+
 export interface NewsPost {
   id: string
   title: string
