@@ -30,11 +30,18 @@ export const useKaraSignupsStore = defineStore('karaSignups', () => {
     }
   }
 
-  const mySignup = computed(() => {
+  const mySignups = computed(() => {
     const auth = useAuthStore()
-    if (!auth.user) return null
-    return signups.value.find(s => s.userId === auth.user!.userId) ?? null
+    if (!auth.user) return []
+    return signups.value.filter(s => s.userId === auth.user!.userId)
   })
+
+  // Backwards-compat: first signup (used by DashboardView etc.)
+  const mySignup = computed(() => mySignups.value[0] ?? null)
+
+  function getMySignup(entryId: string) {
+    return mySignups.value.find(s => s.entryId === entryId) ?? null
+  }
 
   const roleCounts = computed(() => {
     const counts = { Tank: 0, Heiler: 0, DPS: 0 }
@@ -64,11 +71,12 @@ export const useKaraSignupsStore = defineStore('karaSignups', () => {
     }
   }
 
-  async function withdraw() {
+  async function withdraw(entryId?: string) {
     const week = weekKeyDate(weekOffset.value)
+    const qs = entryId ? `&entryId=${encodeURIComponent(entryId)}` : ''
     saving.value = true
     try {
-      await api.del(`/api/kara-signups?week=${week}`)
+      await api.del(`/api/kara-signups?week=${week}${qs}`)
       await load(weekOffset.value)
     } finally {
       saving.value = false
@@ -82,6 +90,8 @@ export const useKaraSignupsStore = defineStore('karaSignups', () => {
     weekOffset,
     currentWeekKey,
     mySignup,
+    mySignups,
+    getMySignup,
     roleCounts,
     load,
     signup,

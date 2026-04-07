@@ -66,6 +66,24 @@ const showCharPicker = computed(() => {
   return auth.isLoggedIn && hasCharacters.value && !isEditing.value
 })
 
+// Copy availability from existing character
+const availDonors = computed(() =>
+  entriesStore.myEntries.filter(e => Object.keys(e.availability || {}).length > 0)
+)
+
+const showAvailCopier = computed(() =>
+  creatingNew.value && !isEditing.value && availDonors.value.length > 0
+)
+
+function onAvailCopy(event: Event) {
+  const target = event.target as HTMLSelectElement
+  const id = target.value
+  if (id === '') { avail.value = {}; return }
+  const entry = availDonors.value.find(e => e.id === id)
+  if (!entry) return
+  avail.value = { ...entry.availability }
+}
+
 // Infer specs from roles for legacy entries without specs
 function inferSpecs(className: string, roles: string[]): string[] {
   const cspecs = CLASS_SPECS[className] || []
@@ -428,6 +446,22 @@ watch(() => route.query.edit, (newEditId) => {
             <div v-else class="no-class-hint">
               W&auml;hle zuerst eine Klasse
             </div>
+          </div>
+
+          <!-- Copy availability from existing character -->
+          <div v-if="showAvailCopier" class="fld avail-copier">
+            <span class="lbl">Verfügbarkeit übernehmen</span>
+            <span class="lbl-s">Übernimm die Zeiten eines bestehenden Charakters als Vorlage</span>
+            <select @change="onAvailCopy">
+              <option value="">&mdash; Keine Vorlage &mdash;</option>
+              <option
+                v-for="d in availDonors"
+                :key="d.id"
+                :value="d.id"
+              >
+                {{ d.charName }} &mdash; {{ d.className }} ({{ Object.keys(d.availability || {}).length }} Zeitfenster)
+              </option>
+            </select>
           </div>
 
           <!-- Availability -->
@@ -883,7 +917,8 @@ watch(() => route.query.edit, (newEditId) => {
   margin-bottom: 8px;
 }
 
-.char-picker select {
+.char-picker select,
+.avail-copier select {
   width: 100%;
   padding: 8px 12px;
   border-radius: 6px;

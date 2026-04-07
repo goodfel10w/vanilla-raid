@@ -146,8 +146,8 @@ export default async (req) => {
       const existing = await signupStore.get(week, { type: "json" }).catch(() => null);
       const signups = existing?.signups || [];
 
-      // Replace existing signup by same user, or add new
-      const idx = signups.findIndex(s => s.userId === user.userId);
+      // Replace existing signup by same user + entry, or add new
+      const idx = signups.findIndex(s => s.userId === user.userId && s.entryId === entryId);
       if (idx >= 0) {
         signups[idx] = signup;
       } else {
@@ -170,13 +170,19 @@ export default async (req) => {
       if (!isValidWeekKey(week)) {
         return new Response(JSON.stringify({ error: "Ungueltige Woche" }), { status: 400, headers });
       }
+      const entryId = url.searchParams.get("entryId");
 
       const existing = await signupStore.get(week, { type: "json" }).catch(() => null);
       if (!existing || !existing.signups) {
         return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
       }
 
-      const signups = existing.signups.filter(s => s.userId !== user.userId);
+      // If entryId provided, only remove that specific signup; otherwise remove all by this user
+      const signups = existing.signups.filter(s =>
+        entryId
+          ? !(s.userId === user.userId && s.entryId === entryId)
+          : s.userId !== user.userId
+      );
       await signupStore.setJSON(week, { signups, updatedAt: new Date().toISOString() });
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
     }

@@ -5,7 +5,7 @@ import { useEntriesStore } from '@/stores/entries'
 import { useKaraSignupsStore, getIdWeekStart, getIdWeekEnd } from '@/stores/karaSignups'
 import { CLASS_SPECS, DAYS, DAY_SHORT, ROLE_COLORS, WOW_ICONS } from '@/lib/constants'
 import type { RoleName } from '@/lib/constants'
-import type { AvailabilityMap } from '@/types'
+import type { AvailabilityMap, KaraSignup } from '@/types'
 import ClassIcon from '@/components/shared/ClassIcon.vue'
 import KaraSignupTimeGrid from './KaraSignupTimeGrid.vue'
 import { cc } from '@/lib/utils'
@@ -15,6 +15,7 @@ const entriesStore = useEntriesStore()
 const karaStore = useKaraSignupsStore()
 
 const editing = ref(false)
+const editingEntryId = ref<string | null>(null) // null = adding new
 const selectedEntryId = ref('')
 const selectedSpecs = ref<string[]>([])
 const selectedDays = ref<string[]>([])
@@ -25,22 +26,32 @@ const submitting = ref(false)
 // All entries belonging to the user
 const myEntries = computed(() => entriesStore.myEntries)
 
-// Currently selected entry (defaults to main character)
+// Entry IDs already signed up this week
+const signedUpEntryIds = computed(() =>
+  new Set(karaStore.mySignups.map(s => s.entryId))
+)
+
+// Characters available for new signup (not yet signed up)
+const availableEntries = computed(() =>
+  myEntries.value.filter(e => !signedUpEntryIds.value.has(e.id))
+)
+
+// Currently selected entry
 const myEntry = computed(() => {
   if (myEntries.value.length === 0) return null
   if (selectedEntryId.value) {
-    return myEntries.value.find(e => e.id === selectedEntryId.value) ?? entriesStore.mainEntry
+    return myEntries.value.find(e => e.id === selectedEntryId.value) ?? null
   }
-  return entriesStore.mainEntry
+  return null
 })
 
-// All specs for the player's class (not just the ones in their entry)
+// All specs for the player's class
 const availableSpecs = computed(() => {
   if (!myEntry.value) return []
   return CLASS_SPECS[myEntry.value.className] || []
 })
 
-// Week navigation (0 = current, 1 = next)
+// Week navigation
 const weekStart = computed(() => getIdWeekStart(karaStore.weekOffset))
 const weekEnd = computed(() => getIdWeekEnd(weekStart.value))
 
@@ -54,27 +65,40 @@ const isNextWeek = computed(() => karaStore.weekOffset === 1)
 
 function showWeek(offset: number) {
   editing.value = false
+  editingEntryId.value = null
   karaStore.load(offset)
 }
 
-// Prefill form from existing signup
-function startEdit() {
-  const existing = karaStore.mySignup
-  if (existing) {
-    selectedEntryId.value = existing.entryId
-    selectedSpecs.value = [...(existing.specs ?? [])]
-    selectedDays.value = [...existing.days]
-    useCustomTimes.value = existing.useCustomTimes
-    customSlots.value = existing.customSlots ? { ...existing.customSlots } : {}
-  } else {
-    const main = entriesStore.mainEntry
-    selectedEntryId.value = main?.id || ''
-    selectedSpecs.value = main?.specs ? [...main.specs] : []
-    selectedDays.value = []
-    useCustomTimes.value = false
-    customSlots.value = {}
-  }
+// Start editing an existing signup
+function startEditSignup(signup: KaraSignup) {
+  editingEntryId.value = signup.entryId
+  selectedEntryId.value = signup.entryId
+  selectedSpecs.value = [...(signup.specs ?? [])]
+  selectedDays.value = [...signup.days]
+  useCustomTimes.value = signup.useCustomTimes
+  customSlots.value = signup.customSlots ? { ...signup.customSlots } : {}
   editing.value = true
+}
+
+// Start adding a new character signup
+function startAddNew() {
+  editingEntryId.value = null
+  const first = availableEntries.value[0]
+  selectedEntryId.value = first?.id || ''
+  selectedSpecs.value = first?.specs ? [...first.specs] : []
+  selectedDays.value = []
+  useCustomTimes.value = false
+  customSlots.value = {}
+  editing.value = true
+}
+
+// Legacy: start edit for single signup or add new
+function startEdit() {
+  if (karaStore.mySignups.length > 0) {
+    startEditSignup(karaStore.mySignups[0])
+  } else {
+    startAddNew()
+  }
 }
 
 function selectEntry(id: string) {
@@ -82,9 +106,8 @@ function selectEntry(id: string) {
   const newEntry = myEntries.value.find(e => e.id === id)
   selectedEntryId.value = id
   if (newEntry && prevEntry && newEntry.className === prevEntry.className) {
-    // Same class: keep current spec selection (specs are compatible)
+    // Same class: keep current spec selection
   } else if (newEntry?.specs?.length) {
-    // Different class: pre-fill with the new entry's specs
     selectedSpecs.value = [...newEntry.specs]
   } else {
     selectedSpecs.value = []
@@ -93,6 +116,7 @@ function selectEntry(id: string) {
 
 function cancelEdit() {
   editing.value = false
+  editingEntryId.value = null
 }
 
 const canSubmit = computed(() => myEntry.value && selectedSpecs.value.length > 0 && selectedDays.value.length > 0)
@@ -127,24 +151,27 @@ async function submit() {
       useCustomTimes: useCustomTimes.value,
     })
     editing.value = false
+    editingEntryId.value = null
   } finally {
     submitting.value = false
   }
 }
 
-async function handleWithdraw() {
+async function handleWithdraw(entryId: string) {
   submitting.value = true
   try {
-    await karaStore.withdraw()
+    await karaStore.withdraw(entryId)
     editing.value = false
+    editingEntryId.value = null
   } finally {
     submitting.value = false
   }
 }
 
-function specRole(specName: string): RoleName {
-  if (!myEntry.value) return 'DPS'
-  const specDef = (CLASS_SPECS[myEntry.value.className] || []).find(s => s.name === specName)
+function specRole(specName: string, className?: string): RoleName {
+  const cn = className || myEntry.value?.className
+  if (!cn) return 'DPS'
+  const specDef = (CLASS_SPECS[cn] || []).find(s => s.name === specName)
   return (specDef?.role as RoleName) ?? 'DPS'
 }
 
@@ -156,6 +183,16 @@ function roleColor(role: RoleName): string {
 const hasAvailability = computed(() => {
   if (!myEntry.value) return false
   return Object.keys(myEntry.value.availability || {}).length > 0
+})
+
+// Entries to show in character picker during editing
+const charPickerEntries = computed(() => {
+  if (editingEntryId.value) {
+    // When editing, only show the character being edited
+    return myEntries.value.filter(e => e.id === editingEntryId.value)
+  }
+  // When adding new, show only un-signed characters
+  return availableEntries.value
 })
 
 // Auto-select all specs if only one for the chosen class
@@ -186,7 +223,7 @@ watch(availableSpecs, (specs) => {
       >Nächste Woche</button>
     </div>
 
-    <!-- Summary bar: how many signed up -->
+    <!-- Summary bar -->
     <div class="signup-summary">
       <span class="signup-count">{{ karaStore.signups.length }} Angemeldet</span>
       <span v-if="karaStore.signups.length > 0" class="role-counts">
@@ -196,38 +233,40 @@ watch(availableSpecs, (specs) => {
       </span>
     </div>
 
-    <!-- Already signed up: show status -->
-    <template v-if="karaStore.mySignup && !editing">
-      <div class="my-signup">
+    <!-- My signups list (when not editing) -->
+    <template v-if="karaStore.mySignups.length > 0 && !editing">
+      <div
+        v-for="signup in karaStore.mySignups"
+        :key="signup.entryId"
+        class="my-signup"
+      >
         <div class="ms-left">
-          <ClassIcon :class-name="karaStore.mySignup.className" size="sm" />
+          <ClassIcon :class-name="signup.className" size="sm" />
           <div>
-            <span class="ms-name" :style="{ color: cc(karaStore.mySignup.className) }">
-              {{ karaStore.mySignup.charName }}
+            <span class="ms-name" :style="{ color: cc(signup.className) }">
+              {{ signup.charName }}
             </span>
             <span
-              v-for="s in (karaStore.mySignup.specs ?? [])"
+              v-for="s in (signup.specs ?? [])"
               :key="s"
               class="ms-spec"
-              :style="{ color: roleColor(specRole(s)) }"
+              :style="{ color: roleColor(specRole(s, signup.className)) }"
             >{{ s }}</span>
           </div>
         </div>
         <div class="ms-days">
-          <span v-for="d in karaStore.mySignup.days" :key="d" class="day-mini">{{ DAY_SHORT[d] }}</span>
+          <span v-for="d in signup.days" :key="d" class="day-mini">{{ DAY_SHORT[d] }}</span>
         </div>
         <span class="ms-badge">Angemeldet</span>
+        <div class="ms-actions-inline">
+          <button class="btn-edit-sm" @click="startEditSignup(signup)">Bearbeiten</button>
+          <button class="btn-withdraw-sm" :disabled="submitting" @click="handleWithdraw(signup.entryId)">Abmelden</button>
+        </div>
       </div>
-      <div class="ms-actions">
-        <button class="btn-edit" @click="startEdit">Bearbeiten</button>
-        <button class="btn-withdraw" :disabled="submitting" @click="handleWithdraw">Abmelden</button>
-      </div>
-      <!-- Warning if no availability on the signed-up entry -->
-      <div v-if="!hasAvailability && !karaStore.mySignup.useCustomTimes" class="kara-warn">
-        Dein Charakter hat keine Verfügbarkeitszeiten eingetragen.
-        Ohne Zeiten wirst du bei der Gruppenplanung nicht berücksichtigt.
-        <router-link to="/form#availability" class="kara-warn-link">Zeiten eintragen</router-link>
-        oder aktiviere "Eigene Zeiten angeben" bei der Anmeldung.
+
+      <!-- Add another character button -->
+      <div v-if="availableEntries.length > 0" class="add-char-area">
+        <button class="btn-add-char" @click="startAddNew">+ Weiteren Charakter anmelden</button>
       </div>
     </template>
 
@@ -239,7 +278,7 @@ watch(availableSpecs, (specs) => {
           <div class="sf-label">Charakter</div>
           <div class="sf-chars">
             <div
-              v-for="entry in myEntries"
+              v-for="entry in charPickerEntries"
               :key="entry.id"
               class="sf-char"
               :class="{ active: selectedEntryId === entry.id }"
@@ -324,7 +363,7 @@ watch(availableSpecs, (specs) => {
         <div class="sf-actions">
           <button class="btn-cancel" @click="cancelEdit">Abbrechen</button>
           <button class="btn-submit" :disabled="!canSubmit || submitting" @click="submit">
-            {{ karaStore.mySignup ? 'Aktualisieren' : 'Anmelden' }}
+            {{ editingEntryId ? 'Aktualisieren' : 'Anmelden' }}
           </button>
         </div>
       </div>
@@ -333,7 +372,7 @@ watch(availableSpecs, (specs) => {
     <!-- Not signed up: CTA -->
     <template v-else>
       <div class="cta-area">
-        <button class="btn-signup" @click="startEdit">Für Kara anmelden</button>
+        <button class="btn-signup" @click="startAddNew">Für Kara anmelden</button>
         <div class="cta-info">
           Melde dich an, damit die Raidleitung Kara-Gruppen planen kann.
           Wähle deinen Spec, bevorzugte Tage und optional eigene Zeiten.
@@ -423,6 +462,7 @@ watch(availableSpecs, (specs) => {
   background: rgba(102, 187, 106, 0.06);
   border: 1px solid rgba(102, 187, 106, 0.15);
   flex-wrap: wrap;
+  margin-bottom: 8px;
 }
 .ms-left {
   display: flex;
@@ -459,10 +499,48 @@ watch(availableSpecs, (specs) => {
   color: var(--color-heal);
   white-space: nowrap;
 }
-.ms-actions {
+.ms-actions-inline {
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 6px;
+  width: 100%;
+  margin-top: 4px;
+}
+.btn-edit-sm, .btn-withdraw-sm {
+  padding: 5px 12px;
+  border-radius: 5px;
+  font: 600 11px var(--font-body);
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--color-tx3);
+}
+.btn-edit-sm:hover { background: rgba(255, 255, 255, 0.06); }
+.btn-withdraw-sm {
+  border-color: rgba(229, 115, 115, 0.3);
+  color: var(--color-dps);
+}
+.btn-withdraw-sm:hover { background: rgba(229, 115, 115, 0.08); }
+.btn-withdraw-sm:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Add character area */
+.add-char-area {
+  margin-top: 4px;
+}
+.btn-add-char {
+  width: 100%;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font: 600 12px var(--font-body);
+  border: 1px dashed rgba(201, 168, 76, 0.3);
+  background: rgba(201, 168, 76, 0.04);
+  color: var(--color-gold);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-add-char:hover {
+  background: rgba(201, 168, 76, 0.1);
+  border-color: rgba(201, 168, 76, 0.5);
 }
 
 /* CTA */
@@ -587,7 +665,7 @@ watch(availableSpecs, (specs) => {
   gap: 8px;
   margin-top: 14px;
 }
-.btn-cancel, .btn-edit, .btn-withdraw {
+.btn-cancel {
   padding: 8px 16px;
   border-radius: 6px;
   font: 600 12px var(--font-body);
@@ -597,13 +675,7 @@ watch(availableSpecs, (specs) => {
   background: rgba(255, 255, 255, 0.03);
   color: var(--color-tx3);
 }
-.btn-cancel:hover, .btn-edit:hover { background: rgba(255, 255, 255, 0.06); }
-.btn-withdraw {
-  border-color: rgba(229, 115, 115, 0.3);
-  color: var(--color-dps);
-}
-.btn-withdraw:hover { background: rgba(229, 115, 115, 0.08); }
-.btn-withdraw:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-cancel:hover { background: rgba(255, 255, 255, 0.06); }
 
 .btn-submit {
   padding: 8px 20px;
