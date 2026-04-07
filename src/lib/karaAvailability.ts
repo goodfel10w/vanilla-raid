@@ -1,4 +1,5 @@
 import type { Entry, KaraSignup, AvailabilityMap } from '@/types'
+import { SLOTS } from '@/lib/constants'
 
 /**
  * Resolve the effective kara availability for a player.
@@ -28,6 +29,20 @@ export function resolveKaraAvailability(
       filtered[key] = source[key]
     }
   }
+
+  // When not using custom times, signing up for a day implies availability.
+  // If the entry has no slots for a signup day, synthesize full availability.
+  if (!signup.useCustomTimes) {
+    for (const day of signup.days) {
+      const hasAnySlot = Object.keys(filtered).some(k => k.startsWith(day + '_'))
+      if (!hasAnySlot) {
+        for (const slot of SLOTS) {
+          filtered[`${day}_${slot}`] = 'yes'
+        }
+      }
+    }
+  }
+
   return filtered
 }
 

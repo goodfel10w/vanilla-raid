@@ -84,8 +84,11 @@ const weekEnd = computed(() => getIdWeekEnd(weekStart.value))
 const weekStartStr = computed(() => formatDateLocal(weekStart.value))
 const weekEndStr = computed(() => formatDateLocal(weekEnd.value))
 
+const SHORT_DAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
+
 function formatDateLocal(d: Date): string {
-  return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + d.getFullYear()
+  const dayAbbr = SHORT_DAYS[d.getDay()]
+  return dayAbbr + ' ' + String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.'
 }
 
 const groupCount = computed(() => persistence.groups.value.length)
@@ -576,8 +579,8 @@ function onFilterDayChange() {
       <div class="kara-week-nav">
         <button @click="prevWeek">&#x25C0;</button>
         <div class="kara-week-label">
-          Raidwoche (Mi&ndash;Di)
-          <small>{{ weekStartStr }} &ndash; {{ weekEndStr }}</small>
+          Raidwoche
+          <span class="kara-week-dates">{{ weekStartStr }} &ndash; {{ weekEndStr }}</span>
           <small v-if="persistence.lastSavedBy.value" class="kara-saved-by">
             Zuletzt: {{ persistence.lastSavedBy.value }}
           </small>
@@ -866,11 +869,11 @@ function onFilterDayChange() {
   text-align: center;
 }
 
-.kara-week-label small {
+.kara-week-dates {
   display: block;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
-  color: var(--color-tx3);
+  color: var(--color-tx2);
 }
 
 .kara-saved-by {

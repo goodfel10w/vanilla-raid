@@ -25,6 +25,7 @@ const specs = ref<string[]>([])
 const avail = ref<AvailabilityMap>({})
 const notes = ref('')
 const editId = ref<string | null>(null)
+const creatingNew = ref(false)
 const submitting = ref(false)
 
 const canSave = computed(() => {
@@ -66,6 +67,7 @@ function loadEditEntry(id: string) {
   const entry = entriesStore.entries.find(e => e.id === id)
   if (!entry) return
 
+  creatingNew.value = false
   editId.value = id
   name.value = entry.charName
   cls.value = entry.className
@@ -110,7 +112,9 @@ async function handleSubmit() {
     },
     editId.value
   )
-  if (!success) {
+  if (success) {
+    creatingNew.value = false
+  } else {
     submitting.value = false
   }
 }
@@ -131,8 +135,18 @@ const myEntries = computed(() => {
 })
 
 const showMyEntries = computed(() => {
-  return auth.isLoggedIn && myEntries.value.length > 0 && !isEditing.value
+  return auth.isLoggedIn && myEntries.value.length > 0 && !isEditing.value && !creatingNew.value
 })
+
+function startNewCharacter() {
+  cancelEdit()
+  creatingNew.value = true
+}
+
+function goBackToEntries() {
+  cancelEdit()
+  creatingNew.value = false
+}
 
 function editMyEntry(id: string) {
   loadEditEntry(id)
@@ -205,7 +219,7 @@ watch(() => route.query.edit, (newEditId) => {
             <button class="me-edit-btn" @click="editMyEntry(entry.id)">Bearbeiten</button>
           </div>
         </div>
-        <button class="me-new-btn" @click="cancelEdit">Neuen Charakter anlegen</button>
+        <button class="me-new-btn" @click="startNewCharacter">Neuen Charakter anlegen</button>
       </div>
     </div>
 
@@ -293,9 +307,9 @@ watch(() => route.query.edit, (newEditId) => {
           {{ submitLabel }}
         </button>
         <button
-          v-if="isEditing"
+          v-if="isEditing || creatingNew"
           class="btn-s"
-          @click="cancelEdit"
+          @click="goBackToEntries"
         >
           Abbrechen
         </button>
