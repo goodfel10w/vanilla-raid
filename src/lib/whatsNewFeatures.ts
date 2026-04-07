@@ -10,6 +10,26 @@ export interface WhatsNewFeature {
 
 export const WHATS_NEW_FEATURES: WhatsNewFeature[] = [
   {
+    id: 'account-hub-v1',
+    title: 'Neues Konto & Charakterverwaltung',
+    description:
+      'Verwalte alle deine Charaktere an einem Ort — mit Übersichtskarten, Main-Charakter-Markierung und schnellem Zugriff auf Bearbeiten und Löschen. Dein Main wird automatisch bei Raid- und Kara-Anmeldungen vorausgewählt.',
+    icon: '🛡️',
+    route: '/form',
+    routeLabel: 'Zu Mein Konto',
+    addedAt: '2026-04-07',
+  },
+  {
+    id: 'improved-signup-v1',
+    title: 'Verbesserte Raid-Anmeldung',
+    description:
+      'Die Charakterauswahl bei Raid- und Kara-Anmeldungen wurde überarbeitet — dein Main-Charakter wird automatisch vorausgewählt, Specs bleiben beim Wechsel zwischen gleichen Klassen erhalten.',
+    icon: '⚔️',
+    route: '/raids',
+    routeLabel: 'Zu den Raids',
+    addedAt: '2026-04-07',
+  },
+  {
     id: 'kara-signup-v1',
     title: 'Karazhan Wöchentliche Anmeldung',
     description:
