@@ -14,6 +14,7 @@ import SuggestedRaidsCard from '@/components/dashboard/SuggestedRaidsCard.vue'
 import LatestNewsCard from '@/components/dashboard/LatestNewsCard.vue'
 import KaraSignupCard from '@/components/dashboard/KaraSignupCard.vue'
 import WhatsNewCard from '@/components/dashboard/WhatsNewCard.vue'
+import FeatureAnnouncementModal from '@/components/shared/FeatureAnnouncementModal.vue'
 import { useWhatsNew } from '@/composables/useWhatsNew'
 
 const authStore = useAuthStore()
@@ -130,6 +131,9 @@ const dashboardPosts = computed(() => newsStore.posts.slice(0, 3))
     <div v-else class="empty">
       Noch keine Eintr&auml;ge vorhanden.
     </div>
+
+    <!-- One-time feature announcement popup -->
+    <FeatureAnnouncementModal />
   </div>
 </template>
 
