@@ -17,6 +17,7 @@ export function useRaidSignup(raidId: () => string) {
   const showForm = ref(false)
   const showDeclinePrompt = ref(false)
   const submitting = ref(false)
+  const selectedEntryId = ref('')
   const selectedChar = ref('')
   const selectedClass = ref('')
   const selectedStatus = ref<string>('accepted')
@@ -25,9 +26,7 @@ export function useRaidSignup(raidId: () => string) {
 
   const raid = computed(() => raidsStore.getRaid(raidId()))
 
-  const myChars = computed(() =>
-    entriesStore.entries.filter(e => e.userId === authStore.user?.userId)
-  )
+  const myChars = computed(() => entriesStore.myEntries)
 
   const mySignup = computed(() =>
     (raid.value?.signups || []).find(s => s.userId === authStore.user?.userId)
@@ -75,19 +74,26 @@ export function useRaidSignup(raidId: () => string) {
   function openForm() {
     const signup = mySignup.value
     if (signup) {
+      // Editing existing signup: find matching entry by charName
+      const matchingEntry = myChars.value.find(c => c.charName === signup.charName)
+      selectedEntryId.value = matchingEntry?.id || ''
       selectedChar.value = signup.charName
       selectedClass.value = signup.className
       selectedStatus.value = signup.status === 'benched' ? 'accepted' : signup.status
       selectedSpecs.value = signup.offeredSpecs ? [...signup.offeredSpecs] : []
       note.value = signup.note || ''
     } else if (myChars.value.length) {
-      const ch = myChars.value[0]
+      // New signup: default to main character
+      const main = entriesStore.mainEntry
+      const ch = main || myChars.value[0]
+      selectedEntryId.value = ch.id
       selectedChar.value = ch.charName
       selectedClass.value = ch.className
       selectedSpecs.value = ch.specs ? [...ch.specs] : []
       selectedStatus.value = 'accepted'
       note.value = ''
     } else {
+      selectedEntryId.value = ''
       selectedChar.value = ''
       selectedClass.value = ''
       selectedSpecs.value = []
@@ -101,10 +107,11 @@ export function useRaidSignup(raidId: () => string) {
     showForm.value = false
   }
 
-  function onCharChange(charName: string) {
-    selectedChar.value = charName
-    const ch = myChars.value.find(c => c.charName === charName)
+  function onCharChange(entryId: string) {
+    const ch = myChars.value.find(c => c.id === entryId)
     if (ch) {
+      selectedEntryId.value = ch.id
+      selectedChar.value = ch.charName
       selectedClass.value = ch.className
       selectedSpecs.value = ch.specs ? [...ch.specs] : []
     }
@@ -152,9 +159,10 @@ export function useRaidSignup(raidId: () => string) {
   }
 
   async function doDecline(declineNote?: string) {
-    // Determine character info from existing signup or first registered character
+    // Determine character info from existing signup or main character
     const signup = mySignup.value
-    const char = myChars.value[0]
+    const main = entriesStore.mainEntry
+    const char = main || myChars.value[0]
     const charName = signup?.charName || char?.charName || authStore.user?.username || ''
     const className = signup?.className || char?.className || ''
 
@@ -195,6 +203,7 @@ export function useRaidSignup(raidId: () => string) {
     showForm,
     showDeclinePrompt,
     submitting,
+    selectedEntryId,
     selectedChar,
     selectedClass,
     selectedStatus,

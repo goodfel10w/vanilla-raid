@@ -23,18 +23,15 @@ const customSlots = ref<AvailabilityMap>({})
 const submitting = ref(false)
 
 // All entries belonging to the user
-const myEntries = computed(() => {
-  if (!authStore.user) return []
-  return entriesStore.entries.filter(e => e.userId === authStore.user!.userId)
-})
+const myEntries = computed(() => entriesStore.myEntries)
 
-// Currently selected entry (or the only one)
+// Currently selected entry (defaults to main character)
 const myEntry = computed(() => {
   if (myEntries.value.length === 0) return null
   if (selectedEntryId.value) {
-    return myEntries.value.find(e => e.id === selectedEntryId.value) ?? myEntries.value[0]
+    return myEntries.value.find(e => e.id === selectedEntryId.value) ?? entriesStore.mainEntry
   }
-  return myEntries.value[0]
+  return entriesStore.mainEntry
 })
 
 // All specs for the player's class (not just the ones in their entry)
@@ -70,8 +67,9 @@ function startEdit() {
     useCustomTimes.value = existing.useCustomTimes
     customSlots.value = existing.customSlots ? { ...existing.customSlots } : {}
   } else {
-    selectedEntryId.value = myEntries.value.length === 1 ? myEntries.value[0].id : ''
-    selectedSpecs.value = []
+    const main = entriesStore.mainEntry
+    selectedEntryId.value = main?.id || ''
+    selectedSpecs.value = main?.specs ? [...main.specs] : []
     selectedDays.value = []
     useCustomTimes.value = false
     customSlots.value = {}
@@ -80,8 +78,17 @@ function startEdit() {
 }
 
 function selectEntry(id: string) {
+  const prevEntry = myEntry.value
+  const newEntry = myEntries.value.find(e => e.id === id)
   selectedEntryId.value = id
-  selectedSpecs.value = []
+  if (newEntry && prevEntry && newEntry.className === prevEntry.className) {
+    // Same class: keep current spec selection (specs are compatible)
+  } else if (newEntry?.specs?.length) {
+    // Different class: pre-fill with the new entry's specs
+    selectedSpecs.value = [...newEntry.specs]
+  } else {
+    selectedSpecs.value = []
+  }
 }
 
 function cancelEdit() {

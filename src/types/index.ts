@@ -15,6 +15,7 @@ export interface Entry {
   availability: AvailabilityMap
   notes: string
   userId?: string
+  isMain?: boolean
   timestamp: string
 }
 

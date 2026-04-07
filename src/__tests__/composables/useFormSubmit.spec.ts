@@ -51,17 +51,18 @@ describe('useFormSubmit', () => {
     })
   })
 
-  it('navigates to roster on success', async () => {
+  it('returns true on success without navigating', async () => {
     const entriesStore = useEntriesStore()
     entriesStore.save = vi.fn().mockResolvedValue({})
 
     const { submit } = useFormSubmit()
-    await submit(
+    const result = await submit(
       { name: 'A', cls: 'Krieger', specs: ['Prot'], avail: {}, notes: '' },
       null
     )
 
-    expect(mockPush).toHaveBeenCalledWith('/roster')
+    expect(result).toBe(true)
+    expect(mockPush).not.toHaveBeenCalled()
   })
 
   it('passes editId when editing', async () => {

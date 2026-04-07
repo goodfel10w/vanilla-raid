@@ -1,12 +1,26 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { Entry } from '@/types'
 import { api } from '@/lib/api'
 import { migrateLegacyAvail } from '@/lib/utils'
+import { useAuthStore } from '@/stores/auth'
 
 export const useEntriesStore = defineStore('entries', () => {
   const entries = ref<Entry[]>([])
   const loading = ref(false)
+
+  const myEntries = computed(() => {
+    const auth = useAuthStore()
+    if (!auth.user) return []
+    return entries.value.filter(e => e.userId === auth.user!.userId)
+  })
+
+  const mainEntry = computed(() => {
+    const main = myEntries.value.find(e => e.isMain)
+    return main || myEntries.value[0] || null
+  })
+
+  const myEntryCount = computed(() => myEntries.value.length)
 
   async function load() {
     loading.value = true
@@ -40,5 +54,20 @@ export const useEntriesStore = defineStore('entries', () => {
     await load()
   }
 
-  return { entries, loading, load, save, remove, unlinkUser }
+  async function setMain(id: string) {
+    const entry = entries.value.find(e => e.id === id)
+    if (!entry) return
+    await save({
+      id: entry.id,
+      charName: entry.charName,
+      className: entry.className,
+      specs: entry.specs,
+      roles: entry.roles,
+      availability: entry.availability,
+      notes: entry.notes,
+      isMain: true,
+    })
+  }
+
+  return { entries, loading, myEntries, mainEntry, myEntryCount, load, save, remove, unlinkUser, setMain }
 })
