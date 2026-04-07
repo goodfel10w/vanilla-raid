@@ -101,18 +101,46 @@ describe('resolveKaraAvailability', () => {
     expect(Object.keys(result).every(k => k.startsWith('Montag'))).toBe(true)
   })
 
-  it('returns empty map when signup has no matching availability', () => {
+  it('synthesizes full availability when signup day has no matching slots', () => {
     const avail = makeAvail('Dienstag', 20, 1) // only Dienstag
     const entry = makeEntry({ availability: avail })
     const signup = makeSignup({ days: ['Montag'] }) // signed up for Montag
 
     const result = resolveKaraAvailability(entry, signup)
-    expect(Object.keys(result)).toHaveLength(0)
+    // Montag should get synthetic "yes" for all 48 slots (12:00-23:45)
+    const montagKeys = Object.keys(result).filter(k => k.startsWith('Montag_'))
+    expect(montagKeys).toHaveLength(48)
+    expect(montagKeys.every(k => result[k] === 'yes')).toBe(true)
   })
 
-  it('handles empty entry availability gracefully', () => {
+  it('synthesizes availability for empty entry availability', () => {
     const entry = makeEntry({ availability: {} })
     const signup = makeSignup({ days: ['Montag'] })
+    const result = resolveKaraAvailability(entry, signup)
+    // Should synthesize full availability for Montag
+    const montagKeys = Object.keys(result).filter(k => k.startsWith('Montag_'))
+    expect(montagKeys).toHaveLength(48)
+    expect(montagKeys.every(k => result[k] === 'yes')).toBe(true)
+  })
+
+  it('synthesizes only for days with no slots, keeps existing slots', () => {
+    const avail = makeAvail('Montag', 20, 1) // Montag 20:00-20:45
+    const entry = makeEntry({ availability: avail })
+    const signup = makeSignup({ days: ['Montag', 'Mittwoch'] })
+
+    const result = resolveKaraAvailability(entry, signup)
+    // Montag should keep original 4 slots (not synthesized)
+    const montagKeys = Object.keys(result).filter(k => k.startsWith('Montag_'))
+    expect(montagKeys).toHaveLength(4)
+    expect(result['Montag_20:00']).toBe('yes')
+    // Mittwoch should get 48 synthetic slots
+    const mittwochKeys = Object.keys(result).filter(k => k.startsWith('Mittwoch_'))
+    expect(mittwochKeys).toHaveLength(48)
+  })
+
+  it('does not synthesize when useCustomTimes is true', () => {
+    const entry = makeEntry({ availability: {} })
+    const signup = makeSignup({ days: ['Montag'], useCustomTimes: true, customSlots: {} })
     const result = resolveKaraAvailability(entry, signup)
     expect(Object.keys(result)).toHaveLength(0)
   })
