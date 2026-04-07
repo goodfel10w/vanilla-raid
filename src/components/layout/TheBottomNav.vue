@@ -14,7 +14,7 @@ interface BottomNavItem {
 
 const mainItems: BottomNavItem[] = [
   { label: 'Dashboard', route: '/dashboard', icon: '\uD83D\uDCCA' },
-  { label: 'Profil', route: '/form', icon: '\u270F\uFE0F' },
+  { label: 'Konto', route: '/form', icon: '\u270F\uFE0F' },
   { label: 'Raids', route: '/raids', icon: '\u2694\uFE0F' },
   { label: 'DKP', route: '/dkp', icon: '\uD83D\uDCB0' },
 ]

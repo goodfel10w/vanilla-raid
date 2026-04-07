@@ -16,7 +16,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', route: '/dashboard', icon: '\uD83D\uDCCA', show: true },
   { label: 'Neuigkeiten', route: '/news', icon: '\uD83D\uDCF0', show: true },
-  { label: 'Mein Profil', route: '/form', icon: '\u270F\uFE0F', show: true },
+  { label: 'Mein Konto', route: '/form', icon: '\u270F\uFE0F', show: true },
   { label: 'Raids', route: '/raids', icon: '\u2694\uFE0F', show: true },
   { label: 'Aufstellung', route: '/roster', icon: '\uD83D\uDC65', show: true },
   { label: 'Heatmap', route: '/heatmap', icon: '\uD83D\uDCC5', show: true },

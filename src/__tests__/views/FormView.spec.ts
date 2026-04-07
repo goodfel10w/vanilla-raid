@@ -34,7 +34,7 @@ function createTestRouter(initialRoute = '/form') {
   return router
 }
 
-async function mountForm(opts: { loggedIn?: boolean; editId?: string; entries?: Entry[] } = {}) {
+async function mountForm(opts: { loggedIn?: boolean; editId?: string; entries?: Entry[]; createNew?: boolean } = {}) {
   const router = createTestRouter()
   if (opts.editId) {
     router.push({ path: '/form', query: { edit: opts.editId } })
@@ -61,6 +61,14 @@ async function mountForm(opts: { loggedIn?: boolean; editId?: string; entries?: 
     global: { plugins: [router] },
   })
 
+  // If createNew, click the "new character" button to enter form mode
+  if (opts.createNew) {
+    const newBtn = wrapper.find('.btn-new-char') || wrapper.find('.add-card')
+    if (newBtn.exists()) {
+      await newBtn.trigger('click')
+    }
+  }
+
   return { wrapper, router }
 }
 
@@ -81,20 +89,46 @@ describe('FormView', () => {
     expect(wrapper.find('#f-name').exists()).toBe(false)
   })
 
-  it('shows form when logged in', async () => {
+  it('shows account header when logged in', async () => {
     const { wrapper } = await mountForm()
     expect(wrapper.find('.auth-hint').exists()).toBe(false)
+    expect(wrapper.find('.account-header').exists()).toBe(true)
+    expect(wrapper.find('.ah-username').text()).toBe('TestUser')
+  })
+
+  it('shows empty state when no characters', async () => {
+    const { wrapper } = await mountForm()
+    expect(wrapper.find('.empty-state').exists()).toBe(true)
+    expect(wrapper.find('.btn-new-char').exists()).toBe(true)
+  })
+
+  it('shows character cards when entries exist', async () => {
+    const entry = makeEntry()
+    const { wrapper } = await mountForm({ entries: [entry] })
+    expect(wrapper.find('.char-card').exists()).toBe(true)
+    expect(wrapper.find('.cc-name').text()).toBe('Testchar')
+  })
+
+  it('shows main badge on main character', async () => {
+    const entry = makeEntry({ isMain: true })
+    const { wrapper } = await mountForm({ entries: [entry] })
+    expect(wrapper.find('.main-badge').exists()).toBe(true)
+    expect(wrapper.find('.char-card.is-main').exists()).toBe(true)
+  })
+
+  it('shows form when creating new character', async () => {
+    const { wrapper } = await mountForm({ createNew: true })
     expect(wrapper.find('#f-name').exists()).toBe(true)
     expect(wrapper.find('#f-submit').exists()).toBe(true)
   })
 
-  it('renders class chip selector', async () => {
-    const { wrapper } = await mountForm()
+  it('renders class chip selector in form mode', async () => {
+    const { wrapper } = await mountForm({ createNew: true })
     expect(wrapper.findAll('.chip').length).toBe(9)
   })
 
   it('shows spec selector after class is selected', async () => {
-    const { wrapper } = await mountForm()
+    const { wrapper } = await mountForm({ createNew: true })
     // Initially no specs shown
     expect(wrapper.find('.no-class-hint').exists()).toBe(true)
     expect(wrapper.findAll('.rchip').length).toBe(0)
@@ -111,13 +145,13 @@ describe('FormView', () => {
   })
 
   it('disables submit when form is incomplete', async () => {
-    const { wrapper } = await mountForm()
+    const { wrapper } = await mountForm({ createNew: true })
     const btn = wrapper.find('#f-submit')
     expect((btn.element as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('enables submit when all required fields filled', async () => {
-    const { wrapper } = await mountForm()
+    const { wrapper } = await mountForm({ createNew: true })
 
     // Fill name
     const nameInput = wrapper.find('#f-name')
@@ -136,7 +170,7 @@ describe('FormView', () => {
   })
 
   it('shows validation message listing missing fields', async () => {
-    const { wrapper } = await mountForm()
+    const { wrapper } = await mountForm({ createNew: true })
     const msg = wrapper.find('.validation-msg')
     expect(msg.exists()).toBe(true)
     expect(msg.text()).toContain('Charaktername')
@@ -145,13 +179,13 @@ describe('FormView', () => {
   })
 
   it('shows Speichern label for new entry', async () => {
-    const { wrapper } = await mountForm()
+    const { wrapper } = await mountForm({ createNew: true })
     expect(wrapper.find('#f-submit').text()).toBe('Speichern')
   })
 
-  it('does not show cancel button for new entry', async () => {
-    const { wrapper } = await mountForm()
-    expect(wrapper.find('.btn-s').exists()).toBe(false)
+  it('shows back button in form mode', async () => {
+    const { wrapper } = await mountForm({ createNew: true })
+    expect(wrapper.find('.form-back').exists()).toBe(true)
   })
 
   it('pre-fills form in edit mode', async () => {
@@ -163,29 +197,25 @@ describe('FormView', () => {
     expect(wrapper.find('.btn-s').exists()).toBe(true)
   })
 
-  it('resets form on cancel edit', async () => {
+  it('returns to cards view on cancel edit', async () => {
     const entry = makeEntry()
     const { wrapper } = await mountForm({ editId: 'e1', entries: [entry] })
 
     await wrapper.find('.btn-s').trigger('click')
 
-    // After cancel, either shows my-entries list or empty form
-    // The edit mode should be cleared
-    const submitBtn = wrapper.find('#f-submit')
-    if (submitBtn.exists()) {
-      expect(submitBtn.text()).toBe('Speichern')
-      expect(wrapper.find('.btn-s').exists()).toBe(false)
-    }
+    // After cancel, should show character cards, not form
+    expect(wrapper.find('#f-name').exists()).toBe(false)
+    expect(wrapper.find('.char-card').exists()).toBe(true)
   })
 
-  it('renders availability grid', async () => {
-    const { wrapper } = await mountForm()
+  it('renders availability grid in form mode', async () => {
+    const { wrapper } = await mountForm({ createNew: true })
     expect(wrapper.find('.tl-wrap').exists()).toBe(true)
     expect(wrapper.findAll('.tl-cell').length).toBeGreaterThan(0)
   })
 
   it('clears specs when changing class', async () => {
-    const { wrapper } = await mountForm()
+    const { wrapper } = await mountForm({ createNew: true })
 
     // Select Krieger and a spec
     const kriegerChip = wrapper.findAll('.chip').find(c => c.text().includes('Krieger'))
@@ -202,5 +232,24 @@ describe('FormView', () => {
     expect(wrapper.findAll('.rchip.active').length).toBe(0)
     // Should now show Mage specs
     expect(wrapper.findAll('.rchip').length).toBe(3) // Arcane, Fire, Frost
+  })
+
+  it('shows edit and delete buttons on character cards', async () => {
+    const entry = makeEntry()
+    const { wrapper } = await mountForm({ entries: [entry] })
+    expect(wrapper.find('.btn-cc-edit').exists()).toBe(true)
+    expect(wrapper.find('.btn-cc-del').exists()).toBe(true)
+  })
+
+  it('shows "Als Main setzen" button for non-main characters', async () => {
+    const entry = makeEntry({ isMain: false })
+    const { wrapper } = await mountForm({ entries: [entry] })
+    expect(wrapper.find('.btn-cc-main').exists()).toBe(true)
+  })
+
+  it('hides "Als Main setzen" button for main character', async () => {
+    const entry = makeEntry({ isMain: true })
+    const { wrapper } = await mountForm({ entries: [entry] })
+    expect(wrapper.find('.btn-cc-main').exists()).toBe(false)
   })
 })

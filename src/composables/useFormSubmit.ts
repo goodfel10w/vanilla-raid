@@ -1,7 +1,6 @@
 import { useEntriesStore } from '@/stores/entries'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
-import { useRouter } from 'vue-router'
 import { specsToRoles } from '@/lib/utils'
 import type { AvailabilityMap } from '@/types'
 
@@ -17,7 +16,6 @@ export function useFormSubmit() {
   const entriesStore = useEntriesStore()
   const auth = useAuthStore()
   const { toast } = useToast()
-  const router = useRouter()
 
   async function submit(formData: FormData, editId: string | null): Promise<boolean> {
     const roles = specsToRoles(formData.cls, formData.specs)
@@ -33,8 +31,7 @@ export function useFormSubmit() {
         notes: formData.notes,
       })
 
-      toast(editId ? 'Eintrag aktualisiert \u2713' : 'Eintrag gespeichert \u2713')
-      router.push('/roster')
+      toast(editId ? 'Charakter aktualisiert \u2713' : 'Charakter gespeichert \u2713')
       return true
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : ''

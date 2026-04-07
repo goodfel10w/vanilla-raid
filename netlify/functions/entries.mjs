@@ -174,8 +174,22 @@ export default async (req, context) => {
         availability: cleanAvail,
         notes: (notes || "").trim().slice(0, 500),
         userId: user.userId,
+        isMain: body.isMain === true ? true : undefined,
         timestamp: new Date().toISOString(),
       };
+
+      // If this entry is marked as main, clear isMain from all other entries by this user
+      if (entry.isMain) {
+        const { blobs } = await store.list();
+        for (const blob of blobs) {
+          if (blob.key === id) continue;
+          const other = await store.get(blob.key, { type: "json" });
+          if (other && other.userId === user.userId && other.isMain) {
+            delete other.isMain;
+            await store.setJSON(blob.key, other);
+          }
+        }
+      }
 
       await store.setJSON(id, entry);
       return new Response(JSON.stringify(entry), { status: 200, headers });

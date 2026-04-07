@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { CLS, CLASS_SPECS, WOW_ICONS, ROLE_COLORS } from '@/lib/constants'
+import { cc } from '@/lib/utils'
+import ClassIcon from '@/components/shared/ClassIcon.vue'
 import type { Entry } from '@/types'
 
 const props = defineProps<{
   open: boolean
   myChars: Entry[]
+  selectedEntryId: string
   selectedChar: string
   selectedClass: string
   selectedStatus: string
@@ -19,7 +22,7 @@ const emit = defineEmits<{
   'update:selectedClass': [val: string]
   'update:selectedStatus': [val: string]
   'update:note': [val: string]
-  charChange: [charName: string]
+  charChange: [entryId: string]
   classChange: [cls: string]
   toggleSpec: [spec: string]
   confirm: []
@@ -27,6 +30,10 @@ const emit = defineEmits<{
 }>()
 
 const availableSpecs = computed(() => CLASS_SPECS[props.selectedClass] || [])
+
+const selectedEntry = computed(() =>
+  props.myChars.find(c => c.id === props.selectedEntryId)
+)
 
 function specRole(specName: string): string {
   const sp = availableSpecs.value.find(s => s.name === specName)
@@ -44,20 +51,29 @@ function specRole(specName: string): string {
           <!-- Character selection -->
           <div class="su-row">
             <template v-if="myChars.length">
-              <select
-                :value="selectedChar"
-                @change="emit('charChange', ($event.target as HTMLSelectElement).value)"
-                class="su-select"
-              >
-                <option value="">-- Charakter --</option>
-                <option
-                  v-for="ch in myChars"
-                  :key="ch.charName"
-                  :value="ch.charName"
+              <div class="su-char-select">
+                <select
+                  :value="selectedEntryId"
+                  @change="emit('charChange', ($event.target as HTMLSelectElement).value)"
+                  class="su-select"
                 >
-                  {{ ch.charName }} ({{ ch.className }})
-                </option>
-              </select>
+                  <option value="">-- Charakter --</option>
+                  <option
+                    v-for="ch in myChars"
+                    :key="ch.id"
+                    :value="ch.id"
+                  >
+                    {{ ch.charName }} ({{ ch.className }}){{ ch.isMain ? ' ★' : '' }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Selected character preview -->
+              <div v-if="selectedEntry" class="su-char-preview">
+                <ClassIcon :class-name="selectedEntry.className" size="sm" />
+                <span class="su-char-name" :style="{ color: cc(selectedEntry.className) }">{{ selectedEntry.charName }}</span>
+                <span v-if="selectedEntry.isMain" class="su-main-badge">Main</span>
+              </div>
             </template>
             <template v-else>
               <input
@@ -174,6 +190,7 @@ function specRole(specName: string): string {
 }
 .su-form { display: flex; flex-direction: column; gap: 12px; }
 .su-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.su-char-select { flex: 1; min-width: 160px; }
 .su-select, .su-input {
   padding: 8px 10px;
   font-size: 13px;
@@ -184,6 +201,28 @@ function specRole(specName: string): string {
   color: var(--color-tx);
   flex: 1;
   min-width: 100px;
+  width: 100%;
+}
+.su-char-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  flex-basis: 100%;
+}
+.su-char-name {
+  font-weight: 600;
+  font-size: 13px;
+}
+.su-main-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(201, 168, 76, 0.2);
+  color: var(--color-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 .su-specs { display: flex; flex-direction: column; gap: 4px; }
 .su-specs-label { font-size: 12px; color: var(--color-tx3); }

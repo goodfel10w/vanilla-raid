@@ -55,7 +55,7 @@ describe('DashboardView', () => {
     })
     const links = wrapper.findAll('.qa-link')
     expect(links.length).toBe(3)
-    expect(links[0].text()).toBe('Eintragen')
+    expect(links[0].text()).toBe('Mein Konto')
     expect(links[1].text()).toBe('Raids')
     expect(links[2].text()).toBe('DKP')
   })

@@ -32,6 +32,7 @@ const {
   showForm: showSignup,
   showDeclinePrompt,
   submitting,
+  selectedEntryId,
   selectedChar,
   selectedClass,
   selectedStatus,
@@ -473,6 +474,7 @@ function getMyStatusColor(): string {
         <SignupModal
           :open="showSignup"
           :my-chars="myChars"
+          :selected-entry-id="selectedEntryId"
           :selected-char="selectedChar"
           :selected-class="selectedClass"
           :selected-status="selectedStatus"
