@@ -53,6 +53,32 @@ async function canManageRaid(user, raid) {
   return isDkpOfficerOrAdmin(user.username);
 }
 
+// ── Atomic update helper (retry-with-verification to prevent race conditions) ──
+// Reads raid, applies updateFn, writes, then re-reads to verify the change stuck.
+// If a concurrent write overwrote ours, retries with fresh state.
+// updateFn can return { _abort: true, ...rest } to stop without writing (e.g. target not found).
+async function atomicUpdate(store, raidId, updateFn, verifyFn, maxRetries = 3) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const raid = await store.get(raidId, { type: "json" });
+    if (!raid) return null;
+    if (!raid.signups) raid.signups = [];
+
+    const meta = updateFn(raid);
+    if (meta && meta._abort) return { raid, meta, aborted: true };
+
+    await store.setJSON(raidId, raid);
+
+    // Re-read to verify our write wasn't overwritten by a concurrent request
+    const fresh = await store.get(raidId, { type: "json" });
+    if (verifyFn(fresh)) {
+      return { raid: fresh, meta };
+    }
+    // Verification failed — another concurrent write overwrote ours, retry
+  }
+  // All retries exhausted
+  return null;
+}
+
 const VALID_INSTANCES = [
   "Karazhan", "Gruuls Unterschlupf", "Magtheridons Kammer",
   "Höhle des Schlangenschreins", "Festung der Stürme",
@@ -130,21 +156,29 @@ export default async (req) => {
         if (!raidId) {
           return new Response(JSON.stringify({ error: "Raid-ID fehlt" }), { status: 400, headers });
         }
-        const raid = await store.get(raidId, { type: "json" });
-        if (!raid) {
+        const preCheck = await store.get(raidId, { type: "json" });
+        if (!preCheck) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        if (!await canManageRaid(user, raid)) {
+        if (!await canManageRaid(user, preCheck)) {
           return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
-        raid.locked = action === "lock";
-        await store.setJSON(raidId, raid);
+        const targetLocked = action === "lock";
+        const result = await atomicUpdate(
+          store, raidId,
+          (raid) => { raid.locked = targetLocked; },
+          (fresh) => !!fresh.locked === targetLocked,
+        );
+        if (!result) {
+          return new Response(JSON.stringify({ error: "Aenderung fehlgeschlagen, bitte erneut versuchen" }), { status: 409, headers });
+        }
+        const { raid: updatedRaid } = result;
         writeAuditLog(raidId, {
           action: action === "lock" ? "raid-locked" : "raid-unlocked",
           performedBy: user.username,
         });
-        autoUpdateDiscord(raidId, raid);
-        return new Response(JSON.stringify(raid), { status: 200, headers });
+        autoUpdateDiscord(raidId, updatedRaid);
+        return new Response(JSON.stringify(updatedRaid), { status: 200, headers });
       }
 
       // ── Signup ──
@@ -172,30 +206,22 @@ export default async (req) => {
         if (status && !VALID_SIGNUP_STATUS.includes(status)) {
           return new Response(JSON.stringify({ error: "Ungültiger Status" }), { status: 400, headers });
         }
-        const raid = await store.get(raidId, { type: "json" });
-        if (!raid) {
+        // Pre-check: raid exists, locked, deadline (before retry loop)
+        const preCheck = await store.get(raidId, { type: "json" });
+        if (!preCheck) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        // Block signups when raid is locked (organizers exempt)
-        const isOrganizer = await canManageRaid(user, raid);
-        if (raid.locked && !isOrganizer) {
+        const isOrganizer = await canManageRaid(user, preCheck);
+        if (preCheck.locked && !isOrganizer) {
           return new Response(JSON.stringify({ error: "Raid ist gesperrt — Anmeldung nicht möglich" }), { status: 403, headers });
         }
-        // Block signups after deadline (organizers exempt)
-        if (raid.deadline && !isOrganizer) {
+        if (preCheck.deadline && !isOrganizer) {
           const now = new Date();
-          const dl = new Date(raid.deadline);
+          const dl = new Date(preCheck.deadline);
           if (now > dl) {
             return new Response(JSON.stringify({ error: "Anmeldefrist abgelaufen" }), { status: 403, headers });
           }
         }
-        if (!raid.signups) raid.signups = [];
-        // Check if this is a re-signup (status change)
-        const prevSignup = raid.signups.find(s => s.userId === user.userId);
-        const isResignup = !!prevSignup;
-        const prevStatus = prevSignup?.status;
-        // Remove existing signup from this user (to replace)
-        raid.signups = raid.signups.filter(s => s.userId !== user.userId);
         const signup = {
           userId: user.userId,
           username: user.username,
@@ -207,14 +233,28 @@ export default async (req) => {
           timestamp: new Date().toISOString(),
         };
         if (validSpecs.length) signup.offeredSpecs = validSpecs;
-        raid.signups.push(signup);
-        await store.setJSON(raidId, raid);
-        if (isResignup) {
+        const result = await atomicUpdate(
+          store, raidId,
+          (raid) => {
+            const prevSignup = raid.signups.find(s => s.userId === user.userId);
+            const isResignup = !!prevSignup;
+            const prevStatus = prevSignup?.status;
+            raid.signups = raid.signups.filter(s => s.userId !== user.userId);
+            raid.signups.push(signup);
+            return { isResignup, prevStatus };
+          },
+          (fresh) => fresh.signups?.some(s => s.userId === user.userId),
+        );
+        if (!result) {
+          return new Response(JSON.stringify({ error: "Anmeldung fehlgeschlagen, bitte erneut versuchen" }), { status: 409, headers });
+        }
+        const { raid: updatedRaid, meta } = result;
+        if (meta.isResignup) {
           writeAuditLog(raidId, {
             action: "signup-changed",
             performedBy: user.username,
             targetPlayer: signup.charName,
-            details: prevStatus !== signup.status ? `${prevStatus} → ${signup.status}` : undefined,
+            details: meta.prevStatus !== signup.status ? `${meta.prevStatus} → ${signup.status}` : undefined,
           });
         } else {
           writeAuditLog(raidId, {
@@ -224,8 +264,8 @@ export default async (req) => {
             details: `${signup.className} / ${signup.status}`,
           });
         }
-        autoUpdateDiscord(raidId, raid);
-        return new Response(JSON.stringify(raid), { status: 200, headers });
+        autoUpdateDiscord(raidId, updatedRaid);
+        return new Response(JSON.stringify(updatedRaid), { status: 200, headers });
       }
 
       // ── Assign Spec (Raid Leader) ──
@@ -234,48 +274,59 @@ export default async (req) => {
         if (!raidId || !targetUserId) {
           return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
         }
-        const raid = await store.get(raidId, { type: "json" });
-        if (!raid) {
+        // Pre-check permissions
+        const preCheck = await store.get(raidId, { type: "json" });
+        if (!preCheck) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        if (!await canManageRaid(user, raid)) {
+        if (!await canManageRaid(user, preCheck)) {
           return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
-        if (!raid.signups) raid.signups = [];
-        const signup = raid.signups.find(s => s.userId === targetUserId);
-        if (!signup) {
-          return new Response(JSON.stringify({ error: "Spieler nicht angemeldet" }), { status: 404, headers });
+        const result = await atomicUpdate(
+          store, raidId,
+          (raid) => {
+            const signup = raid.signups.find(s => s.userId === targetUserId);
+            if (!signup) return { _abort: true, error: "Spieler nicht angemeldet", status: 404 };
+            const prevSpec = signup.assignedSpec;
+            if (assignedSpec) {
+              if (signup.offeredSpecs && !signup.offeredSpecs.includes(assignedSpec)) {
+                return { _abort: true, error: "Spec nicht in angebotenen Specs", status: 400 };
+              }
+              signup.assignedSpec = assignedSpec;
+              const classSpecs = CLASS_SPECS[signup.className] || [];
+              const sp = classSpecs.find(s => s.n === assignedSpec);
+              if (sp) signup.role = sp.r;
+            } else {
+              delete signup.assignedSpec;
+              if (signup.offeredSpecs && signup.offeredSpecs.length) {
+                const classSpecs = CLASS_SPECS[signup.className] || [];
+                const sp = classSpecs.find(s => s.n === signup.offeredSpecs[0]);
+                if (sp) signup.role = sp.r;
+              }
+            }
+            return { charName: signup.charName, prevSpec };
+          },
+          (fresh) => {
+            const s = fresh.signups?.find(s => s.userId === targetUserId);
+            if (!s) return false;
+            return assignedSpec ? s.assignedSpec === assignedSpec : !s.assignedSpec;
+          },
+        );
+        if (!result) {
+          return new Response(JSON.stringify({ error: "Aenderung fehlgeschlagen, bitte erneut versuchen" }), { status: 409, headers });
         }
-        const prevSpec = signup.assignedSpec;
-        if (assignedSpec) {
-          // Validate the assigned spec is one of the offered specs
-          if (signup.offeredSpecs && !signup.offeredSpecs.includes(assignedSpec)) {
-            return new Response(JSON.stringify({ error: "Spec nicht in angebotenen Specs" }), { status: 400, headers });
-          }
-          signup.assignedSpec = assignedSpec;
-          // Update role based on assigned spec
-          const classSpecs = CLASS_SPECS[signup.className] || [];
-          const sp = classSpecs.find(s => s.n === assignedSpec);
-          if (sp) signup.role = sp.r;
-        } else {
-          // Clear assignment
-          delete signup.assignedSpec;
-          // Reset role to first offered spec
-          if (signup.offeredSpecs && signup.offeredSpecs.length) {
-            const classSpecs = CLASS_SPECS[signup.className] || [];
-            const sp = classSpecs.find(s => s.n === signup.offeredSpecs[0]);
-            if (sp) signup.role = sp.r;
-          }
+        if (result.aborted) {
+          return new Response(JSON.stringify({ error: result.meta.error }), { status: result.meta.status || 400, headers });
         }
-        await store.setJSON(raidId, raid);
+        const { raid: updatedRaid, meta } = result;
         writeAuditLog(raidId, {
           action: "assign-spec",
           performedBy: user.username,
-          targetPlayer: signup.charName,
-          details: assignedSpec ? `${prevSpec || '–'} → ${assignedSpec}` : "Zuweisung entfernt",
+          targetPlayer: meta.charName,
+          details: assignedSpec ? `${meta.prevSpec || '–'} → ${assignedSpec}` : "Zuweisung entfernt",
         });
-        autoUpdateDiscord(raidId, raid);
-        return new Response(JSON.stringify(raid), { status: 200, headers });
+        autoUpdateDiscord(raidId, updatedRaid);
+        return new Response(JSON.stringify(updatedRaid), { status: 200, headers });
       }
 
       // ── Unsignup ──
@@ -284,21 +335,26 @@ export default async (req) => {
         if (!raidId) {
           return new Response(JSON.stringify({ error: "Raid-ID fehlt" }), { status: 400, headers });
         }
-        const raid = await store.get(raidId, { type: "json" });
-        if (!raid) {
-          return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
+        const result = await atomicUpdate(
+          store, raidId,
+          (raid) => {
+            const removed = raid.signups.find(s => s.userId === user.userId);
+            raid.signups = raid.signups.filter(s => s.userId !== user.userId);
+            return { removedCharName: removed?.charName || user.username };
+          },
+          (fresh) => !fresh.signups?.some(s => s.userId === user.userId),
+        );
+        if (!result) {
+          return new Response(JSON.stringify({ error: "Abmeldung fehlgeschlagen, bitte erneut versuchen" }), { status: 409, headers });
         }
-        if (!raid.signups) raid.signups = [];
-        const removed = raid.signups.find(s => s.userId === user.userId);
-        raid.signups = raid.signups.filter(s => s.userId !== user.userId);
-        await store.setJSON(raidId, raid);
+        const { raid: updatedRaid, meta } = result;
         writeAuditLog(raidId, {
           action: "unsignup",
           performedBy: user.username,
-          targetPlayer: removed?.charName || user.username,
+          targetPlayer: meta.removedCharName,
         });
-        autoUpdateDiscord(raidId, raid);
-        return new Response(JSON.stringify(raid), { status: 200, headers });
+        autoUpdateDiscord(raidId, updatedRaid);
+        return new Response(JSON.stringify(updatedRaid), { status: 200, headers });
       }
 
       // ── Organizer: bench a player ──
@@ -307,28 +363,38 @@ export default async (req) => {
         if (!raidId || !targetUserId) {
           return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
         }
-        const raid = await store.get(raidId, { type: "json" });
-        if (!raid) {
+        const preCheck = await store.get(raidId, { type: "json" });
+        if (!preCheck) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        if (!await canManageRaid(user, raid)) {
+        if (!await canManageRaid(user, preCheck)) {
           return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
-        if (!raid.signups) raid.signups = [];
-        const signup = raid.signups.find(s => s.userId === targetUserId);
-        if (!signup) {
-          return new Response(JSON.stringify({ error: "Spieler nicht angemeldet" }), { status: 404, headers });
+        const result = await atomicUpdate(
+          store, raidId,
+          (raid) => {
+            const signup = raid.signups.find(s => s.userId === targetUserId);
+            if (!signup) return { _abort: true, error: "Spieler nicht angemeldet", status: 404 };
+            signup.status = "benched";
+            signup.benchedBy = user.username;
+            return { charName: signup.charName };
+          },
+          (fresh) => fresh.signups?.find(s => s.userId === targetUserId)?.status === "benched",
+        );
+        if (!result) {
+          return new Response(JSON.stringify({ error: "Aenderung fehlgeschlagen, bitte erneut versuchen" }), { status: 409, headers });
         }
-        signup.status = "benched";
-        signup.benchedBy = user.username;
-        await store.setJSON(raidId, raid);
+        if (result.aborted) {
+          return new Response(JSON.stringify({ error: result.meta.error }), { status: result.meta.status || 400, headers });
+        }
+        const { raid: updatedRaid, meta } = result;
         writeAuditLog(raidId, {
           action: "bench",
           performedBy: user.username,
-          targetPlayer: signup.charName,
+          targetPlayer: meta.charName,
         });
-        autoUpdateDiscord(raidId, raid);
-        return new Response(JSON.stringify(raid), { status: 200, headers });
+        autoUpdateDiscord(raidId, updatedRaid);
+        return new Response(JSON.stringify(updatedRaid), { status: 200, headers });
       }
 
       // ── Organizer: confirm a player ──
@@ -337,27 +403,37 @@ export default async (req) => {
         if (!raidId || !targetUserId) {
           return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
         }
-        const raid = await store.get(raidId, { type: "json" });
-        if (!raid) {
+        const preCheck = await store.get(raidId, { type: "json" });
+        if (!preCheck) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        if (!await canManageRaid(user, raid)) {
+        if (!await canManageRaid(user, preCheck)) {
           return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
-        if (!raid.signups) raid.signups = [];
-        const signup = raid.signups.find(s => s.userId === targetUserId);
-        if (!signup) {
-          return new Response(JSON.stringify({ error: "Spieler nicht angemeldet" }), { status: 404, headers });
+        const result = await atomicUpdate(
+          store, raidId,
+          (raid) => {
+            const signup = raid.signups.find(s => s.userId === targetUserId);
+            if (!signup) return { _abort: true, error: "Spieler nicht angemeldet", status: 404 };
+            signup.status = "confirmed";
+            return { charName: signup.charName };
+          },
+          (fresh) => fresh.signups?.find(s => s.userId === targetUserId)?.status === "confirmed",
+        );
+        if (!result) {
+          return new Response(JSON.stringify({ error: "Aenderung fehlgeschlagen, bitte erneut versuchen" }), { status: 409, headers });
         }
-        signup.status = "confirmed";
-        await store.setJSON(raidId, raid);
+        if (result.aborted) {
+          return new Response(JSON.stringify({ error: result.meta.error }), { status: result.meta.status || 400, headers });
+        }
+        const { raid: updatedRaid, meta } = result;
         writeAuditLog(raidId, {
           action: "confirm",
           performedBy: user.username,
-          targetPlayer: signup.charName,
+          targetPlayer: meta.charName,
         });
-        autoUpdateDiscord(raidId, raid);
-        return new Response(JSON.stringify(raid), { status: 200, headers });
+        autoUpdateDiscord(raidId, updatedRaid);
+        return new Response(JSON.stringify(updatedRaid), { status: 200, headers });
       }
 
       // ── Organizer: unconfirm a player (back to accepted) ──
@@ -366,27 +442,37 @@ export default async (req) => {
         if (!raidId || !targetUserId) {
           return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
         }
-        const raid = await store.get(raidId, { type: "json" });
-        if (!raid) {
+        const preCheck = await store.get(raidId, { type: "json" });
+        if (!preCheck) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        if (!await canManageRaid(user, raid)) {
+        if (!await canManageRaid(user, preCheck)) {
           return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
-        if (!raid.signups) raid.signups = [];
-        const signup = raid.signups.find(s => s.userId === targetUserId);
-        if (!signup) {
-          return new Response(JSON.stringify({ error: "Spieler nicht angemeldet" }), { status: 404, headers });
+        const result = await atomicUpdate(
+          store, raidId,
+          (raid) => {
+            const signup = raid.signups.find(s => s.userId === targetUserId);
+            if (!signup) return { _abort: true, error: "Spieler nicht angemeldet", status: 404 };
+            signup.status = "accepted";
+            return { charName: signup.charName };
+          },
+          (fresh) => fresh.signups?.find(s => s.userId === targetUserId)?.status === "accepted",
+        );
+        if (!result) {
+          return new Response(JSON.stringify({ error: "Aenderung fehlgeschlagen, bitte erneut versuchen" }), { status: 409, headers });
         }
-        signup.status = "accepted";
-        await store.setJSON(raidId, raid);
+        if (result.aborted) {
+          return new Response(JSON.stringify({ error: result.meta.error }), { status: result.meta.status || 400, headers });
+        }
+        const { raid: updatedRaid, meta } = result;
         writeAuditLog(raidId, {
           action: "unconfirm",
           performedBy: user.username,
-          targetPlayer: signup.charName,
+          targetPlayer: meta.charName,
         });
-        autoUpdateDiscord(raidId, raid);
-        return new Response(JSON.stringify(raid), { status: 200, headers });
+        autoUpdateDiscord(raidId, updatedRaid);
+        return new Response(JSON.stringify(updatedRaid), { status: 200, headers });
       }
 
       // ── Organizer: confirm entire lineup suggestion ──
@@ -395,30 +481,45 @@ export default async (req) => {
         if (!raidId || !Array.isArray(userIds)) {
           return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
         }
-        const raid = await store.get(raidId, { type: "json" });
-        if (!raid) {
+        const preCheck = await store.get(raidId, { type: "json" });
+        if (!preCheck) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        if (!await canManageRaid(user, raid)) {
+        if (!await canManageRaid(user, preCheck)) {
           return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
-        if (!raid.signups) raid.signups = [];
         const idSet = new Set(userIds);
-        const confirmedNames = [];
-        for (const signup of raid.signups) {
-          if (idSet.has(signup.userId)) {
-            signup.status = "confirmed";
-            confirmedNames.push(signup.charName);
-          }
+        const result = await atomicUpdate(
+          store, raidId,
+          (raid) => {
+            const confirmedNames = [];
+            for (const signup of raid.signups) {
+              if (idSet.has(signup.userId)) {
+                signup.status = "confirmed";
+                confirmedNames.push(signup.charName);
+              }
+            }
+            return { confirmedNames };
+          },
+          (fresh) => {
+            if (!fresh.signups) return false;
+            return userIds.every(uid => {
+              const s = fresh.signups.find(s => s.userId === uid);
+              return !s || s.status === "confirmed";
+            });
+          },
+        );
+        if (!result) {
+          return new Response(JSON.stringify({ error: "Aenderung fehlgeschlagen, bitte erneut versuchen" }), { status: 409, headers });
         }
-        await store.setJSON(raidId, raid);
+        const { raid: updatedRaid, meta } = result;
         writeAuditLog(raidId, {
           action: "confirm-lineup",
           performedBy: user.username,
-          details: `${confirmedNames.length} Spieler bestaetigt`,
+          details: `${meta.confirmedNames.length} Spieler bestaetigt`,
         });
-        autoUpdateDiscord(raidId, raid);
-        return new Response(JSON.stringify(raid), { status: 200, headers });
+        autoUpdateDiscord(raidId, updatedRaid);
+        return new Response(JSON.stringify(updatedRaid), { status: 200, headers });
       }
 
       // ── Organizer: remove a player from raid ──
@@ -427,24 +528,33 @@ export default async (req) => {
         if (!raidId || !targetUserId) {
           return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
         }
-        const raid = await store.get(raidId, { type: "json" });
-        if (!raid) {
+        const preCheck = await store.get(raidId, { type: "json" });
+        if (!preCheck) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        if (!await canManageRaid(user, raid)) {
+        if (!await canManageRaid(user, preCheck)) {
           return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
-        if (!raid.signups) raid.signups = [];
-        const removedPlayer = raid.signups.find(s => s.userId === targetUserId);
-        raid.signups = raid.signups.filter(s => s.userId !== targetUserId);
-        await store.setJSON(raidId, raid);
+        const result = await atomicUpdate(
+          store, raidId,
+          (raid) => {
+            const removedPlayer = raid.signups.find(s => s.userId === targetUserId);
+            raid.signups = raid.signups.filter(s => s.userId !== targetUserId);
+            return { removedCharName: removedPlayer?.charName || targetUserId };
+          },
+          (fresh) => !fresh.signups?.some(s => s.userId === targetUserId),
+        );
+        if (!result) {
+          return new Response(JSON.stringify({ error: "Aenderung fehlgeschlagen, bitte erneut versuchen" }), { status: 409, headers });
+        }
+        const { raid: updatedRaid, meta } = result;
         writeAuditLog(raidId, {
           action: "remove-signup",
           performedBy: user.username,
-          targetPlayer: removedPlayer?.charName || targetUserId,
+          targetPlayer: meta.removedCharName,
         });
-        autoUpdateDiscord(raidId, raid);
-        return new Response(JSON.stringify(raid), { status: 200, headers });
+        autoUpdateDiscord(raidId, updatedRaid);
+        return new Response(JSON.stringify(updatedRaid), { status: 200, headers });
       }
 
       // ── Organizer: sign up another player ──
@@ -453,11 +563,11 @@ export default async (req) => {
         if (!raidId || !charName || !role) {
           return new Response(JSON.stringify({ error: "Felder fehlen" }), { status: 400, headers });
         }
-        const raid = await store.get(raidId, { type: "json" });
-        if (!raid) {
+        const preCheck = await store.get(raidId, { type: "json" });
+        if (!preCheck) {
           return new Response(JSON.stringify({ error: "Raid nicht gefunden" }), { status: 404, headers });
         }
-        if (!await canManageRaid(user, raid)) {
+        if (!await canManageRaid(user, preCheck)) {
           return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
         if (!VALID_ROLES.includes(role)) {
@@ -466,31 +576,38 @@ export default async (req) => {
         if (status && !VALID_SIGNUP_STATUS.includes(status)) {
           return new Response(JSON.stringify({ error: "Ungültiger Status" }), { status: 400, headers });
         }
-        if (!raid.signups) raid.signups = [];
-        // Use targetUserId if provided (existing user), otherwise generate a placeholder
         const uid = targetUserId || ("manual-" + randomUUID());
-        raid.signups = raid.signups.filter(s => s.userId !== uid);
         const cleanCharName = String(charName).trim().slice(0, 50);
-        raid.signups.push({
-          userId: uid,
-          username: "",
-          charName: cleanCharName,
-          className: String(className || "").slice(0, 50),
-          role,
-          status: status || "accepted",
-          note: String(note || "").trim().slice(0, 200),
-          addedBy: user.username,
-          timestamp: new Date().toISOString(),
-        });
-        await store.setJSON(raidId, raid);
+        const result = await atomicUpdate(
+          store, raidId,
+          (raid) => {
+            raid.signups = raid.signups.filter(s => s.userId !== uid);
+            raid.signups.push({
+              userId: uid,
+              username: "",
+              charName: cleanCharName,
+              className: String(className || "").slice(0, 50),
+              role,
+              status: status || "accepted",
+              note: String(note || "").trim().slice(0, 200),
+              addedBy: user.username,
+              timestamp: new Date().toISOString(),
+            });
+          },
+          (fresh) => fresh.signups?.some(s => s.userId === uid),
+        );
+        if (!result) {
+          return new Response(JSON.stringify({ error: "Anmeldung fehlgeschlagen, bitte erneut versuchen" }), { status: 409, headers });
+        }
+        const { raid: updatedRaid } = result;
         writeAuditLog(raidId, {
           action: "signup-other",
           performedBy: user.username,
           targetPlayer: cleanCharName,
           details: `${className || ""} / ${role}`,
         });
-        autoUpdateDiscord(raidId, raid);
-        return new Response(JSON.stringify(raid), { status: 200, headers });
+        autoUpdateDiscord(raidId, updatedRaid);
+        return new Response(JSON.stringify(updatedRaid), { status: 200, headers });
       }
 
       // ── Create or Update Raid ──
@@ -529,7 +646,6 @@ export default async (req) => {
       }
 
       let id;
-      let existingSignups = [];
       let existingLocked = false;
       if (body.id && typeof body.id === "string") {
         const existing = await store.get(body.id, { type: "json" });
@@ -540,31 +656,54 @@ export default async (req) => {
           return new Response(JSON.stringify({ error: "Keine Berechtigung" }), { status: 403, headers });
         }
         id = body.id;
-        existingSignups = existing.signups || [];
         existingLocked = existing.locked || false;
       } else {
         id = randomUUID();
       }
 
-      const raid = {
-        id,
-        instance,
-        date,
-        time,
-        maxPlayers: mp,
-        deadline: cleanDeadline || undefined,
-        locked: existingLocked || undefined,
-        notes: (notes || "").trim().slice(0, 500),
-        description: (description || "").trim().slice(0, 2000),
-        createdBy: user.userId,
-        createdByName: user.username,
-        signups: existingSignups,
-        timestamp: new Date().toISOString(),
-      };
-
-      await store.setJSON(id, raid);
-      if (body.id) autoUpdateDiscord(id, raid);
-      return new Response(JSON.stringify(raid), { status: 200, headers });
+      if (body.id) {
+        // Update existing raid: use atomicUpdate to preserve concurrent signups
+        const result = await atomicUpdate(
+          store, id,
+          (raid) => {
+            raid.instance = instance;
+            raid.date = date;
+            raid.time = time;
+            raid.maxPlayers = mp;
+            raid.deadline = cleanDeadline || undefined;
+            raid.locked = existingLocked || undefined;
+            raid.notes = (notes || "").trim().slice(0, 500);
+            raid.description = (description || "").trim().slice(0, 2000);
+            raid.createdBy = user.userId;
+            raid.createdByName = user.username;
+            raid.timestamp = new Date().toISOString();
+          },
+          (fresh) => fresh.instance === instance && fresh.date === date && fresh.time === time,
+        );
+        if (!result) {
+          return new Response(JSON.stringify({ error: "Aenderung fehlgeschlagen, bitte erneut versuchen" }), { status: 409, headers });
+        }
+        autoUpdateDiscord(id, result.raid);
+        return new Response(JSON.stringify(result.raid), { status: 200, headers });
+      } else {
+        // Create new raid
+        const raid = {
+          id,
+          instance,
+          date,
+          time,
+          maxPlayers: mp,
+          deadline: cleanDeadline || undefined,
+          notes: (notes || "").trim().slice(0, 500),
+          description: (description || "").trim().slice(0, 2000),
+          createdBy: user.userId,
+          createdByName: user.username,
+          signups: [],
+          timestamp: new Date().toISOString(),
+        };
+        await store.setJSON(id, raid);
+        return new Response(JSON.stringify(raid), { status: 200, headers });
+      }
     }
 
     // DELETE — remove raid
