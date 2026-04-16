@@ -5,6 +5,7 @@ import { useEntriesStore } from '@/stores/entries'
 import { useKaraSignupsStore } from '@/stores/karaSignups'
 import { useRaidsStore } from '@/stores/raids'
 import { useAuthStore } from '@/stores/auth'
+import { useDkpRole } from '@/composables/useDkpRole'
 import { useToast } from '@/composables/useToast'
 import { useKaraPersistence, getIdWeekStart, getIdWeekEnd } from '@/composables/useKaraPersistence'
 import type { KaraLink } from '@/composables/useKaraPersistence'
@@ -37,6 +38,7 @@ const entriesStore = useEntriesStore()
 const karaSignupsStore = useKaraSignupsStore()
 const raidsStore = useRaidsStore()
 const authStore = useAuthStore()
+const { isDkpOfficer } = useDkpRole()
 const { toast } = useToast()
 const persistence = useKaraPersistence()
 const dragDrop = useKaraDragDrop()
@@ -574,6 +576,10 @@ function onFilterDayChange() {
 
 <template>
   <div id="v-kara">
+    <div v-if="!isDkpOfficer" class="kara-no-access">
+      Kein Zugriff &mdash; nur fuer Offiziere und Admins sichtbar.
+    </div>
+    <template v-else>
     <!-- Header -->
     <div class="kara-header">
       <div class="kara-week-nav">
@@ -829,10 +835,19 @@ function onFilterDayChange() {
       @confirm="doRemoveGroup"
       @cancel="removeGroupTarget = -1"
     />
+    </template>
   </div>
 </template>
 
 <style scoped>
+.kara-no-access {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--color-tx3);
+  font-size: 16px;
+  font-weight: 600;
+}
+
 .kara-header {
   display: flex;
   justify-content: space-between;
