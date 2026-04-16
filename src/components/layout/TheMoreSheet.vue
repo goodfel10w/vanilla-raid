@@ -1,18 +1,26 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useDkpRole } from '@/composables/useDkpRole'
 
 const emit = defineEmits<{ close: [] }>()
 const route = useRoute()
 const auth = useAuthStore()
+const { isDkpOfficer } = useDkpRole()
 
-const moreItems = [
-  { label: 'Neuigkeiten', route: '/news', icon: '\uD83D\uDCF0' },
-  { label: 'Aufstellung', route: '/roster', icon: '\uD83D\uDC65' },
-  { label: 'Heatmap', route: '/heatmap', icon: '\uD83D\uDCC5' },
-  { label: 'Auswertung', route: '/analytics', icon: '\uD83D\uDCC8' },
-  { label: 'Kara Gruppen', route: '/kara', icon: '\uD83C\uDFF0' },
-]
+const moreItems = computed(() => {
+  const items = [
+    { label: 'Neuigkeiten', route: '/news', icon: '\uD83D\uDCF0' },
+    { label: 'Aufstellung', route: '/roster', icon: '\uD83D\uDC65' },
+    { label: 'Heatmap', route: '/heatmap', icon: '\uD83D\uDCC5' },
+    { label: 'Auswertung', route: '/analytics', icon: '\uD83D\uDCC8' },
+  ]
+  if (isDkpOfficer.value) {
+    items.push({ label: 'Kara Gruppen', route: '/kara', icon: '\uD83C\uDFF0' })
+  }
+  return items
+})
 
 function navigate() {
   emit('close')

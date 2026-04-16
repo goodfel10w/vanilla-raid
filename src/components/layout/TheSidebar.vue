@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useDkpRole } from '@/composables/useDkpRole'
 import TheAuthBar from './TheAuthBar.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
+const { isDkpOfficer } = useDkpRole()
 
 interface NavItem {
   label: string
@@ -13,7 +16,7 @@ interface NavItem {
   show: boolean
 }
 
-const navItems: NavItem[] = [
+const navItems = computed<NavItem[]>(() => [
   { label: 'Dashboard', route: '/dashboard', icon: '\uD83D\uDCCA', show: true },
   { label: 'Neuigkeiten', route: '/news', icon: '\uD83D\uDCF0', show: true },
   { label: 'Mein Konto', route: '/form', icon: '\u270F\uFE0F', show: true },
@@ -22,8 +25,8 @@ const navItems: NavItem[] = [
   { label: 'Heatmap', route: '/heatmap', icon: '\uD83D\uDCC5', show: true },
   { label: 'Auswertung', route: '/analytics', icon: '\uD83D\uDCC8', show: true },
   { label: 'DKP', route: '/dkp', icon: '\uD83D\uDCB0', show: true },
-  { label: 'Kara Gruppen', route: '/kara', icon: '\uD83C\uDFF0', show: true },
-]
+  { label: 'Kara Gruppen', route: '/kara', icon: '\uD83C\uDFF0', show: isDkpOfficer.value },
+])
 
 function isActive(navRoute: string): boolean {
   return route.path === navRoute || route.path.startsWith(navRoute + '/')
@@ -39,7 +42,7 @@ function isActive(navRoute: string): boolean {
 
     <div class="sidebar-nav">
       <router-link
-        v-for="item in navItems"
+        v-for="item in navItems.filter(i => i.show)"
         :key="item.route"
         :to="item.route"
         class="tab nav-item"
