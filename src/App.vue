@@ -10,6 +10,7 @@ import TheSidebar from '@/components/layout/TheSidebar.vue'
 import TheBottomNav from '@/components/layout/TheBottomNav.vue'
 import TheHeader from '@/components/layout/TheHeader.vue'
 import AppToast from '@/components/shared/AppToast.vue'
+import CookieBanner from '@/components/shared/CookieBanner.vue'
 
 const auth = useAuthStore()
 const entries = useEntriesStore()
@@ -69,6 +70,9 @@ onMounted(async () => {
 
     <!-- Toast notifications -->
     <AppToast />
+
+    <!-- Cookie/privacy notice -->
+    <CookieBanner />
   </div>
 </template>
 

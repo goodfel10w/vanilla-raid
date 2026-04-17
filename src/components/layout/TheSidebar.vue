@@ -67,6 +67,12 @@ function isActive(navRoute: string): boolean {
     </div>
 
     <TheAuthBar />
+
+    <div class="sidebar-legal">
+      <router-link to="/impressum">Impressum</router-link>
+      <span class="legal-sep">&middot;</span>
+      <router-link to="/datenschutz">Datenschutz</router-link>
+    </div>
   </nav>
 </template>
 
@@ -143,5 +149,26 @@ function isActive(navRoute: string): boolean {
   font-size: 16px;
   width: 20px;
   text-align: center;
+}
+
+.sidebar-legal {
+  padding: 12px 20px 16px;
+  text-align: center;
+  font-size: 11px;
+}
+
+.sidebar-legal a {
+  color: var(--color-tx3);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.sidebar-legal a:hover {
+  color: var(--color-gold);
+}
+
+.legal-sep {
+  margin: 0 6px;
+  color: var(--color-tx3);
 }
 </style>

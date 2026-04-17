@@ -66,6 +66,16 @@ async function handleLogout() {
         <span>Admin</span>
       </router-link>
 
+      <!-- Legal links -->
+      <div class="more-legal">
+        <router-link to="/impressum" class="more-sheet-item more-legal-item tab" @click="navigate()">
+          Impressum
+        </router-link>
+        <router-link to="/datenschutz" class="more-sheet-item more-legal-item tab" @click="navigate()">
+          Datenschutz
+        </router-link>
+      </div>
+
       <!-- Auth section -->
       <div class="more-auth">
         <template v-if="auth.isLoggedIn">
@@ -154,6 +164,18 @@ async function handleLogout() {
   font-size: 18px;
   width: 24px;
   text-align: center;
+}
+
+.more-legal {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.more-legal-item {
+  font-size: 13px;
+  color: var(--color-tx3);
+  padding: 10px 16px;
 }
 
 .more-auth {
